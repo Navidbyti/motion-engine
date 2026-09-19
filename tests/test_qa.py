@@ -18,8 +18,8 @@ def test_public_qa_reports_only_claim_implemented_checks():
     assert qa_report(hello, ROOT / "examples")["status"] == "passed"
     weather = load_spec(ROOT / "examples/weather.motion.json")
     report = qa_report(weather, ROOT / "examples")
-    assert report["status"] == "failed"
-    assert any(issue["code"] == "qa_rule_unimplemented" and "chart.data_exact" in issue["message"] for issue in report["issues"])
+    assert report["status"] == "needs_review"
+    assert not any(issue["code"].startswith("data_") for issue in report["issues"])
     image_card = copy.deepcopy(load_spec(ROOT / "examples/image-card.motion.json"))
     image_card["policies"]["qa"].append({"id": "future_check", "rule": "future.rule", "severity": "info"})
     assert qa_report(image_card, ROOT / "examples")["status"] == "needs_review"

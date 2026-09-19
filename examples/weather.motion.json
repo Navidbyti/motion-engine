@@ -4,7 +4,7 @@
   "canvas": {"width": 1080, "height": 1080, "frameRate": {"numerator": 24, "denominator": 1}, "durationFrames": 120, "colorSpace": "Rec.709", "background": "#101820", "safeArea": {"top": 60, "right": 60, "bottom": 60, "left": 60}},
   "sources": [{"id": "weather_csv", "uri": "assets/weather.csv", "mediaType": "text/csv", "authority": ["data"]}],
   "assets": [],
-  "datasets": [{"id": "temperatures", "description": "Synthetic temperatures for interface testing", "columns": [{"name": "city", "type": "string"}, {"name": "temperatureC", "type": "number", "unit": "°C"}], "rows": [{"city": "Cairo", "temperatureC": 31}, {"city": "Rabat", "temperatureC": 24}, {"city": "Tunis", "temperatureC": 28}], "sourceRefs": [{"sourceId": "weather_csv", "location": "rows 2-4", "method": "CSV parser"}]}],
+  "datasets": [{"id": "temperatures", "description": "Synthetic temperatures for interface testing", "columns": [{"name": "city", "type": "string"}, {"name": "temperatureC", "type": "number", "unit": "°C"}], "rows": [{"city": "Cairo", "temperatureC": 31}, {"city": "Rabat", "temperatureC": 24}, {"city": "Tunis", "temperatureC": 28}], "sourceRefs": [{"sourceId": "weather_csv", "location": "A2:B4", "method": "CSV parser"}], "transform": {"columnSources": {"city": {"sourceId": "weather_csv", "location": "A2:A4"}, "temperatureC": {"sourceId": "weather_csv", "location": "B2:B4"}}}}],
   "timeline": [{
     "id": "comparison", "startFrame": 0, "endFrameExclusive": 120, "transitionIn": "start",
     "elements": [

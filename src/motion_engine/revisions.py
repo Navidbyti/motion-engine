@@ -28,7 +28,8 @@ def file_sha256(path: str | Path) -> str:
     return digest.hexdigest()
 
 
-def _verified_file(item: dict[str, Any], root: Path, kind: str) -> dict[str, Any]:
+def resolve_local_file(item: dict[str, Any], root: str | Path, kind: str) -> Path:
+    root = Path(root).resolve()
     uri = item.get("uri", "")
     relative = Path(uri)
     if not uri or relative.is_absolute() or ".." in relative.parts or ":" in uri or "\\" in uri:
@@ -36,6 +37,12 @@ def _verified_file(item: dict[str, Any], root: Path, kind: str) -> dict[str, Any
     path = (root / relative).resolve()
     if not path.is_relative_to(root) or not path.is_file():
         raise RevisionError(f"{kind} {item['id']}: file is missing or outside the MotionSpec directory")
+    return path
+
+
+def _verified_file(item: dict[str, Any], root: Path, kind: str) -> dict[str, Any]:
+    path = resolve_local_file(item, root, kind)
+    uri = item["uri"]
     actual = file_sha256(path)
     declared = item.get("sha256")
     if declared and declared != actual:

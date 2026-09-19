@@ -6,6 +6,7 @@ from typing import Any
 
 from .revisions import RevisionError, freeze_revision, spec_sha256
 from .runs import RunError, verify_render_run
+from .data_qa import check_chart_data
 
 
 def _issue(code: str, severity: str, message: str, target_id: str | None = None) -> dict[str, str]:
@@ -61,6 +62,11 @@ def qa_report(spec: dict[str, Any], spec_dir: str | Path, render_dir: str | Path
                     issues.append(_issue("disclosure_timing", severity, "Disclosure must span the full project", disclosure["id"]))
         elif name == "text.visual_review":
             issues.append(_issue("visual_review_required", "error" if severity == "error" else "warning", "Typography and language need human review", rule["id"]))
+        elif name == "chart.data_exact":
+            if revision:
+                issues.extend(check_chart_data(spec, spec_dir, severity))
+            else:
+                issues.append(_issue("data_source_unverifiable", severity, "Source revision did not verify", rule["id"]))
         else:
             issues.append(_issue("qa_rule_unimplemented", "error" if severity == "error" else "warning", f"QA rule {name!r} is not implemented", rule["id"]))
 
