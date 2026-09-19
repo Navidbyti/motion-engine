@@ -50,6 +50,7 @@ This is the ordered work list for a usable, general motion-production engine. A 
 - [ ] Build an After Effects adapter for editable comps, text, shapes, charts, timing, markers, and linked media.
 - [x] Prove an initial editable After Effects text and rectangle subset on three public fixtures with app-level save/reopen checks; other primitives and automated execution remain.
 - [x] Add composition markers for beat windows and verify marker comments, starts, and durations after native reopen.
+- [x] Import hashed local PNG/JPEG images as linked After Effects footage, with fit rules and missing-link reopen checks.
 - [ ] Build an Illustrator adapter for editable artboards, vector assets, type, and charts.
 - [ ] Build a Photoshop adapter for layered still assets, text, treatments, and links.
 - [ ] Build a Premiere Pro adapter for sequence tracks, cuts, markers, audio, and linked assets.

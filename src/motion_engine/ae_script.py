@@ -5,7 +5,10 @@ import json
 from pathlib import Path
 from typing import Any
 
+from PIL import Image
+
 from .validation import validate
+from .revisions import RevisionError, file_sha256, resolve_local_file
 
 
 class AEExportError(ValueError):
@@ -13,15 +16,39 @@ class AEExportError(ValueError):
 
 
 def make_ae_script(spec: dict[str, Any], script_path: str | Path,
-                   aep_path: str | Path, report_path: str | Path) -> Path:
+                   aep_path: str | Path, report_path: str | Path,
+                   asset_root: str | Path | None = None) -> Path:
     errors = validate(spec)
     if errors:
         raise AEExportError(f"invalid MotionSpec: {errors[0]}")
     if any(scene.get("transitionIn") != ("start" if index == 0 else "cut")
            for index, scene in enumerate(spec["timeline"])):
         raise AEExportError("initial After Effects adapter supports only scene cuts")
-    if spec["assets"] or spec["policies"]["disclosures"]:
-        raise AEExportError("initial After Effects adapter does not support assets or policy disclosures")
+    if spec["policies"]["disclosures"]:
+        raise AEExportError("initial After Effects adapter does not support policy disclosures")
+    images = []
+    for asset in spec["assets"]:
+        if asset["kind"] != "image" or asset["status"] != "available" or not asset.get("sha256"):
+            raise AEExportError(f"asset {asset['id']} must be an available hashed image")
+        if not asset_root:
+            raise AEExportError("image assets require a MotionSpec asset root")
+        try:
+            path = resolve_local_file(asset, asset_root, "asset")
+        except RevisionError as exc:
+            raise AEExportError(str(exc)) from exc
+        if path.suffix.lower() not in (".png", ".jpg", ".jpeg"):
+            raise AEExportError(f"asset {asset['id']} must be PNG or JPEG for this After Effects adapter")
+        if file_sha256(path) != asset["sha256"]:
+            raise AEExportError(f"asset {asset['id']} SHA-256 mismatch")
+        try:
+            with Image.open(path) as picture:
+                width, height = picture.size
+                if picture.format not in ("PNG", "JPEG"):
+                    raise AEExportError(f"asset {asset['id']} file content is not PNG or JPEG")
+        except OSError as exc:
+            raise AEExportError(f"asset {asset['id']} image cannot be decoded") from exc
+        images.append({"id": asset["id"], "path": path.as_posix(), "width": width, "height": height})
+    image_ids = {item["id"] for item in images}
     if any(beat.get("voice", {}).get("value", "").strip()
            for scene in spec["timeline"] for beat in scene["beats"]):
         raise AEExportError("initial After Effects adapter does not support voice audio")
@@ -30,7 +57,7 @@ def make_ae_script(spec: dict[str, Any], script_path: str | Path,
         raise AEExportError("After Effects beat markers need unique start frames")
     for scene in spec["timeline"]:
         for element in scene["elements"]:
-            if element["kind"] not in ("text", "shape"):
+            if element["kind"] not in ("text", "shape", "image"):
                 raise AEExportError(f"initial After Effects adapter does not support {element['kind']}")
             if not element.get("bounds"):
                 raise AEExportError(f"element {element['id']} needs bounds")
@@ -43,9 +70,14 @@ def make_ae_script(spec: dict[str, Any], script_path: str | Path,
                     raise AEExportError(f"text {element['id']} has unsupported parameters")
                 if element["text"].get("direction", spec["project"].get("direction", "ltr")) == "rtl":
                     raise AEExportError("initial After Effects adapter has not verified RTL text")
-            else:
+            elif element["kind"] == "shape":
                 if set(element["params"]) - {"color", "shape"} or element["params"].get("shape", "rect") != "rect":
                     raise AEExportError(f"shape {element['id']} supports solid rectangles only")
+            else:
+                if element.get("assetId") not in image_ids:
+                    raise AEExportError(f"image {element['id']} needs a verified image asset")
+                if set(element["params"]) - {"fit"} or element["params"].get("fit", "contain") not in ("contain", "stretch"):
+                    raise AEExportError(f"image {element['id']} supports contain or stretch only")
         for animation in scene["animations"]:
             if animation["property"] != "opacity" or any(
                 key.get("easing", "linear") != "linear" or not isinstance(key["value"], (int, float))
@@ -61,7 +93,7 @@ def make_ae_script(spec: dict[str, Any], script_path: str | Path,
         raise AEExportError("script, report, and AEP output paths must not already exist")
     for path in (output, report, script):
         path.parent.mkdir(parents=True, exist_ok=True)
-    job = {"spec": spec, "aep": output.as_posix(), "report": report.as_posix()}
+    job = {"spec": spec, "aep": output.as_posix(), "report": report.as_posix(), "imageAssets": images}
     payload = json.dumps(job, ensure_ascii=True, separators=(",", ":"))
     source = "var job = " + payload + ";\n" + _SCRIPT
     script.write_text(source, encoding="utf-8")
@@ -87,6 +119,18 @@ _SCRIPT = r'''
         master.bgColor = hexColor(spec.canvas.background || "#000000");
         var expected = [];
         var expectedBeats = [];
+        var footageById = {};
+        for (var f = 0; f < job.imageAssets.length; f++) {
+            var imageAsset = job.imageAssets[f];
+            var file = new File(imageAsset.path);
+            if (!file.exists) throw new Error("image asset missing: " + imageAsset.id);
+            var options = new ImportOptions(file);
+            options.sequence = false;
+            var footage = app.project.importFile(options);
+            if (footage.width !== imageAsset.width || footage.height !== imageAsset.height)
+                throw new Error("image dimensions changed: " + imageAsset.id);
+            footageById[imageAsset.id] = footage;
+        }
         for (var i = 0; i < spec.timeline.length; i++) {
             var scene = spec.timeline[i];
             var sceneComp = app.project.items.addComp(scene.id, spec.canvas.width, spec.canvas.height,
@@ -128,13 +172,20 @@ _SCRIPT = r'''
                         td.fontObject = matches[0];
                     }
                     tdProp.setValue(td);
-                } else {
+                } else if (element.kind === "shape") {
                     layer = sceneComp.layers.addShape();
                     var contents = layer.property("ADBE Root Vectors Group");
                     var rectangle = contents.addProperty("ADBE Vector Shape - Rect");
                     rectangle.property("ADBE Vector Rect Size").setValue([element.bounds.width, element.bounds.height]);
                     var fill = contents.addProperty("ADBE Vector Graphic - Fill");
                     fill.property("ADBE Vector Fill Color").setValue(hexColor(element.params.color || "#FFFFFF"));
+                } else {
+                    var footageItem = footageById[element.assetId];
+                    layer = sceneComp.layers.add(footageItem);
+                    var sx = element.bounds.width / footageItem.width * 100;
+                    var sy = element.bounds.height / footageItem.height * 100;
+                    if ((element.params.fit || "contain") === "contain") sx = sy = Math.min(sx, sy);
+                    layer.property("Transform").property("Scale").setValue([sx, sy]);
                 }
                 layer.name = element.id;
                 layer.comment = "MotionSpec:" + scene.id + "/" + element.id;
@@ -196,11 +247,21 @@ _SCRIPT = r'''
                         throw new Error("reopened text mismatch: " + original[c].id);
                     if (original[c].text.fontFamily && reopenedText.property("Source Text").value.fontObject.familyName !== original[c].text.fontFamily)
                         throw new Error("reopened font mismatch: " + original[c].id);
-                } else {
+                } else if (original[c].kind === "shape") {
                     var shape = reopenedText.property("ADBE Root Vectors Group").property("ADBE Vector Shape - Rect");
                     if (!shape || Math.abs(shape.property("ADBE Vector Rect Size").value[0] - original[c].bounds.width) > 0.001 ||
                         Math.abs(shape.property("ADBE Vector Rect Size").value[1] - original[c].bounds.height) > 0.001)
                         throw new Error("reopened rectangle mismatch: " + original[c].id);
+                } else {
+                    var linked = reopenedText.source;
+                    if (!(linked instanceof FootageItem) || linked.footageMissing ||
+                        !linked.mainSource.file || !linked.mainSource.file.exists)
+                        throw new Error("reopened image link missing: " + original[c].id);
+                    var assetInfo = null;
+                    for (var z = 0; z < job.imageAssets.length; z++)
+                        if (job.imageAssets[z].id === original[c].assetId) assetInfo = job.imageAssets[z];
+                    if (!assetInfo || linked.width !== assetInfo.width || linked.height !== assetInfo.height)
+                        throw new Error("reopened image dimensions mismatch: " + original[c].id);
                 }
             }
         }

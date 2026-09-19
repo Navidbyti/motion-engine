@@ -135,7 +135,8 @@ def main(argv: list[str] | None = None) -> int:
             return 2
     elif args.command == "make-ae-script":
         try:
-            result = make_ae_script(spec, args.output_script, args.output_aep, args.report)
+            result = make_ae_script(spec, args.output_script, args.output_aep, args.report,
+                                    asset_root=Path(args.spec).resolve().parent)
             print(json.dumps({"ok": True, "script": str(result), "aep": str(Path(args.output_aep).resolve()),
                               "report": str(Path(args.report).resolve())}, ensure_ascii=False, indent=2))
         except (OSError, AEExportError) as exc:
