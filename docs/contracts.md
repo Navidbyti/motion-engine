@@ -4,6 +4,8 @@
 
 All stages exchange immutable artifacts: `{id, uri, mediaType, sha256, producerVersion, sourceRefs, createdAt}`. Paths are relative to a run package or are secure object-store URIs. A revision binds an exact MotionSpec hash and exact source hashes. Generated outputs never mutate inputs.
 
+The [local preview run](runs.md) now writes relative artifact paths and verifies hashes before reuse. The broader multi-worker envelope below is still a design contract.
+
 ## Job envelope
 
 Input: `{jobId, projectId, revisionId, stage, inputArtifacts, options, idempotencyKey}`. Output: `{status, artifacts, issues, metrics, workerVersion}`. `status` is `queued`, `running`, `succeeded`, `failed`, or `needs_review`. Issues have `{code, severity, message, sourceRefs, retryable}`. Idempotency is keyed by revision, stage, and input hashes.

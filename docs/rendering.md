@@ -2,6 +2,8 @@
 
 Run `motion-engine render SPEC --output-dir DIR`. For a spec requiring `video/mp4`, this writes numbered PNG frames, `preview.mp4`, and `render-manifest.json`. The output path must not exist. Rendering uses a temporary sibling directory and publishes the output only after success; a failed render leaves no partial result. `--frames-only` omits MP4 for diagnostics; `--mp4` forces MP4 when it is not a required deliverable. `--scale 0.5` gives a faster smaller preview. `--font-dir PATH` adds a directory of licensed project fonts. `--max-frames` raises the explicit frame safety limit.
 
+Add `--resume` to reuse an existing output after [run integrity checks](runs.md). Frame and MP4 hashes, the source revision, and the render options must all match.
+
 Supported M2 primitives: editable-source `text`, `shape` rectangles, `chart.bar`, and `chart.line`; local raster `image` layers; `opacity` keyframes for text, rectangles, and images; `reveal` keyframes for charts; and text disclosures. Scene cuts are supported. Charts bind to MotionSpec datasets and map exact numeric values to geometry. The renderer never reads values from a generated image. Frames are numbered from `000000.png` to the final frame, and MP4 is encoded with FFmpeg at the rational MotionSpec frame rate.
 
 Image assets support PNG, JPEG, and WebP, with `contain`, `cover`, or `stretch` fit. The URI is relative to the MotionSpec file when run through the CLI. The asset must be `available`, carry a SHA-256 hash, and remain inside that directory tree. A changed or missing image stops rendering before output is written. See `examples/image-card.motion.json` for a fully public synthetic example.

@@ -20,6 +20,14 @@ def spec_sha256(spec: dict[str, Any]) -> str:
     return hashlib.sha256(canonical_bytes(spec)).hexdigest()
 
 
+def file_sha256(path: str | Path) -> str:
+    digest = hashlib.sha256()
+    with Path(path).open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
 def _verified_file(item: dict[str, Any], root: Path, kind: str) -> dict[str, Any]:
     uri = item.get("uri", "")
     relative = Path(uri)
@@ -28,11 +36,7 @@ def _verified_file(item: dict[str, Any], root: Path, kind: str) -> dict[str, Any
     path = (root / relative).resolve()
     if not path.is_relative_to(root) or not path.is_file():
         raise RevisionError(f"{kind} {item['id']}: file is missing or outside the MotionSpec directory")
-    digest = hashlib.sha256()
-    with path.open("rb") as stream:
-        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
-            digest.update(chunk)
-    actual = digest.hexdigest()
+    actual = file_sha256(path)
     declared = item.get("sha256")
     if declared and declared != actual:
         raise RevisionError(f"{kind} {item['id']}: SHA-256 mismatch")

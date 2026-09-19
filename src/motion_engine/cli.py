@@ -11,6 +11,8 @@ from .ingest import ingest
 from .planning import load_capabilities, plan
 from .rendering import RenderError, render_preview
 from .revisions import RevisionError, freeze_revision
+from .revisions import spec_sha256
+from .runs import RunError, render_key, verify_render_run
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -27,6 +29,7 @@ def main(argv: list[str] | None = None) -> int:
             command.add_argument("--output", help="Write a verified revision manifest JSON")
         if name == "render":
             command.add_argument("--output-dir", required=True)
+            command.add_argument("--resume", action="store_true", help="Reuse a completed output only if its revision and artifacts verify")
             encode = command.add_mutually_exclusive_group()
             encode.add_argument("--mp4", action="store_true", help="Encode a silent MP4 even if not required in MotionSpec")
             encode.add_argument("--frames-only", action="store_true", help="Render PNG frames without MP4 encoding")
@@ -86,13 +89,23 @@ def main(argv: list[str] | None = None) -> int:
     else:
         try:
             encode_mp4 = True if args.mp4 else False if args.frames_only else None
+            if not 0 < args.scale <= 1:
+                raise RenderError("scale must be greater than 0 and at most 1")
             spec_dir = Path(args.spec).resolve().parent
             revision = freeze_revision(spec, spec_dir)
-            result = render_preview(spec, args.output_dir, mp4=encode_mp4, scale=args.scale,
-                                    font_dirs=args.font_dir, max_frames=args.max_frames,
-                                    asset_root=spec_dir, revision_sha256=revision["revisionSha256"])
+            actual_mp4 = encode_mp4 if encode_mp4 is not None else any(d["target"] == "video/mp4" and d["required"] for d in spec["deliverables"])
+            if args.resume and Path(args.output_dir).exists():
+                result = verify_render_run(args.output_dir)
+                expected = render_key(spec_sha256(spec), revision["revisionSha256"], mp4=actual_mp4,
+                                      scale=args.scale, font_dirs=args.font_dir)
+                if result["idempotencyKey"] != expected or result["revisionSha256"] != revision["revisionSha256"]:
+                    raise RunError("existing render was built from different inputs or options")
+            else:
+                result = render_preview(spec, args.output_dir, mp4=encode_mp4, scale=args.scale,
+                                        font_dirs=args.font_dir, max_frames=args.max_frames,
+                                        asset_root=spec_dir, revision_sha256=revision["revisionSha256"])
             print(json.dumps(result, ensure_ascii=False, indent=2))
-        except (OSError, ValueError, RenderError) as exc:
+        except (OSError, ValueError, RenderError, RunError) as exc:
             print(json.dumps({"ok": False, "errors": [str(exc)]}, ensure_ascii=False), file=sys.stderr)
             return 2
     return 0

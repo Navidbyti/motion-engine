@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 from motion_engine.cli import main
 from motion_engine.revisions import RevisionError, freeze_revision, spec_sha256
+from motion_engine.runs import RunError, verify_render_run
 from motion_engine.validation import load_spec
 
 
@@ -80,3 +81,10 @@ def test_cli_render_binds_revision(tmp_path):
     assert main(["render", str(spec_path), "--output-dir", str(output), "--frames-only", "--scale", "0.1"]) == 0
     manifest = json.loads((output / "render-manifest.json").read_text(encoding="utf-8"))
     assert manifest["revisionSha256"] == freeze_revision(load_spec(spec_path), spec_path.parent)["revisionSha256"]
+    assert verify_render_run(output) == manifest
+    assert main(["render", str(spec_path), "--output-dir", str(output), "--frames-only", "--scale", "0.1", "--resume"]) == 0
+    assert main(["render", str(spec_path), "--output-dir", str(output), "--frames-only", "--scale", "0.2", "--resume"]) == 2
+    frame = output / "frames/000020.png"
+    frame.write_bytes(frame.read_bytes() + b"tampered")
+    with pytest.raises(RunError, match="hash mismatch"):
+        verify_render_run(output)

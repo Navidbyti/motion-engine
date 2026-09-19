@@ -15,7 +15,8 @@ This is the ordered work list for a usable, general motion-production engine. A 
 - [ ] Pin OS images, fonts, and codecs for pixel-identical media builds where required.
 - [x] Add canonical MotionSpec serialization, verified local input hashes, revision hashes, and public compatibility fixtures.
 - [ ] Add MotionSpec migrations before the first incompatible schema change.
-- [ ] Add a run manifest and immutable artifact store with retry-safe stage jobs.
+- [x] Add a content-verified preview run manifest and safe local `--resume` behavior.
+- [ ] Add a generic immutable artifact store and retry-safe jobs for every stage.
 
 ## 1. Source understanding and authoring
 

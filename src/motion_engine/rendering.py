@@ -18,6 +18,9 @@ from PIL import Image, ImageDraw, ImageFont, ImageOps, features
 
 from .preview_contract import PREVIEW_ANIMATIONS_BY_KIND, PREVIEW_EASING, PREVIEW_KINDS, PREVIEW_PARAMS
 from .revisions import spec_sha256
+from .runs import frames_tree_sha256, render_key
+from .revisions import file_sha256
+from . import __version__
 
 
 class RenderError(ValueError):
@@ -369,7 +372,8 @@ def render_preview(spec: dict[str, Any], output_dir: str | Path, *, mp4: bool | 
         frames_dir.mkdir()
         for frame in range(duration):
             renderer.render_frame(frame).save(frames_dir / f"{frame:06d}.png")
-        outputs = [{"kind": "png_sequence", "path": str(output / "frames"), "frameCount": duration}]
+        outputs = [{"kind": "png_sequence", "path": "frames", "frameCount": duration,
+                    "treeSha256": frames_tree_sha256(frames_dir, duration)}]
         if mp4:
             video = staging / "preview.mp4"
             rate = spec["canvas"]["frameRate"]
@@ -382,10 +386,15 @@ def render_preview(spec: dict[str, Any], output_dir: str | Path, *, mp4: bool | 
             completed = subprocess.run(command, capture_output=True, text=True, check=False)
             if completed.returncode:
                 raise RenderError(f"FFmpeg failed: {completed.stderr.strip()}")
-            outputs.append({"kind": "video/mp4", "path": str(output / "preview.mp4")})
+            outputs.append({"kind": "video/mp4", "path": "preview.mp4", "sha256": file_sha256(video)})
+        spec_hash = spec_sha256(spec)
         report = {
+            "status": "succeeded",
+            "producerVersion": __version__,
+            "idempotencyKey": render_key(spec_hash, revision_sha256, mp4=mp4, scale=scale, font_dirs=font_dirs),
+            "renderOptions": {"mp4": mp4, "scale": scale, "fontDirs": [str(Path(path).resolve()) for path in (font_dirs or [])]},
             "projectId": spec["project"]["id"],
-            "specSha256": spec_sha256(spec),
+            "specSha256": spec_hash,
             "revisionSha256": revision_sha256,
             "frameCount": duration,
             "width": renderer.width,

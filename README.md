@@ -53,6 +53,7 @@ motion-engine ingest examples/assets/hello-script.md --output evidence.json
 motion-engine plan examples/hello.motion.json --output plan.json
 motion-engine freeze examples/hello.motion.json --output revision.json
 motion-engine render examples/hello.motion.json --output-dir hello-preview
+motion-engine render examples/hello.motion.json --output-dir hello-preview --resume
 motion-engine render examples/image-card.motion.json --output-dir image-card-preview
 python -m pytest
 ```
@@ -65,7 +66,7 @@ Open the repository in your coding agent and use this prompt:
 
 > Read AGENTS.md, MotionSpec.schema.json, and docs/milestones.md. Implement M2 in small commits. Keep the core independent of the example subject, language, aspect ratio, and provider. Run the tests and add conformance tests for each new adapter. Do not claim native outputs until they open and remain editable in the owning application.
 
-`AGENTS.md` is the persistent engineering contract. [Architecture](docs/architecture.md), [service contracts](docs/contracts.md), [verified revisions](docs/revisions.md), [extension API](docs/extensions.md), [compatibility](docs/compatibility.md), and [acceptance tests](docs/acceptance-tests.md) give agents the rest of the build instructions.
+`AGENTS.md` is the persistent engineering contract. [Architecture](docs/architecture.md), [service contracts](docs/contracts.md), [verified revisions](docs/revisions.md), [preview runs](docs/runs.md), [extension API](docs/extensions.md), [compatibility](docs/compatibility.md), and [acceptance tests](docs/acceptance-tests.md) give agents the rest of the build instructions.
 
 The [product completion plan](docs/product-roadmap.md) lists every remaining workstream and the release gates in build order.
 
