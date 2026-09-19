@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "project": {"id": "hello", "title": "A small beginning", "locale": "en-US", "direction": "ltr"},
   "canvas": {"width": 1920, "height": 1080, "frameRate": {"numerator": 30, "denominator": 1}, "durationFrames": 90, "colorSpace": "Rec.709", "background": "#101820", "safeArea": {"top": 80, "right": 80, "bottom": 80, "left": 80}},
-  "sources": [{"id": "script", "uri": "examples/assets/hello-script.md", "mediaType": "text/markdown", "authority": ["text", "timing"]}],
+  "sources": [{"id": "script", "uri": "assets/hello-script.md", "mediaType": "text/markdown", "authority": ["text", "timing"]}],
   "assets": [],
   "datasets": [],
   "timeline": [{

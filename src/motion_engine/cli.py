@@ -10,18 +10,21 @@ from .validation import load_spec, validate
 from .ingest import ingest
 from .planning import load_capabilities, plan
 from .rendering import RenderError, render_preview
+from .revisions import RevisionError, freeze_revision
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="motion-engine")
     sub = parser.add_subparsers(dest="command", required=True)
-    for name in ("validate", "inspect", "plan", "render"):
+    for name in ("validate", "inspect", "plan", "render", "freeze"):
         command = sub.add_parser(name)
         command.add_argument("spec")
         if name == "plan":
             command.add_argument("--capabilities", help="Optional adapter capability manifest JSON")
             command.add_argument("--output", help="Write plan JSON to this file")
             command.add_argument("--require-buildable", action="store_true", help="Fail until every required target has a working adapter")
+        if name == "freeze":
+            command.add_argument("--output", help="Write a verified revision manifest JSON")
         if name == "render":
             command.add_argument("--output-dir", required=True)
             encode = command.add_mutually_exclusive_group()
@@ -72,12 +75,22 @@ def main(argv: list[str] | None = None) -> int:
             return 1
         if args.require_buildable and not result["buildable"]:
             return 1
+    elif args.command == "freeze":
+        try:
+            if args.output and Path(args.output).exists():
+                raise RevisionError(f"revision output {args.output} already exists; choose a new path")
+            _emit(freeze_revision(spec, Path(args.spec).resolve().parent), args.output)
+        except (OSError, RevisionError) as exc:
+            print(json.dumps({"ok": False, "errors": [str(exc)]}, ensure_ascii=False), file=sys.stderr)
+            return 2
     else:
         try:
             encode_mp4 = True if args.mp4 else False if args.frames_only else None
+            spec_dir = Path(args.spec).resolve().parent
+            revision = freeze_revision(spec, spec_dir)
             result = render_preview(spec, args.output_dir, mp4=encode_mp4, scale=args.scale,
                                     font_dirs=args.font_dir, max_frames=args.max_frames,
-                                    asset_root=Path(args.spec).resolve().parent)
+                                    asset_root=spec_dir, revision_sha256=revision["revisionSha256"])
             print(json.dumps(result, ensure_ascii=False, indent=2))
         except (OSError, ValueError, RenderError) as exc:
             print(json.dumps({"ok": False, "errors": [str(exc)]}, ensure_ascii=False), file=sys.stderr)

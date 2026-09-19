@@ -17,6 +17,7 @@ from typing import Any
 from PIL import Image, ImageDraw, ImageFont, ImageOps, features
 
 from .preview_contract import PREVIEW_ANIMATIONS_BY_KIND, PREVIEW_EASING, PREVIEW_KINDS, PREVIEW_PARAMS
+from .revisions import spec_sha256
 
 
 class RenderError(ValueError):
@@ -348,7 +349,8 @@ def _ffmpeg_executable() -> str:
 
 def render_preview(spec: dict[str, Any], output_dir: str | Path, *, mp4: bool | None = None,
                    scale: float = 1.0, font_dirs: list[str | Path] | None = None,
-                   max_frames: int = 10_000, asset_root: str | Path | None = None) -> dict[str, Any]:
+                   max_frames: int = 10_000, asset_root: str | Path | None = None,
+                   revision_sha256: str | None = None) -> dict[str, Any]:
     if mp4 is None:
         mp4 = any(d["target"] == "video/mp4" and d["required"] for d in spec["deliverables"])
     duration = spec["canvas"]["durationFrames"]
@@ -381,10 +383,10 @@ def render_preview(spec: dict[str, Any], output_dir: str | Path, *, mp4: bool | 
             if completed.returncode:
                 raise RenderError(f"FFmpeg failed: {completed.stderr.strip()}")
             outputs.append({"kind": "video/mp4", "path": str(output / "preview.mp4")})
-        fingerprint = hashlib.sha256(json.dumps(spec, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()
         report = {
             "projectId": spec["project"]["id"],
-            "specSha256": fingerprint,
+            "specSha256": spec_sha256(spec),
+            "revisionSha256": revision_sha256,
             "frameCount": duration,
             "width": renderer.width,
             "height": renderer.height,

@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "project": {"id": "weather_sample", "title": "درجات الحرارة", "locale": "ar-EG", "direction": "rtl", "description": "Synthetic data example, not a weather forecast."},
   "canvas": {"width": 1080, "height": 1080, "frameRate": {"numerator": 24, "denominator": 1}, "durationFrames": 120, "colorSpace": "Rec.709", "background": "#101820", "safeArea": {"top": 60, "right": 60, "bottom": 60, "left": 60}},
-  "sources": [{"id": "weather_csv", "uri": "examples/assets/weather.csv", "mediaType": "text/csv", "authority": ["data"]}],
+  "sources": [{"id": "weather_csv", "uri": "assets/weather.csv", "mediaType": "text/csv", "authority": ["data"]}],
   "assets": [],
   "datasets": [{"id": "temperatures", "description": "Synthetic temperatures for interface testing", "columns": [{"name": "city", "type": "string"}, {"name": "temperatureC", "type": "number", "unit": "°C"}], "rows": [{"city": "Cairo", "temperatureC": 31}, {"city": "Rabat", "temperatureC": 24}, {"city": "Tunis", "temperatureC": 28}], "sourceRefs": [{"sourceId": "weather_csv", "location": "rows 2-4", "method": "CSV parser"}]}],
   "timeline": [{

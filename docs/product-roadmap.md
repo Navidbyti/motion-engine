@@ -10,9 +10,11 @@ This is the ordered work list for a usable, general motion-production engine. A 
 - [x] Render a silent, deterministic PNG/MP4 preview for text, rectangles, and bar/line charts.
 - [x] Publish preview outputs atomically so failed renders cannot leave a partial deliverable.
 - [x] Validate typed dataset cells and reject chart ranges that hide source values.
-- [ ] Pin a supported dependency matrix and lock reproducible build environments for Windows and macOS.
-- [x] Add CI on Windows and Linux with Python 3.11/3.12 for schema, unit, integration, packaging, and synthetic media tests. First green run: [35434145224](https://github.com/Navidbyti/motion-engine/actions/runs/35434145224).
-- [ ] Add MotionSpec migrations, canonical serialization, revision hashes, and compatibility fixtures.
+- [x] Pin Python development and build dependencies; verify Windows, Linux, and macOS on Python 3.11/3.12. [Six-job run](https://github.com/Navidbyti/motion-engine/actions/runs/35434480164).
+- [x] Add CI on Windows, Linux, and macOS for schema, unit, integration, packaging, and synthetic media tests.
+- [ ] Pin OS images, fonts, and codecs for pixel-identical media builds where required.
+- [x] Add canonical MotionSpec serialization, verified local input hashes, revision hashes, and public compatibility fixtures.
+- [ ] Add MotionSpec migrations before the first incompatible schema change.
 - [ ] Add a run manifest and immutable artifact store with retry-safe stage jobs.
 
 ## 1. Source understanding and authoring
