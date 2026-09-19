@@ -14,6 +14,7 @@ from .revisions import RevisionError, freeze_revision
 from .revisions import spec_sha256
 from .runs import RunError, render_key, verify_render_run
 from .qa import qa_report
+from .packaging import package_preview, verify_preview_bundle
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -45,11 +46,23 @@ def main(argv: list[str] | None = None) -> int:
     ingestion.add_argument("--source-id")
     ingestion.add_argument("--limit", type=int, default=100_000)
     ingestion.add_argument("--output", help="Write evidence JSON to this file")
+    bundle = sub.add_parser("package-preview")
+    bundle.add_argument("spec")
+    bundle.add_argument("--render-dir", required=True)
+    bundle.add_argument("--output-dir", required=True)
+    verify_bundle = sub.add_parser("verify-package")
+    verify_bundle.add_argument("directory")
     args = parser.parse_args(argv)
     try:
         if args.command == "ingest":
             result = ingest(args.source, args.source_id, args.limit)
             _emit(result, args.output)
+            return 0
+        if args.command == "package-preview":
+            print(json.dumps(package_preview(args.spec, args.render_dir, args.output_dir), ensure_ascii=False, indent=2))
+            return 0
+        if args.command == "verify-package":
+            print(json.dumps(verify_preview_bundle(args.directory), ensure_ascii=False, indent=2))
             return 0
         spec = load_spec(args.spec)
         errors = validate(spec)
