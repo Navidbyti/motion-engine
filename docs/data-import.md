@@ -1,0 +1,7 @@
+# Deterministic data import
+
+Use `motion-engine import-data SOURCE --project-root DIR --dataset-id ID --output fragment.json` for CSV. Add `--sheet NAME` for XLSX. For sheets with notes, multiple tables, or formatted empty rows, add `--table-range A1:D12` to name the exact header-and-data rectangle. `DIR` is the directory that will contain the MotionSpec; `SOURCE` must be inside it so the resulting source URI stays portable. The command emits a source object and dataset object ready to insert into MotionSpec, plus a header-to-field map for review. It does not decide the scene, chart, or visual design.
+
+The first row supplies column names; the remaining rows form a rectangular table. Non-identifier headers are converted to stable MotionSpec field names. Types are inferred conservatively from all cells, and `--type field:string|integer|number|boolean|date` can override them. Numeric strings with leading zeroes remain text. Blank cells, uncached XLSX formulas, ragged rows, unsupported values, and decimal values beyond safe JSON numeric precision stop import. `--max-rows` controls the explicit row limit.
+
+Every field receives an exact CSV or quoted XLSX cell range in `transform.columnSources`, and the source receives a SHA-256. After merging the fragment, `chart.data_exact` QA checks chart values against those cells. Review the inferred types and `headerMapping` before use, especially for identifiers, dates, and units. Units and transformations must be declared separately in MotionSpec; import never guesses them.

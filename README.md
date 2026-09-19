@@ -50,6 +50,7 @@ python -m pip install -e ".[dev]" -c requirements-dev.lock
 motion-engine validate examples/hello.motion.json
 motion-engine inspect examples/hello.motion.json
 motion-engine ingest examples/assets/hello-script.md --output evidence.json
+motion-engine import-data examples/assets/weather.csv --project-root examples --dataset-id temperatures --source-id weather_csv --output dataset-fragment.json
 motion-engine plan examples/hello.motion.json --output plan.json
 motion-engine freeze examples/hello.motion.json --output revision.json
 motion-engine render examples/hello.motion.json --output-dir hello-preview
@@ -61,7 +62,7 @@ motion-engine render examples/image-card.motion.json --output-dir image-card-pre
 python -m pytest
 ```
 
-The CLI validates and inspects MotionSpec, checks typed dataset cells and chart ranges, compares chart values with CSV/XLSX source cells and declared decimal formulas, extracts evidence from documents, spreadsheets, images, and media headers, and produces a frame plan with target capability status. It can render silent MP4 previews for text, rectangles, local raster images, bar charts, and line charts, then create a [verifiable preview bundle](docs/preview-bundles.md). Other elements and voice audio fail explicitly. Adobe output adapters remain planned. See [ingestion](docs/ingestion.md), [planning](docs/planning.md), [preview rendering](docs/rendering.md), and [milestones](docs/milestones.md).
+The CLI validates and inspects MotionSpec, [imports tabular data](docs/data-import.md), checks typed dataset cells and chart ranges, compares chart values with CSV/XLSX source cells and declared decimal formulas, extracts evidence from documents, spreadsheets, images, and media headers, and produces a frame plan with target capability status. It can render silent MP4 previews for text, rectangles, local raster images, bar charts, and line charts, then create a [verifiable preview bundle](docs/preview-bundles.md). Other elements and voice audio fail explicitly. Adobe output adapters remain planned. See [ingestion](docs/ingestion.md), [planning](docs/planning.md), [preview rendering](docs/rendering.md), and [milestones](docs/milestones.md).
 
 ## Give this repository to a coding agent
 

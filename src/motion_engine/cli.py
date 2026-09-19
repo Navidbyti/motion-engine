@@ -15,6 +15,7 @@ from .revisions import spec_sha256
 from .runs import RunError, render_key, verify_render_run
 from .qa import qa_report
 from .packaging import package_preview, verify_preview_bundle
+from .data_import import import_dataset
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -52,6 +53,16 @@ def main(argv: list[str] | None = None) -> int:
     bundle.add_argument("--output-dir", required=True)
     verify_bundle = sub.add_parser("verify-package")
     verify_bundle.add_argument("directory")
+    data = sub.add_parser("import-data")
+    data.add_argument("source")
+    data.add_argument("--project-root", required=True, help="Directory where the future MotionSpec will live")
+    data.add_argument("--dataset-id", required=True)
+    data.add_argument("--source-id")
+    data.add_argument("--sheet", help="Required XLSX sheet name")
+    data.add_argument("--table-range", help="Explicit rectangle, such as A1:D12")
+    data.add_argument("--type", action="append", default=[], help="Override inferred type as field:type")
+    data.add_argument("--max-rows", type=int, default=10_000)
+    data.add_argument("--output")
     args = parser.parse_args(argv)
     try:
         if args.command == "ingest":
@@ -63,6 +74,19 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         if args.command == "verify-package":
             print(json.dumps(verify_preview_bundle(args.directory), ensure_ascii=False, indent=2))
+            return 0
+        if args.command == "import-data":
+            overrides = {}
+            for item in args.type:
+                if ":" not in item:
+                    raise ValueError("--type must be field:type")
+                field, declared_type = item.split(":", 1)
+                if field in overrides:
+                    raise ValueError(f"duplicate --type for {field!r}")
+                overrides[field] = declared_type
+            result = import_dataset(args.source, args.project_root, args.dataset_id,
+                                    args.source_id, args.sheet, overrides, args.max_rows, args.table_range)
+            _emit(result, args.output)
             return 0
         spec = load_spec(args.spec)
         errors = validate(spec)
