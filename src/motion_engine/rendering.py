@@ -203,13 +203,15 @@ class FrameRenderer:
         text = element["text"]
         value = _localize_digits(text["value"], text.get("digitPolicy"), text.get("locale", self.spec["project"]["locale"]))
         x, y, w, h = self._bounds(element["bounds"])
-        font_size = max(8, round(element["params"].get("fontSize", min(90, element["bounds"]["height"] * 0.52)) * self.scale))
+        font_size = max(1, round(element["params"].get("fontSize", min(90, element["bounds"]["height"] * 0.52)) * self.scale))
         font = self._font(text.get("fontFamily", "DejaVu Sans"), font_size)
         direction = text.get("direction", self.spec["project"].get("direction", "auto"))
         if direction == "auto":
             direction = None
         if direction == "rtl" and not features.check("raqm"):
             raise RenderError("right-to-left text needs libraqm")
+        if direction == "ltr" and not features.check("raqm"):
+            direction = None
         overlay = Image.new("RGBA", image.size, (0, 0, 0, 0))
         draw = ImageDraw.Draw(overlay)
         bbox = draw.textbbox((0, 0), value, font=font, direction=direction)

@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 
 import pytest
-from PIL import Image, ImageChops
+from PIL import Image, ImageChops, features
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
@@ -25,13 +25,20 @@ def test_text_and_rtl_bar_chart_change_at_declared_frames():
     assert not changed(frame_0, background)
     assert changed(hello.render_frame(20), frame_0)
     assert changed(hello.render_frame(60), hello.render_frame(20))
-    weather = FrameRenderer(load_spec(ROOT / "examples/weather.motion.json"), scale=0.2)
-    assert changed(weather.render_frame(60), weather.render_frame(24))
-    assert weather.render_frame(60).size == (216, 216)
+    weather_spec = load_spec(ROOT / "examples/weather.motion.json")
+    if features.check("raqm"):
+        weather = FrameRenderer(weather_spec, scale=0.2)
+        assert changed(weather.render_frame(60), weather.render_frame(24))
+        assert weather.render_frame(60).size == (216, 216)
+    else:
+        with pytest.raises(RenderError, match="libraqm"):
+            FrameRenderer(weather_spec, scale=0.2)
 
 
 def test_line_chart_is_data_driven():
     spec = copy.deepcopy(load_spec(ROOT / "examples/weather.motion.json"))
+    spec["project"]["direction"] = "ltr"
+    spec["timeline"][0]["elements"][0]["text"].update({"value": "Weather", "direction": "ltr"})
     spec["timeline"][0]["elements"][1]["kind"] = "chart.line"
     del spec["timeline"][0]["elements"][1]["params"]["categoryField"]
     renderer = FrameRenderer(spec, scale=0.2)
@@ -43,6 +50,13 @@ def test_digit_policy_is_local_to_each_text_item():
     assert _localize_digits("۲۰۲۶", "latin", "fa-IR") == "2026"
     assert _localize_digits("2026", "locale", "ar-EG") == "٢٠٢٦"
     assert _localize_digits("2026", None, "fa-IR") == "2026"
+
+
+def test_ltr_text_renders_without_raqm(monkeypatch):
+    original_check = features.check
+    monkeypatch.setattr(features, "check", lambda name: False if name == "raqm" else original_check(name))
+    renderer = FrameRenderer(load_spec(ROOT / "examples/hello.motion.json"), scale=0.2)
+    assert renderer.render_frame(20).getbbox() is not None
 
 
 def test_unsupported_content_fails_before_frame_writing(tmp_path):
@@ -119,6 +133,9 @@ def test_hashed_image_asset_renders_in_different_projects(tmp_path, example, fit
     asset_path = tmp_path / "plate.png"
     Image.new("RGBA", (60, 20), (255, 0, 0, 255)).save(asset_path)
     spec = copy.deepcopy(load_spec(ROOT / "examples" / example))
+    if example == "weather.motion.json" and not features.check("raqm"):
+        spec["project"]["direction"] = "ltr"
+        spec["timeline"][0]["elements"][0]["text"].update({"value": "Weather", "direction": "ltr"})
     spec["assets"].append({"id": "plate_asset", "kind": "image", "status": "available", "uri": "plate.png", "sha256": hashlib.sha256(asset_path.read_bytes()).hexdigest()})
     scene = spec["timeline"][0]
     scene["elements"].append({"id": "plate", "kind": "image", "startFrame": 0, "endFrameExclusive": scene["endFrameExclusive"], "bounds": {"x": 0, "y": 0, "width": 120, "height": 120}, "assetId": "plate_asset", "params": {"fit": fit}, "zIndex": -1})
@@ -160,6 +177,8 @@ def test_planner_rejects_missing_image_source():
 
 def test_failed_render_leaves_no_partial_output(tmp_path):
     spec = copy.deepcopy(load_spec(ROOT / "examples/weather.motion.json"))
+    spec["project"]["direction"] = "ltr"
+    spec["timeline"][0]["elements"][0]["text"].update({"value": "Weather", "direction": "ltr"})
     spec["timeline"][0]["elements"][1]["params"]["maximum"] = 0
     with pytest.raises(RenderError, match="maximum greater than minimum"):
         render_preview(spec, tmp_path / "bad", mp4=False, scale=0.1)
