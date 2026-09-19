@@ -13,12 +13,13 @@ from .rendering import RenderError, render_preview
 from .revisions import RevisionError, freeze_revision
 from .revisions import spec_sha256
 from .runs import RunError, render_key, verify_render_run
+from .qa import qa_report
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="motion-engine")
     sub = parser.add_subparsers(dest="command", required=True)
-    for name in ("validate", "inspect", "plan", "render", "freeze"):
+    for name in ("validate", "inspect", "plan", "render", "freeze", "qa"):
         command = sub.add_parser(name)
         command.add_argument("spec")
         if name == "plan":
@@ -27,6 +28,9 @@ def main(argv: list[str] | None = None) -> int:
             command.add_argument("--require-buildable", action="store_true", help="Fail until every required target has a working adapter")
         if name == "freeze":
             command.add_argument("--output", help="Write a verified revision manifest JSON")
+        if name == "qa":
+            command.add_argument("--render-dir", help="Check an existing preview render as well as the spec")
+            command.add_argument("--output", help="Write the QA report JSON")
         if name == "render":
             command.add_argument("--output-dir", required=True)
             command.add_argument("--resume", action="store_true", help="Reuse a completed output only if its revision and artifacts verify")
@@ -86,6 +90,11 @@ def main(argv: list[str] | None = None) -> int:
         except (OSError, RevisionError) as exc:
             print(json.dumps({"ok": False, "errors": [str(exc)]}, ensure_ascii=False), file=sys.stderr)
             return 2
+    elif args.command == "qa":
+        result = qa_report(spec, Path(args.spec).resolve().parent, args.render_dir)
+        _emit(result, args.output)
+        if result["status"] != "passed":
+            return 1
     else:
         try:
             encode_mp4 = True if args.mp4 else False if args.frames_only else None

@@ -62,8 +62,9 @@ This is the ordered work list for a usable, general motion-production engine. A 
 
 ## 5. Quality assurance and delivery
 
-- [ ] Build static QA for source citations, dataset values, missing media, font substitutions, safe areas, and disclosures.
-- [ ] Build rendered QA for exact frame count, frame drops, blank frames, clipping, text overflow, and chart geometry.
+- [x] Add an initial QA gate for input hashes, missing source references/assets, safe areas, disclosure timing, font substitutions, and render integrity.
+- [ ] Compare dataset/chart values directly with source evidence and check all citations.
+- [ ] Build rendered QA for frame drops, blank frames, clipping, text overflow, and chart geometry beyond hash and frame-count checks.
 - [ ] Build audio QA for duration, sync, silence, clipping, and loudness.
 - [ ] Create contact sheets, review notes, and a gate that blocks unapproved critical findings.
 - [ ] Package original hashes, MotionSpec, approvals, licenses, editable projects, final renders, and QA reports with relative links.
