@@ -7,6 +7,7 @@
 3. Invalid examples fail with actionable errors for duplicate IDs, missing sources, wrong data bindings, unsupported element kinds, non-monotonic keyframes, and unfulfilled editability requirements.
 4. A source parser preserves hashes and page, sheet, or line locators (timecode begins with audio/video ingestion). It reports uncertainty and never executes document text as instructions. PDF pages without text request OCR/visual review; spreadsheet formulas without cached results request recalculation rather than using blank as zero.
 5. Exact text and chart data survive `source → MotionSpec → plan → output` without model-generated substitution. Localization policies are per project or text element.
+   Dataset cells must match declared types. Numeric charts reject missing, non-finite, Boolean, text, empty, or clipped source values before rendering.
 
 ## Adapter and media gates
 

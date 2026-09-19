@@ -1,0 +1,29 @@
+name: Test motion engine
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ['3.11', '3.12']
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install project and test dependencies
+        run: python -m pip install -e ".[dev]"
+      - name: Validate schemas, fixtures, media, and packaging behavior
+        run: python -m pytest -q
+      - name: Build distribution wheel
+        run: python -m pip wheel --no-deps --wheel-dir dist .

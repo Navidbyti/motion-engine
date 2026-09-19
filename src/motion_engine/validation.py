@@ -7,6 +7,9 @@ concisely. Source text is always data, never an instruction to this program.
 from __future__ import annotations
 
 import json
+import math
+import re
+from datetime import date
 from importlib import resources
 from pathlib import Path
 from typing import Any
@@ -41,6 +44,33 @@ def validate_schema(spec: dict[str, Any]) -> list[str]:
     validator = Draft202012Validator(load_schema())
     return [f"{'.'.join(map(str, error.absolute_path)) or '$'}: {error.message}"
             for error in sorted(validator.iter_errors(spec), key=lambda e: list(map(str, e.absolute_path)))]
+
+
+def _matches_column_type(value: Any, declared: str) -> bool:
+    if declared == "string":
+        return isinstance(value, str)
+    if declared == "boolean":
+        return isinstance(value, bool)
+    if declared == "integer":
+        return isinstance(value, int) and not isinstance(value, bool)
+    if declared == "number":
+        if not isinstance(value, (int, float)) or isinstance(value, bool):
+            return False
+        try:
+            return math.isfinite(value)
+        except OverflowError:
+            return False
+    if declared == "date":
+        if not isinstance(value, str):
+            return False
+        try:
+            date.fromisoformat(value)
+            return True
+        except ValueError:
+            return False
+    if declared == "timecode":
+        return isinstance(value, str) and re.fullmatch(r"\d{2,}:[0-5]\d:[0-5]\d:\d{2,}", value) is not None
+    return False
 
 
 def validate_semantics(spec: dict[str, Any]) -> list[str]:
@@ -84,6 +114,7 @@ def validate_semantics(spec: dict[str, Any]) -> list[str]:
     check_refs(spec, "$")
     for dataset in datasets.values():
         fields = [c["name"] for c in dataset["columns"]]
+        columns = {c["name"]: c for c in dataset["columns"]}
         if len(fields) != len(set(fields)):
             errors.append(f"dataset {dataset['id']}: duplicate column name")
         for index, row in enumerate(dataset["rows"]):
@@ -91,6 +122,10 @@ def validate_semantics(spec: dict[str, Any]) -> list[str]:
             missing = set(fields) - set(row)
             if extra or missing:
                 errors.append(f"dataset {dataset['id']} row {index}: extra {sorted(extra)}, missing {sorted(missing)}")
+            for field, value in row.items():
+                column = columns.get(field)
+                if column and not _matches_column_type(value, column["type"]):
+                    errors.append(f"dataset {dataset['id']} row {index} field {field}: expected {column['type']}, got {value!r}")
 
     timeline = spec.get("timeline", [])
     cursor = 0
@@ -111,8 +146,24 @@ def validate_semantics(spec: dict[str, Any]) -> list[str]:
                 dataset = datasets.get(binding["datasetId"])
                 if dataset is None:
                     errors.append(f"element {element['id']}: unknown dataset {binding['datasetId']}")
-                elif binding["field"] not in {c["name"] for c in dataset["columns"]}:
-                    errors.append(f"element {element['id']}: unknown field {binding['field']}")
+                else:
+                    column = next((c for c in dataset["columns"] if c["name"] == binding["field"]), None)
+                    if column is None:
+                        errors.append(f"element {element['id']}: unknown field {binding['field']}")
+                    elif element["kind"] in ("chart.bar", "chart.line"):
+                        if column["type"] not in ("integer", "number"):
+                            errors.append(f"element {element['id']}: chart field {binding['field']} must be numeric")
+                        if not dataset["rows"]:
+                            errors.append(f"element {element['id']}: chart dataset {dataset['id']} is empty")
+                        values = [row.get(binding["field"]) for row in dataset["rows"]]
+                        if values and all(_matches_column_type(value, "number") for value in values):
+                            params = element["params"]
+                            minimum = params.get("minimum", min(0, *values))
+                            maximum = params.get("maximum", max(values))
+                            if not _matches_column_type(minimum, "number") or not _matches_column_type(maximum, "number") or maximum <= minimum:
+                                errors.append(f"element {element['id']}: chart maximum must exceed minimum and both must be finite numbers")
+                            elif any(value < minimum or value > maximum for value in values):
+                                errors.append(f"element {element['id']}: chart range clips source values")
         beat_cursor = start
         for beat in scene["beats"]:
             b_start, b_end = beat["startFrame"], beat["endFrameExclusive"]
