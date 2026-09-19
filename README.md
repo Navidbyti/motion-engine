@@ -80,6 +80,8 @@ Open the repository in your coding agent and use this prompt:
 
 The [product completion plan](docs/product-roadmap.md) lists every remaining workstream and the release gates in build order.
 
+For a fresh coding-agent task, use the [Codex continuation note](docs/codex-handoff.md) to pick up the current tested state and next steps.
+
 ## Examples and private acceptance test
 
 The examples under `examples/`, including visual, audio, and After Effects text and shape projects, are synthetic and public. A separate owner-supplied brief, workbook, and derived spec remain outside the public repository as a **private acceptance fixture** for a 78.5-second right-to-left video with 19 beats, exact charts, and editable Adobe outputs. See [private fixture instructions](docs/private-fixtures.md). The core must pass public fixtures in other formats and languages too.
