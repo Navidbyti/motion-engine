@@ -10,6 +10,7 @@ import json
 import math
 import shutil
 import subprocess
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -354,38 +355,42 @@ def render_preview(spec: dict[str, Any], output_dir: str | Path, *, mp4: bool | 
     renderer = FrameRenderer(spec, scale=scale, font_dirs=font_dirs, asset_root=asset_root)
     if mp4 and (renderer.width % 2 or renderer.height % 2):
         raise RenderError("MP4 preview dimensions must be even; choose another scale")
-    output = Path(output_dir)
-    frames_dir = output / "frames"
-    if output.exists() and any(output.iterdir()):
-        raise RenderError(f"output directory {output} is not empty")
-    frames_dir.mkdir(parents=True, exist_ok=True)
-    for frame in range(duration):
-        renderer.render_frame(frame).save(frames_dir / f"{frame:06d}.png")
-    outputs = [{"kind": "png_sequence", "path": str(frames_dir), "frameCount": duration}]
-    if mp4:
-        video = output / "preview.mp4"
-        rate = spec["canvas"]["frameRate"]
-        command = [
-            _ffmpeg_executable(), "-hide_banner", "-loglevel", "error", "-y",
-            "-framerate", f"{rate['numerator']}/{rate['denominator']}",
-            "-i", str(frames_dir / "%06d.png"),
-            "-c:v", "libx264", "-pix_fmt", "yuv420p", "-movflags", "+faststart", str(video),
-        ]
-        completed = subprocess.run(command, capture_output=True, text=True, check=False)
-        if completed.returncode:
-            raise RenderError(f"FFmpeg failed: {completed.stderr.strip()}")
-        outputs.append({"kind": "video/mp4", "path": str(video)})
-    fingerprint = hashlib.sha256(json.dumps(spec, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()
-    report = {
-        "projectId": spec["project"]["id"],
-        "specSha256": fingerprint,
-        "frameCount": duration,
-        "width": renderer.width,
-        "height": renderer.height,
-        "frameRate": spec["canvas"]["frameRate"],
-        "outputs": outputs,
-        "issues": list({(i["code"], i["message"]): i for i in renderer.issues}.values()),
-        "note": "Deterministic preview only; no audio or editable Adobe project.",
-    }
-    (output / "render-manifest.json").write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    return report
+    output = Path(output_dir).resolve()
+    if output.exists():
+        raise RenderError(f"output path {output} already exists; choose a new directory")
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix=f".{output.name}-", dir=output.parent) as temporary:
+        staging = Path(temporary)
+        frames_dir = staging / "frames"
+        frames_dir.mkdir()
+        for frame in range(duration):
+            renderer.render_frame(frame).save(frames_dir / f"{frame:06d}.png")
+        outputs = [{"kind": "png_sequence", "path": str(output / "frames"), "frameCount": duration}]
+        if mp4:
+            video = staging / "preview.mp4"
+            rate = spec["canvas"]["frameRate"]
+            command = [
+                _ffmpeg_executable(), "-hide_banner", "-loglevel", "error", "-y",
+                "-framerate", f"{rate['numerator']}/{rate['denominator']}",
+                "-i", str(frames_dir / "%06d.png"),
+                "-c:v", "libx264", "-pix_fmt", "yuv420p", "-movflags", "+faststart", str(video),
+            ]
+            completed = subprocess.run(command, capture_output=True, text=True, check=False)
+            if completed.returncode:
+                raise RenderError(f"FFmpeg failed: {completed.stderr.strip()}")
+            outputs.append({"kind": "video/mp4", "path": str(output / "preview.mp4")})
+        fingerprint = hashlib.sha256(json.dumps(spec, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()
+        report = {
+            "projectId": spec["project"]["id"],
+            "specSha256": fingerprint,
+            "frameCount": duration,
+            "width": renderer.width,
+            "height": renderer.height,
+            "frameRate": spec["canvas"]["frameRate"],
+            "outputs": outputs,
+            "issues": list({(i["code"], i["message"]): i for i in renderer.issues}.values()),
+            "note": "Deterministic preview only; no audio or editable Adobe project.",
+        }
+        (staging / "render-manifest.json").write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        staging.rename(output)
+        return report

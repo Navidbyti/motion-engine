@@ -156,3 +156,12 @@ def test_planner_rejects_missing_image_source():
     report = plan(spec)
     assert not report["buildable"]
     assert "image_asset:plate" in report["capabilities"][0]["unsupportedFeatures"]
+
+
+def test_failed_render_leaves_no_partial_output(tmp_path):
+    spec = copy.deepcopy(load_spec(ROOT / "examples/weather.motion.json"))
+    spec["timeline"][0]["elements"][1]["params"]["maximum"] = 0
+    with pytest.raises(RenderError, match="maximum greater than minimum"):
+        render_preview(spec, tmp_path / "bad", mp4=False, scale=0.1)
+    assert not (tmp_path / "bad").exists()
+    assert not list(tmp_path.iterdir())

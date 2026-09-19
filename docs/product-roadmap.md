@@ -8,6 +8,7 @@ This is the ordered work list for a usable, general motion-production engine. A 
 - [x] Ingest PDF, DOCX, text, CSV, and XLSX with source locations, hashes, and uncertainty reports.
 - [x] Validate MotionSpec structure and core references; compile a frame plan and target capability report.
 - [x] Render a silent, deterministic PNG/MP4 preview for text, rectangles, and bar/line charts.
+- [x] Publish preview outputs atomically so failed renders cannot leave a partial deliverable.
 - [ ] Pin a supported dependency matrix and lock reproducible build environments for Windows and macOS.
 - [ ] Add CI on both operating systems for schema, unit, integration, packaging, and synthetic media tests.
 - [ ] Add MotionSpec migrations, canonical serialization, revision hashes, and compatibility fixtures.
