@@ -7,7 +7,7 @@ The public core is tested on GitHub-hosted Windows, Linux, and macOS runners wit
 | MotionSpec validation, ingestion, planning | Tested on all six runner combinations |
 | Raster/MP4 preview | Tested on all six runner combinations with the synthetic fixtures |
 | Right-to-left preview | Requires a Pillow build with libraqm; the renderer stops clearly if unavailable |
-| After Effects text-only project | Experimental JSX exporter; save/reopen passed on Windows with After Effects 2024 24.5x52 for two public synthetic fixtures |
+| After Effects text and rectangle project | Experimental JSX exporter; save/reopen passed on Windows with After Effects 2024 24.5x52 for three public synthetic fixtures |
 | Other native Adobe targets | Planned; no app-version compatibility claim yet |
 | FFmpeg | System executable or the pinned `imageio-ffmpeg` development package for preview MP4 |
 | Fonts | Project fonts must be supplied or installed; substitution is reported in the render manifest |

@@ -48,7 +48,7 @@ This is the ordered work list for a usable, general motion-production engine. A 
 
 - [ ] Run a create/save/close/reopen compatibility spike on the selected installed versions of each Adobe app. After Effects 2024 (24.5x52) passed on Windows on 2026-09-19: a scripted comp and editable text layer were saved as AEP, reopened, and inspected. Premiere Pro, Photoshop, and Illustrator remain.
 - [ ] Build an After Effects adapter for editable comps, text, shapes, charts, timing, markers, and linked media.
-- [x] Prove an initial editable After Effects text subset on two public fixtures with app-level save/reopen checks; other primitives and automated execution remain.
+- [x] Prove an initial editable After Effects text and rectangle subset on three public fixtures with app-level save/reopen checks; other primitives and automated execution remain.
 - [ ] Build an Illustrator adapter for editable artboards, vector assets, type, and charts.
 - [ ] Build a Photoshop adapter for layered still assets, text, treatments, and links.
 - [ ] Build a Premiere Pro adapter for sequence tracks, cuts, markers, audio, and linked assets.

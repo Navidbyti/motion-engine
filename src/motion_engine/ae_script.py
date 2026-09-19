@@ -27,14 +27,22 @@ def make_ae_script(spec: dict[str, Any], script_path: str | Path,
         raise AEExportError("initial After Effects adapter does not support voice audio")
     for scene in spec["timeline"]:
         for element in scene["elements"]:
-            if element["kind"] != "text":
+            if element["kind"] not in ("text", "shape"):
                 raise AEExportError(f"initial After Effects adapter does not support {element['kind']}")
-            if not element.get("bounds") or not element.get("text"):
-                raise AEExportError(f"text {element['id']} needs bounds and text")
-            if set(element["params"]) - {"color"}:
-                raise AEExportError(f"text {element['id']} has unsupported parameters")
-            if element["text"].get("direction", spec["project"].get("direction", "ltr")) == "rtl":
-                raise AEExportError("initial After Effects adapter has not verified RTL text")
+            if not element.get("bounds"):
+                raise AEExportError(f"element {element['id']} needs bounds")
+            if element.get("zIndex", 0):
+                raise AEExportError("initial After Effects adapter uses array order, not zIndex")
+            if element["kind"] == "text":
+                if not element.get("text"):
+                    raise AEExportError(f"text {element['id']} needs text")
+                if set(element["params"]) - {"color", "fontSize"}:
+                    raise AEExportError(f"text {element['id']} has unsupported parameters")
+                if element["text"].get("direction", spec["project"].get("direction", "ltr")) == "rtl":
+                    raise AEExportError("initial After Effects adapter has not verified RTL text")
+            else:
+                if set(element["params"]) - {"color", "shape"} or element["params"].get("shape", "rect") != "rect":
+                    raise AEExportError(f"shape {element['id']} supports solid rectangles only")
         for animation in scene["animations"]:
             if animation["property"] != "opacity" or any(
                 key.get("easing", "linear") != "linear" or not isinstance(key["value"], (int, float))
@@ -73,11 +81,13 @@ _SCRIPT = r'''
         var duration = spec.canvas.durationFrames / rate;
         var master = app.project.items.addComp(spec.project.id + "_master", spec.canvas.width,
             spec.canvas.height, 1, duration, rate);
+        master.bgColor = hexColor(spec.canvas.background || "#000000");
         var expected = [];
         for (var i = 0; i < spec.timeline.length; i++) {
             var scene = spec.timeline[i];
             var sceneComp = app.project.items.addComp(scene.id, spec.canvas.width, spec.canvas.height,
                 1, (scene.endFrameExclusive - scene.startFrame) / rate, rate);
+            sceneComp.bgColor = master.bgColor;
             var parent = master.layers.add(sceneComp);
             parent.name = scene.id;
             parent.startTime = scene.startFrame / rate;
@@ -86,28 +96,38 @@ _SCRIPT = r'''
             expected.push({name: scene.id, count: scene.elements.length});
             for (var j = 0; j < scene.elements.length; j++) {
                 var element = scene.elements[j];
-                var layer = sceneComp.layers.addText(element.text.value);
+                var layer;
+                if (element.kind === "text") {
+                    layer = sceneComp.layers.addText(element.text.value);
+                    var tdProp = layer.property("Source Text");
+                    var td = tdProp.value;
+                    td.fontSize = element.params.fontSize || Math.max(1, Math.min(element.bounds.height * 0.52, 90));
+                    td.fillColor = hexColor(element.params.color || "#FFFFFF");
+                    td.applyFill = true;
+                    td.applyStroke = false;
+                    var align = element.text.align || "left";
+                    if (align === "center") td.justification = ParagraphJustification.CENTER_JUSTIFY;
+                    else if (align === "right" || align === "end") td.justification = ParagraphJustification.RIGHT_JUSTIFY;
+                    else td.justification = ParagraphJustification.LEFT_JUSTIFY;
+                    if (element.text.fontFamily) {
+                        var style = (element.text.fontWeight || 400) >= 600 ? "Bold" : "Regular";
+                        var matches = app.fonts.getFontsByFamilyNameAndStyleName(element.text.fontFamily, style);
+                        if (matches.length !== 1) throw new Error("font must resolve uniquely: " + element.text.fontFamily + " " + style);
+                        td.fontObject = matches[0];
+                    }
+                    tdProp.setValue(td);
+                } else {
+                    layer = sceneComp.layers.addShape();
+                    var contents = layer.property("ADBE Root Vectors Group");
+                    var rectangle = contents.addProperty("ADBE Vector Shape - Rect");
+                    rectangle.property("ADBE Vector Rect Size").setValue([element.bounds.width, element.bounds.height]);
+                    var fill = contents.addProperty("ADBE Vector Graphic - Fill");
+                    fill.property("ADBE Vector Fill Color").setValue(hexColor(element.params.color || "#FFFFFF"));
+                }
                 layer.name = element.id;
                 layer.comment = "MotionSpec:" + scene.id + "/" + element.id;
                 layer.inPoint = (element.startFrame - scene.startFrame) / rate;
                 layer.outPoint = (element.endFrameExclusive - scene.startFrame) / rate;
-                var tdProp = layer.property("Source Text");
-                var td = tdProp.value;
-                td.fontSize = Math.max(1, Math.min(element.bounds.height * 0.55, 200));
-                td.fillColor = hexColor(element.params.color || "#FFFFFF");
-                td.applyFill = true;
-                td.applyStroke = false;
-                var align = element.text.align || "left";
-                if (align === "center") td.justification = ParagraphJustification.CENTER_JUSTIFY;
-                else if (align === "right" || align === "end") td.justification = ParagraphJustification.RIGHT_JUSTIFY;
-                else td.justification = ParagraphJustification.LEFT_JUSTIFY;
-                if (element.text.fontFamily) {
-                    var style = (element.text.fontWeight || 400) >= 600 ? "Bold" : "Regular";
-                    var matches = app.fonts.getFontsByFamilyNameAndStyleName(element.text.fontFamily, style);
-                    if (matches.length !== 1) throw new Error("font must resolve uniquely: " + element.text.fontFamily + " " + style);
-                    td.fontObject = matches[0];
-                }
-                tdProp.setValue(td);
                 layer.property("Transform").property("Position").setValue([
                     element.bounds.x + element.bounds.width / 2,
                     element.bounds.y + element.bounds.height / 2
@@ -145,14 +165,22 @@ _SCRIPT = r'''
             var original = spec.timeline[b].elements;
             for (var c = 0; c < original.length; c++) {
                 var reopenedText = sceneLayer.source.layer(original.length - c);
-                if (!reopenedText || reopenedText.name !== original[c].id ||
-                    reopenedText.property("Source Text").value.text !== original[c].text.value)
-                    throw new Error("reopened text mismatch: " + original[c].id);
+                if (!reopenedText || reopenedText.name !== original[c].id)
+                    throw new Error("reopened element mismatch: " + original[c].id);
                 if (Math.abs(reopenedText.inPoint - (original[c].startFrame - spec.timeline[b].startFrame) / rate) > 0.0001 ||
                     Math.abs(reopenedText.outPoint - (original[c].endFrameExclusive - spec.timeline[b].startFrame) / rate) > 0.0001)
-                    throw new Error("reopened text timing mismatch: " + original[c].id);
-                if (original[c].text.fontFamily && reopenedText.property("Source Text").value.fontObject.familyName !== original[c].text.fontFamily)
-                    throw new Error("reopened font mismatch: " + original[c].id);
+                    throw new Error("reopened element timing mismatch: " + original[c].id);
+                if (original[c].kind === "text") {
+                    if (reopenedText.property("Source Text").value.text !== original[c].text.value)
+                        throw new Error("reopened text mismatch: " + original[c].id);
+                    if (original[c].text.fontFamily && reopenedText.property("Source Text").value.fontObject.familyName !== original[c].text.fontFamily)
+                        throw new Error("reopened font mismatch: " + original[c].id);
+                } else {
+                    var shape = reopenedText.property("ADBE Root Vectors Group").property("ADBE Vector Shape - Rect");
+                    if (!shape || Math.abs(shape.property("ADBE Vector Rect Size").value[0] - original[c].bounds.width) > 0.001 ||
+                        Math.abs(shape.property("ADBE Vector Rect Size").value[1] - original[c].bounds.height) > 0.001)
+                        throw new Error("reopened rectangle mismatch: " + original[c].id);
+                }
             }
         }
         finish("PASS|" + app.version + "|" + spec.project.id + "|" + expected.length);
