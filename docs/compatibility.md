@@ -11,6 +11,7 @@ The public core is tested on GitHub-hosted Windows, Linux, and macOS runners wit
 | Illustrator static text and rectangle artboards | Experimental JSX exporter; save/reopen passed on Windows with Illustrator 2024 28.6.0 for two public synthetic fixtures |
 | Photoshop layered PSD subset | Save/close/reopen passed on Windows with Photoshop 2024 25.9.1 for two MotionSpec fixtures: 1920×1080, five layers; 1080×1920, three layers. Editable single-line text and raster rectangles only. |
 | Premiere Pro 2024 24.5.0.57 | Empty project create/save/close/reopen passed on Windows on 2026-09-19. The reopened application showed the same saved `.prproj` path; the file remained 5,971 bytes with SHA-256 `3fb926b5239fa7b6a68b13d4871f19a59b4d7dac3824af3db3c1c862d990edc4`. UXP is unavailable on this version, so a 24.x adapter needs a tested CEP/ExtendScript or interchange route. No sequence/export compatibility claim yet. |
+| Premiere Pro 2026 26.5.1 | Installed on the Windows development host. A UXP scratch-project probe and automated mock tests exist under `adapters/premiere-uxp-probe/`; host execution is pending UXP Developer Tool setup. No sequence/export compatibility claim yet. |
 | FFmpeg | System executable or the pinned `imageio-ffmpeg` development package for preview MP4 |
 | Fonts | Project fonts must be supplied or installed; substitution is reported in the render manifest |
 

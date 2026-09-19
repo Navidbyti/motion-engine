@@ -27,3 +27,13 @@ jobs:
         run: python -m pytest -q
       - name: Build distribution wheel
         run: python -m pip wheel --no-deps --wheel-dir dist .
+
+  premiere-probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check Premiere UXP probe
+        run: node --test adapters/premiere-uxp-probe/probe.test.js

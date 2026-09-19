@@ -1,0 +1,12 @@
+{
+  "id": "com.navidbyti.motionengine.premiereprobe",
+  "name": "Motion Engine Premiere Probe",
+  "version": "0.1.0",
+  "main": "index.js",
+  "host": { "app": "premierepro", "minVersion": "26.3.0" },
+  "manifestVersion": 5,
+  "requiredPermissions": { "localFileSystem": "request" },
+  "entrypoints": [
+    { "type": "command", "id": "runProbe", "label": "Create and verify sample project" }
+  ]
+}
