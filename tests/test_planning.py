@@ -17,7 +17,7 @@ def test_public_examples_make_general_frame_plans():
         result = plan(spec)
         assert result["canvas"]["durationFrames"] == spec["canvas"]["durationFrames"]
         assert result["scenes"][0]["beats"][-1]["endFrameExclusive"] == spec["canvas"]["durationFrames"]
-        assert not result["buildable"]
+        assert result["buildable"]
         assert all(issue["severity"] != "error" for issue in result["issues"])
     assert plan(hello)["requestedKinds"] == ["text"]
     assert plan(weather)["requestedKinds"] == ["chart.bar", "text"]

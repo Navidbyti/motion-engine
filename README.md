@@ -4,7 +4,7 @@ An open-source, implementation-ready design for turning scripts, documents, data
 
 ## Status
 
-This repository is a **build specification and early implementation**, not a finished video generator. It contains a general MotionSpec schema, source extractors, validation and planning commands, adapter contracts, synthetic examples, tests, and implementation milestones. Native Adobe project generation and rendering are future milestones. Do not describe the repository as producing `.aep`, `.prproj`, `.psd`, or `.ai` until those adapters pass native-app reopen tests.
+This repository is a **build specification and early implementation**, not a finished production engine. It contains a general MotionSpec schema, source extractors, validation and planning commands, a deterministic visual preview renderer, adapter contracts, synthetic examples, tests, and implementation milestones. Native Adobe project generation is a future milestone. Do not describe the repository as producing `.aep`, `.prproj`, `.psd`, or `.ai` until those adapters pass native-app reopen tests.
 
 ## What goes in and comes out
 
@@ -51,10 +51,11 @@ motion-engine validate examples/hello.motion.json
 motion-engine inspect examples/hello.motion.json
 motion-engine ingest examples/assets/hello-script.md --output evidence.json
 motion-engine plan examples/hello.motion.json --output plan.json
+motion-engine render examples/hello.motion.json --output-dir hello-preview
 python -m pytest
 ```
 
-The CLI currently validates and inspects MotionSpec, extracts evidence from PDF/DOCX/TXT/Markdown/CSV/XLSX, and produces a frame plan with target capability status. `plan.json` reports `buildable: false` for built-in output targets because no renderer is implemented yet. Building a video is the implementation work defined in [milestones](docs/milestones.md). See [ingestion](docs/ingestion.md) and [planning](docs/planning.md).
+The CLI validates and inspects MotionSpec, extracts evidence from PDF/DOCX/TXT/Markdown/CSV/XLSX, and produces a frame plan with target capability status. It can render silent MP4 previews for text, rectangles, bar charts, and line charts. Other elements and voice audio fail explicitly. Adobe output adapters remain planned. See [ingestion](docs/ingestion.md), [planning](docs/planning.md), [preview rendering](docs/rendering.md), and [milestones](docs/milestones.md).
 
 ## Give this repository to a coding agent
 

@@ -11,7 +11,7 @@
 ## Adapter and media gates
 
 6. A target capability plan lists supported and unsupported primitives/properties before build; unsupported required features stop or create an explicit reviewable fallback.
-7. Rendered video frame count equals MotionSpec duration; audio is free of clipping; visual QA checks black frames, overflow, missing assets, and disclosures.
+7. Current visual preview renders the exact MotionSpec frame count for supported kinds and a silent MP4 when requested. It rejects voice/audio and unsupported elements. Later audio and full QA will test clipping, black frames, overflow, missing assets, and disclosures.
 8. Each Adobe file is reopened in its owning application and inspected for named editable layers/tracks, correct timing, online assets, and saved version. Never accept file existence alone.
 9. Package includes MotionSpec, original-source hashes, asset licenses/provenance, native files, render, QA report, and relative links.
 

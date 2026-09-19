@@ -9,7 +9,7 @@
   "properties": {
     "schemaVersion": {"const": "1.0.0"},
     "project": {"type": "object", "additionalProperties": false, "required": ["id", "title", "locale"], "properties": {"id": {"$ref": "#/$defs/id"}, "title": {"type": "string", "minLength": 1}, "locale": {"type": "string", "minLength": 2}, "direction": {"enum": ["ltr", "rtl", "auto"]}, "description": {"type": "string"}, "metadata": {"type": "object"}}},
-    "canvas": {"type": "object", "additionalProperties": false, "required": ["width", "height", "frameRate", "durationFrames", "colorSpace"], "properties": {"width": {"type": "integer", "minimum": 1}, "height": {"type": "integer", "minimum": 1}, "frameRate": {"$ref": "#/$defs/rational"}, "durationFrames": {"type": "integer", "minimum": 1}, "colorSpace": {"type": "string", "minLength": 1}, "safeArea": {"$ref": "#/$defs/insets"}}},
+    "canvas": {"type": "object", "additionalProperties": false, "required": ["width", "height", "frameRate", "durationFrames", "colorSpace"], "properties": {"width": {"type": "integer", "minimum": 1}, "height": {"type": "integer", "minimum": 1}, "frameRate": {"$ref": "#/$defs/rational"}, "durationFrames": {"type": "integer", "minimum": 1}, "colorSpace": {"type": "string", "minLength": 1}, "background": {"$ref": "#/$defs/color"}, "safeArea": {"$ref": "#/$defs/insets"}}},
     "sources": {"type": "array", "items": {"$ref": "#/$defs/source"}},
     "assets": {"type": "array", "items": {"$ref": "#/$defs/asset"}},
     "datasets": {"type": "array", "items": {"$ref": "#/$defs/dataset"}},
@@ -20,6 +20,7 @@
   },
   "$defs": {
     "id": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_.-]*$"},
+    "color": {"type": "string", "pattern": "^#[0-9A-Fa-f]{6}$"},
     "rational": {"type": "object", "additionalProperties": false, "required": ["numerator", "denominator"], "properties": {"numerator": {"type": "integer", "minimum": 1}, "denominator": {"type": "integer", "minimum": 1}}},
     "insets": {"type": "object", "additionalProperties": false, "required": ["top", "right", "bottom", "left"], "properties": {"top": {"type": "number", "minimum": 0}, "right": {"type": "number", "minimum": 0}, "bottom": {"type": "number", "minimum": 0}, "left": {"type": "number", "minimum": 0}}},
     "rect": {"type": "object", "additionalProperties": false, "required": ["x", "y", "width", "height"], "properties": {"x": {"type": "number"}, "y": {"type": "number"}, "width": {"type": "number", "exclusiveMinimum": 0}, "height": {"type": "number", "exclusiveMinimum": 0}}},

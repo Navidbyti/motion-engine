@@ -5,6 +5,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from .preview_contract import PREVIEW_ANIMATIONS_BY_KIND, PREVIEW_EASING, PREVIEW_KINDS, PREVIEW_PARAMS
+
 
 BASELINE_KINDS = {
     "text", "shape", "image", "video", "audio", "chart.bar", "chart.line",
@@ -13,11 +15,13 @@ BASELINE_KINDS = {
 
 
 def default_capabilities() -> dict[str, dict[str, Any]]:
-    """All output adapters are planned, not available, at milestone M1."""
-    return {
+    """The silent MP4 preview is available; native Adobe adapters are planned."""
+    registry = {
         target: {"status": "planned", "supportedKinds": sorted(BASELINE_KINDS), "editableKinds": sorted(BASELINE_KINDS) if target.startswith("adobe.") else []}
-        for target in ("video/mp4", "adobe.after_effects", "adobe.premiere", "adobe.photoshop", "adobe.illustrator")
+        for target in ("adobe.after_effects", "adobe.premiere", "adobe.photoshop", "adobe.illustrator")
     }
+    registry["video/mp4"] = {"status": "available", "supportedKinds": sorted(PREVIEW_KINDS), "editableKinds": []}
+    return registry
 
 
 def load_capabilities(path: str | Path | None = None) -> dict[str, dict[str, Any]]:
@@ -48,10 +52,22 @@ def plan(spec: dict[str, Any], capabilities: dict[str, dict[str, Any]] | None = 
     registry = capabilities if capabilities is not None else default_capabilities()
     scenes = []
     requested_kinds: set[str] = set()
+    voice_requested = False
+    preview_feature_gaps: set[str] = set()
     for scene in spec["timeline"]:
+        scene_index = len(scenes)
+        if scene.get("transitionIn") not in (None, "start" if scene_index == 0 else "cut"):
+            preview_feature_gaps.add(f"transition:{scene['transitionIn']}")
+        voice_requested = voice_requested or any(beat.get("voice", {}).get("value", "").strip() for beat in scene["beats"])
         elements = []
+        element_kinds = {element["id"]: element["kind"] for element in scene["elements"]}
         for element in scene["elements"]:
             requested_kinds.add(element["kind"])
+            if element["kind"] in PREVIEW_KINDS:
+                extra = set(element["params"]) - PREVIEW_PARAMS[element["kind"]]
+                preview_feature_gaps.update(f"parameter:{p}" for p in extra)
+                if element["kind"] == "shape" and element["params"].get("shape", "rect") != "rect":
+                    preview_feature_gaps.add("shape:non_rectangle")
             elements.append({
                 "id": element["id"], "kind": element["kind"],
                 "startFrame": element["startFrame"],
@@ -69,6 +85,12 @@ def plan(spec: dict[str, Any], capabilities: dict[str, dict[str, Any]] | None = 
             "elements": elements,
             "animations": scene["animations"],
         })
+        for animation in scene["animations"]:
+            if animation["property"] not in PREVIEW_ANIMATIONS_BY_KIND.get(element_kinds.get(animation["targetId"]), set()):
+                preview_feature_gaps.add(f"animation:{animation['property']}:{animation['targetId']}")
+            for keyframe in animation["keyframes"]:
+                if keyframe.get("easing", "linear") not in PREVIEW_EASING:
+                    preview_feature_gaps.add(f"easing:{keyframe['easing']}")
     capabilities_report = []
     issues = []
     for deliverable in spec["deliverables"]:
@@ -81,15 +103,19 @@ def plan(spec: dict[str, Any], capabilities: dict[str, dict[str, Any]] | None = 
         supported = set(adapter["supportedKinds"])
         unsupported = requested_kinds - supported
         editable_missing = requested_kinds - set(adapter["editableKinds"]) if deliverable["editable"] else set()
-        buildable = adapter["status"] == "available" and not unsupported and not editable_missing
+        unsupported_features = sorted(preview_feature_gaps) if target == "video/mp4" else []
+        if voice_requested and target == "video/mp4":
+            unsupported_features.append("voice_audio")
+        buildable = adapter["status"] == "available" and not unsupported and not editable_missing and not unsupported_features
         capabilities_report.append({
             "deliverableId": deliverable["id"], "target": target,
             "status": adapter["status"], "buildable": buildable,
             "unsupportedKinds": sorted(unsupported),
             "nonEditableKinds": sorted(editable_missing),
+            "unsupportedFeatures": unsupported_features,
         })
-        if unsupported or editable_missing:
-            issues.append({"severity": "error" if deliverable["required"] and spec["policies"].get("unsupportedFeature", "error") == "error" else "warning", "code": "capability_gap", "message": f"{target}: unsupported {sorted(unsupported)}, non-editable {sorted(editable_missing)}"})
+        if unsupported or editable_missing or unsupported_features:
+            issues.append({"severity": "error" if deliverable["required"] and spec["policies"].get("unsupportedFeature", "error") == "error" else "warning", "code": "capability_gap", "message": f"{target}: unsupported {sorted(unsupported)}, non-editable {sorted(editable_missing)}, unavailable features {unsupported_features}"})
         elif adapter["status"] != "available":
             issues.append({"severity": "info", "code": "adapter_planned", "message": f"{target}: adapter is planned and cannot build output yet"})
     return {
