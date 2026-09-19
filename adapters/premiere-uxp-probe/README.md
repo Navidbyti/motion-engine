@@ -6,7 +6,7 @@ This is a narrow native test, not the MotionSpec-to-Premiere adapter. It uses a 
 
 - Licensed Premiere Pro 26.3 or newer. The first tested host is intended to be 26.5.1 on Windows.
 - Adobe UXP Developer Tool (UDT) 2.2 or newer, installed through Creative Cloud Desktop.
-- Premiere **Settings > Plugins > Enable developer mode**, followed by a Premiere restart. This setting is for loading a local development plugin; the user must enable it in Premiere.
+- On Windows, Premiere **Edit > Preferences > Plugins > Enable developer mode**, followed by a Premiere restart. This setting is for loading a local development plugin; the user must enable it in Premiere.
 
 ## Run
 

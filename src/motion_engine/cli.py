@@ -19,6 +19,7 @@ from .data_import import import_dataset
 from .ae_script import AEExportError, make_ae_script
 from .ai_script import AIExportError, make_ai_script
 from .ps_script import PSExportError, make_ps_script
+from .premiere_xml import PremiereXMLExportError, make_premiere_xml
 from .pdf_assets import extract_pdf_images
 from .review import make_review, verify_review
 
@@ -86,6 +87,10 @@ def main(argv: list[str] | None = None) -> int:
     ps.add_argument("--output-script", required=True)
     ps.add_argument("--output-psd", required=True)
     ps.add_argument("--report", required=True)
+    premiere = sub.add_parser("make-premiere-xml")
+    premiere.add_argument("spec")
+    premiere.add_argument("--render-dir", required=True, help="Completed, verified MP4 preview run")
+    premiere.add_argument("--output-xml", required=True)
     data = sub.add_parser("import-data")
     data.add_argument("source")
     data.add_argument("--project-root", required=True, help="Directory where the future MotionSpec will live")
@@ -197,6 +202,13 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps({"ok": True, "script": str(result), "psd": str(Path(args.output_psd).resolve()),
                               "report": str(Path(args.report).resolve())}, ensure_ascii=False, indent=2))
         except (OSError, PSExportError) as exc:
+            print(json.dumps({"ok": False, "errors": [str(exc)]}, ensure_ascii=False), file=sys.stderr)
+            return 2
+    elif args.command == "make-premiere-xml":
+        try:
+            result = make_premiere_xml(spec, args.render_dir, args.output_xml)
+            print(json.dumps({"ok": True, "xml": str(result)}, ensure_ascii=False, indent=2))
+        except (OSError, PremiereXMLExportError) as exc:
             print(json.dumps({"ok": False, "errors": [str(exc)]}, ensure_ascii=False), file=sys.stderr)
             return 2
     elif args.command == "qa":

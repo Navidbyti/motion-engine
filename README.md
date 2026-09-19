@@ -4,7 +4,7 @@ An open-source, implementation-ready design for turning scripts, documents, data
 
 ## Status
 
-This repository is a **build specification and early implementation**, not a finished production engine. It contains a general MotionSpec schema, source extractors, validation and planning commands, a deterministic preview renderer, adapter contracts, synthetic examples, tests, and implementation milestones. Narrow After Effects, Illustrator, and Photoshop exporters produce editable subsets and passed native-app reopen checks. Full Adobe coverage and Premiere output remain future milestones.
+This repository is a **build specification and early implementation**, not a finished production engine. It contains a general MotionSpec schema, source extractors, validation and planning commands, a deterministic preview renderer, adapter contracts, synthetic examples, tests, and implementation milestones. Narrow After Effects, Illustrator, and Photoshop exporters produce editable subsets and passed native-app reopen checks. A limited Premiere XML interchange exporter can lay out rendered scenes and beat markers; it still needs a native import test. Full Adobe coverage remains a future milestone.
 
 ## What goes in and comes out
 
@@ -63,6 +63,7 @@ motion-engine render examples/image-card.motion.json --output-dir image-card-pre
 motion-engine make-ae-script examples/ae-card.motion.json --output-script build.jsx --output-aep result.aep --report ae-report.txt
 motion-engine make-ai-script examples/ai-card.motion.json --output-script build-ai.jsx --output-ai result.ai --report ai-report.txt
 motion-engine make-ps-script examples/ps-card.motion.json --output-script build-ps.jsx --output-psd result.psd --report ps-report.txt
+motion-engine make-premiere-xml examples/ae-vertical.motion.json --render-dir verified-render --output-xml timeline.xml
 python -m pytest
 ```
 
