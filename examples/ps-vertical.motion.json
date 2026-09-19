@@ -1,0 +1,125 @@
+{
+  "schemaVersion": "1.0.0",
+  "project": {
+    "id": "ps-vertical",
+    "title": "Editable Photoshop still",
+    "locale": "en-US",
+    "direction": "ltr"
+  },
+  "canvas": {
+    "width": 1080,
+    "height": 1920,
+    "frameRate": {
+      "numerator": 30,
+      "denominator": 1
+    },
+    "durationFrames": 60,
+    "colorSpace": "Rec.709",
+    "background": "#101820",
+    "safeArea": {
+      "top": 80,
+      "right": 80,
+      "bottom": 80,
+      "left": 80
+    }
+  },
+  "sources": [
+    {
+      "id": "script",
+      "uri": "assets/hello-script.md",
+      "mediaType": "text/markdown",
+      "authority": [
+        "text",
+        "timing"
+      ]
+    }
+  ],
+  "assets": [],
+  "datasets": [],
+  "timeline": [
+    {
+      "id": "first",
+      "startFrame": 0,
+      "endFrameExclusive": 60,
+      "transitionIn": "start",
+      "elements": [
+        {
+          "id": "title",
+          "kind": "text",
+          "startFrame": 0,
+          "endFrameExclusive": 60,
+          "bounds": {
+            "x": 80,
+            "y": 620,
+            "width": 920,
+            "height": 150
+          },
+          "text": {
+            "value": "A small beginning",
+            "locale": "en-US",
+            "fontFamily": "Arial",
+            "fontWeight": 700,
+            "align": "left"
+          },
+          "params": {
+            "color": "#FFFFFF"
+          },
+          "sourceRefs": [
+            {
+              "sourceId": "script",
+              "location": "line 1",
+              "method": "manual"
+            }
+          ]
+        }
+      ],
+      "beats": [
+        {
+          "id": "first_beat",
+          "startFrame": 0,
+          "endFrameExclusive": 60,
+          "onScreen": [
+            {
+              "value": "A small beginning",
+              "locale": "en-US"
+            }
+          ],
+          "elementIds": [
+            "title"
+          ]
+        }
+      ],
+      "animations": [],
+      "sourceRefs": [
+        {
+          "sourceId": "script",
+          "location": "entire file",
+          "method": "manual"
+        }
+      ]
+    }
+  ],
+  "deliverables": [
+    {
+      "id": "psd",
+      "target": "adobe.photoshop",
+      "profile": "editable",
+      "required": true,
+      "editable": true
+    }
+  ],
+  "policies": {
+    "qa": [
+      {
+        "id": "no_overflow",
+        "rule": "text.within_safe_area",
+        "severity": "error"
+      }
+    ],
+    "disclosures": [],
+    "approvals": [
+      "final visual"
+    ],
+    "unsupportedFeature": "error"
+  }
+}

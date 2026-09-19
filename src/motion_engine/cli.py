@@ -18,6 +18,7 @@ from .packaging import package_preview, verify_preview_bundle
 from .data_import import import_dataset
 from .ae_script import AEExportError, make_ae_script
 from .ai_script import AIExportError, make_ai_script
+from .ps_script import PSExportError, make_ps_script
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -65,6 +66,11 @@ def main(argv: list[str] | None = None) -> int:
     ai.add_argument("--output-script", required=True)
     ai.add_argument("--output-ai", required=True)
     ai.add_argument("--report", required=True)
+    ps = sub.add_parser("make-ps-script")
+    ps.add_argument("spec")
+    ps.add_argument("--output-script", required=True)
+    ps.add_argument("--output-psd", required=True)
+    ps.add_argument("--report", required=True)
     data = sub.add_parser("import-data")
     data.add_argument("source")
     data.add_argument("--project-root", required=True, help="Directory where the future MotionSpec will live")
@@ -154,6 +160,14 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps({"ok": True, "script": str(result), "ai": str(Path(args.output_ai).resolve()),
                               "report": str(Path(args.report).resolve())}, ensure_ascii=False, indent=2))
         except (OSError, AIExportError) as exc:
+            print(json.dumps({"ok": False, "errors": [str(exc)]}, ensure_ascii=False), file=sys.stderr)
+            return 2
+    elif args.command == "make-ps-script":
+        try:
+            result = make_ps_script(spec, args.output_script, args.output_psd, args.report)
+            print(json.dumps({"ok": True, "script": str(result), "psd": str(Path(args.output_psd).resolve()),
+                              "report": str(Path(args.report).resolve())}, ensure_ascii=False, indent=2))
+        except (OSError, PSExportError) as exc:
             print(json.dumps({"ok": False, "errors": [str(exc)]}, ensure_ascii=False), file=sys.stderr)
             return 2
     elif args.command == "qa":

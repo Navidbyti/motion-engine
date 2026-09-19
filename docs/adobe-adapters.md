@@ -29,6 +29,12 @@ Illustrator 2024 version 28.6.0 on Windows passed save/reopen with `examples/ai-
 
 ## Photoshop compatibility probe
 
-Photoshop 2024 version 25.9.1 on Windows passed a manual scratch create/save/close/reopen probe for a 640×360 layered PSD with editable text. The script temporarily set ruler units to pixels for dimension checks and restored the prior setting afterward. This proves the basic native path only; a MotionSpec-to-PSD exporter and public fixtures remain to be built.
+Photoshop 2024 version 25.9.1 on Windows passed a manual scratch create/save/close/reopen probe for a 640×360 layered PSD with editable text. The script temporarily set ruler units to pixels for dimension checks and restored the prior setting afterward. This proves the basic native path only.
+
+## Experimental Photoshop still exporter
+
+`motion-engine make-ps-script SPEC --output-script build.jsx --output-psd result.psd --report ps-report.txt` generates a JSX job for one static scene. In Photoshop, choose **File > Scripts > Browse** and select `build.jsx`. The job requires no document to be open. It builds one layered PSD with editable single-line text and separate raster rectangle layers, embeds the MotionSpec source references in the document caption, saves, closes, reopens, and checks dimensions, layers, text, font, and provenance. It refuses to overwrite outputs and restores the user's ruler units.
+
+The first subset rejects animation, multiple scenes, partial-scene elements, external assets, datasets, disclosures, RTL or auto-direction text, non-left alignment, multiline text, and unknown styles. Rectangles are raster pixel layers in this subset; exact text placement and color-managed appearance need visual review. The generated job is experimental until both public fixtures pass the native Photoshop reopen check. The complete `adobe.photoshop` target remains planned in the capability registry.
 
 Sources: [Adobe After Effects scripting](https://helpx.adobe.com/after-effects/desktop/automate-in-after-effects/automate-animation/scripts.html), [aerender](https://helpx.adobe.com/after-effects/desktop/render-and-export/automate-rendering/automated-rendering-network-rendering.html), [Illustrator scripting](https://helpx.adobe.com/illustrator/desktop/automate-visualize-data/automate-actions/install-and-run-scripts.html), [Photoshop UXP scripting](https://developer.adobe.com/photoshop/uxp/scripting/), and [Premiere UXP project API](https://developer.adobe.com/premiere-pro/uxp/ppro-reference/classes/project).

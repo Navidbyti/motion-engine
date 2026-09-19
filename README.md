@@ -4,7 +4,7 @@ An open-source, implementation-ready design for turning scripts, documents, data
 
 ## Status
 
-This repository is a **build specification and early implementation**, not a finished production engine. It contains a general MotionSpec schema, source extractors, validation and planning commands, a deterministic preview renderer, adapter contracts, synthetic examples, tests, and implementation milestones. Experimental After Effects and Illustrator exporters produce narrow editable subsets and passed native-app reopen checks. Full Adobe coverage and Premiere/Photoshop outputs remain future milestones.
+This repository is a **build specification and early implementation**, not a finished production engine. It contains a general MotionSpec schema, source extractors, validation and planning commands, a deterministic preview renderer, adapter contracts, synthetic examples, tests, and implementation milestones. Experimental After Effects and Illustrator exporters produce narrow editable subsets and passed native-app reopen checks. A generated Photoshop still job has public fixtures and code tests; its MotionSpec-driven native reopen check is pending. Full Adobe coverage and Premiere output remain future milestones.
 
 ## What goes in and comes out
 
@@ -61,10 +61,11 @@ motion-engine verify-package hello-bundle
 motion-engine render examples/image-card.motion.json --output-dir image-card-preview
 motion-engine make-ae-script examples/ae-card.motion.json --output-script build.jsx --output-aep result.aep --report ae-report.txt
 motion-engine make-ai-script examples/ai-card.motion.json --output-script build-ai.jsx --output-ai result.ai --report ai-report.txt
+motion-engine make-ps-script examples/ps-card.motion.json --output-script build-ps.jsx --output-psd result.psd --report ps-report.txt
 python -m pytest
 ```
 
-The CLI validates and inspects MotionSpec, [imports tabular data](docs/data-import.md), checks typed dataset cells and chart ranges, compares chart values with CSV/XLSX source cells and declared decimal formulas, extracts evidence from documents, spreadsheets, images, and media headers, and produces a frame plan with target capability status. It can render MP4 previews for text, rectangles, local raster images, bar charts, line charts, and explicitly placed PCM WAV audio, then create a [verifiable preview bundle](docs/preview-bundles.md). Unsupported features and unlinked voice text fail explicitly. Narrow [After Effects and Illustrator exporters](docs/adobe-adapters.md) are available as manual script workflows; broad Adobe output adapters remain planned. See [ingestion](docs/ingestion.md), [planning](docs/planning.md), [preview rendering](docs/rendering.md), and [milestones](docs/milestones.md).
+The CLI validates and inspects MotionSpec, [imports tabular data](docs/data-import.md), checks typed dataset cells and chart ranges, compares chart values with CSV/XLSX source cells and declared decimal formulas, extracts evidence from documents, spreadsheets, images, and media headers, and produces a frame plan with target capability status. It can render MP4 previews for text, rectangles, local raster images, bar charts, line charts, and explicitly placed PCM WAV audio, then create a [verifiable preview bundle](docs/preview-bundles.md). Unsupported features and unlinked voice text fail explicitly. Narrow [Adobe exporters](docs/adobe-adapters.md) are available as manual script workflows; the Photoshop MotionSpec job still needs native verification. Broad Adobe output adapters remain planned. See [ingestion](docs/ingestion.md), [planning](docs/planning.md), [preview rendering](docs/rendering.md), and [milestones](docs/milestones.md).
 
 ## Give this repository to a coding agent
 
