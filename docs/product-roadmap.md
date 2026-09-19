@@ -22,7 +22,8 @@ This is the ordered work list for a usable, general motion-production engine. A 
 
 - [ ] Extract PDF images and tables with page coordinates; flag ambiguous reading order and scans for OCR review.
 - [ ] Extract DOCX headers, footers, drawing relationships, and tracked-change warnings.
-- [ ] Probe image, audio, and video metadata and record duration, dimensions, color space, frame rate, and timecodes.
+- [x] Probe image, WAV, compressed-audio, and video headers with source hashes and stream locations; report missing FFprobe.
+- [ ] Add full color-space and timecode interpretation, plus deep media validation beyond header metadata.
 - [ ] Add OCR and language detection as optional providers with confidence and original-page evidence.
 - [ ] Add a source-to-MotionSpec drafting workflow that requires citations for exact text, numbers, and claims.
 - [ ] Add a review interface or structured review file for ambiguities, missing inputs, permissions, and approvals.

@@ -7,7 +7,11 @@ from __future__ import annotations
 
 import csv
 import hashlib
+import json
 import re
+import shutil
+import subprocess
+import wave
 from datetime import date, datetime, time
 from pathlib import Path
 from typing import Any, Callable
@@ -22,6 +26,9 @@ MEDIA_TYPES = {
     ".pdf": "application/pdf",
     ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp",
+    ".wav": "audio/wav", ".mp3": "audio/mpeg", ".m4a": "audio/mp4",
+    ".mp4": "video/mp4", ".mov": "video/quicktime", ".mkv": "video/x-matroska",
 }
 
 
@@ -161,6 +168,82 @@ def _xlsx(path: Path, source_id: str, limit: int):
     return records, issues
 
 
+def _image(path: Path, source_id: str, limit: int):
+    from PIL import Image
+
+    records = []
+    try:
+        with Image.open(path) as image:
+            metadata = {
+                "format": image.format, "width": image.width, "height": image.height,
+                "mode": image.mode, "frameCount": getattr(image, "n_frames", 1),
+                "exifOrientation": image.getexif().get(274),
+            }
+            profile = image.info.get("icc_profile")
+            if profile:
+                metadata["iccProfileSha256"] = hashlib.sha256(profile).hexdigest()
+    except OSError as exc:
+        raise ValueError(f"image {path} could not be read: {exc}") from exc
+    for field, value in metadata.items():
+        if value is not None:
+            records.append(_record(source_id, f"image:{field}", "media_metadata", value, "Pillow header probe"))
+            _check_limit(records, limit)
+    issues = []
+    if metadata["width"] * metadata["height"] > 50_000_000:
+        issues.append({"code": "image_large", "message": "Image exceeds 50 megapixels; renderer may reject it"})
+    return records, issues
+
+
+def _wav(path: Path, source_id: str, limit: int):
+    records = []
+    try:
+        with wave.open(str(path), "rb") as audio:
+            rate, count = audio.getframerate(), audio.getnframes()
+            metadata = {
+                "channels": audio.getnchannels(), "sampleRateHz": rate,
+                "sampleFrames": count, "sampleWidthBytes": audio.getsampwidth(),
+                "duration": {"numerator": count, "denominator": rate},
+            }
+    except (OSError, EOFError, wave.Error) as exc:
+        raise ValueError(f"WAV {path} could not be read: {exc}") from exc
+    for field, value in metadata.items():
+        records.append(_record(source_id, f"audio:{field}", "media_metadata", value, "Python wave header probe"))
+        _check_limit(records, limit)
+    return records, []
+
+
+def _ffprobe(path: Path, source_id: str, limit: int):
+    executable = shutil.which("ffprobe")
+    if not executable:
+        return [], [{"code": "ffprobe_unavailable", "message": "FFprobe is required to inspect compressed audio and video metadata"}]
+    try:
+        result = subprocess.run(
+            [executable, "-v", "error", "-show_streams", "-show_format", "-of", "json", str(path)],
+            capture_output=True, text=True, timeout=30, check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return [], [{"code": "media_probe_failed", "message": f"FFprobe failed: {exc}"}]
+    if result.returncode:
+        return [], [{"code": "media_probe_failed", "message": f"FFprobe could not inspect media: {result.stderr.strip()[:500]}"}]
+    try:
+        payload = json.loads(result.stdout)
+    except ValueError:
+        return [], [{"code": "media_probe_failed", "message": "FFprobe returned invalid JSON"}]
+    records = []
+    for index, stream in enumerate(payload.get("streams", [])):
+        for field in ("codec_type", "codec_name", "width", "height", "pix_fmt", "avg_frame_rate",
+                      "sample_rate", "channels", "duration", "start_time", "nb_frames"):
+            if stream.get(field) is not None:
+                records.append(_record(source_id, f"stream:{index}/{field}", "media_metadata", stream[field], "FFprobe"))
+                _check_limit(records, limit)
+    duration = payload.get("format", {}).get("duration")
+    if duration is not None:
+        records.append(_record(source_id, "format:duration", "media_metadata", duration, "FFprobe"))
+        _check_limit(records, limit)
+    issues = [] if records else [{"code": "media_streams_empty", "message": "FFprobe found no usable stream metadata"}]
+    return records, issues
+
+
 def _column_name(number: int) -> str:
     name = ""
     while number:
@@ -204,5 +287,8 @@ def ingest(path: str | Path, source_id: str | None = None, limit: int = 100_000)
 for _suffix, _parser in {
     ".txt": _text, ".md": _text, ".csv": _csv, ".pdf": _pdf,
     ".docx": _docx, ".xlsx": _xlsx,
+    ".png": _image, ".jpg": _image, ".jpeg": _image, ".webp": _image,
+    ".wav": _wav, ".mp3": _ffprobe, ".m4a": _ffprobe,
+    ".mp4": _ffprobe, ".mov": _ffprobe, ".mkv": _ffprobe,
 }.items():
     register_parser(_suffix, _parser)

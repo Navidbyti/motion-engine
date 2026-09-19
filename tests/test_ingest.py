@@ -1,7 +1,10 @@
 import csv
 import hashlib
 import json
+import shutil
+import subprocess
 import sys
+import wave
 from pathlib import Path
 
 import pytest
@@ -97,7 +100,70 @@ def test_xlsx_keeps_cells_and_flags_uncalculated_formula(tmp_path):
 
 
 def test_unsupported_extension_is_explicit(tmp_path):
-    path = tmp_path / "clip.mov"
-    path.write_bytes(b"not-a-video")
+    path = tmp_path / "clip.unknown"
+    path.write_bytes(b"unknown")
     with pytest.raises(ValueError, match="unsupported source extension"):
         ingest(path)
+
+
+def test_image_and_wav_metadata_keep_exact_source_hashes(tmp_path):
+    from PIL import Image
+
+    picture = tmp_path / "plate.png"
+    Image.new("RGB", (36, 24), "red").save(picture)
+    image_result = ingest(picture)
+    assert image_result["source"]["sha256"] == hashlib.sha256(picture.read_bytes()).hexdigest()
+    assert {item["location"]: item["value"] for item in image_result["evidence"]}["image:width"] == 36
+
+    audio = tmp_path / "tone.wav"
+    with wave.open(str(audio), "wb") as stream:
+        stream.setnchannels(1)
+        stream.setsampwidth(2)
+        stream.setframerate(48000)
+        stream.writeframes(b"\0\0" * 4800)
+    audio_result = ingest(audio)
+    metadata = {item["location"]: item["value"] for item in audio_result["evidence"]}
+    assert metadata["audio:duration"] == {"numerator": 4800, "denominator": 48000}
+    assert metadata["audio:sampleRateHz"] == 48000
+    assert audio_result["source"]["sha256"] == hashlib.sha256(audio.read_bytes()).hexdigest()
+
+
+def test_video_metadata_probe_and_missing_tool_are_explicit(tmp_path, monkeypatch):
+    from motion_engine import ingest as ingest_module
+
+    video = tmp_path / "clip.mp4"
+    video.write_bytes(b"synthetic test input")
+    monkeypatch.setattr(ingest_module.shutil, "which", lambda _: None)
+    absent = ingest(video)
+    assert absent["issues"][0]["code"] == "ffprobe_unavailable"
+
+    class Result:
+        returncode = 0
+        stderr = ""
+        stdout = json.dumps({"streams": [{"codec_type": "video", "width": 1920, "height": 1080, "avg_frame_rate": "30000/1001"}], "format": {"duration": "3.003"}})
+
+    monkeypatch.setattr(ingest_module.shutil, "which", lambda _: "ffprobe")
+    monkeypatch.setattr(ingest_module.subprocess, "run", lambda *args, **kwargs: Result())
+    result = ingest(video)
+    metadata = {item["location"]: item["value"] for item in result["evidence"]}
+    assert metadata["stream:0/avg_frame_rate"] == "30000/1001"
+    assert metadata["format:duration"] == "3.003"
+    assert result["issues"] == []
+
+
+def test_real_video_probe_when_ffprobe_is_installed(tmp_path):
+    ffprobe = shutil.which("ffprobe")
+    if not ffprobe:
+        pytest.skip("FFprobe is not installed on this runner")
+    imageio_ffmpeg = pytest.importorskip("imageio_ffmpeg")
+    video = tmp_path / "clip.mp4"
+    subprocess.run([
+        imageio_ffmpeg.get_ffmpeg_exe(), "-hide_banner", "-loglevel", "error", "-y",
+        "-f", "lavfi", "-i", "color=c=red:s=32x32:r=24:d=1",
+        "-c:v", "libx264", "-pix_fmt", "yuv420p", str(video),
+    ], check=True)
+    result = ingest(video)
+    assert result["issues"] == []
+    metadata = {item["location"]: item["value"] for item in result["evidence"]}
+    assert metadata["stream:0/width"] == 32
+    assert metadata["stream:0/avg_frame_rate"] == "24/1"
