@@ -37,7 +37,7 @@ def main(argv: list[str] | None = None) -> int:
             command.add_argument("--output-dir", required=True)
             command.add_argument("--resume", action="store_true", help="Reuse a completed output only if its revision and artifacts verify")
             encode = command.add_mutually_exclusive_group()
-            encode.add_argument("--mp4", action="store_true", help="Encode a silent MP4 even if not required in MotionSpec")
+            encode.add_argument("--mp4", action="store_true", help="Encode an MP4 even if not required in MotionSpec")
             encode.add_argument("--frames-only", action="store_true", help="Render PNG frames without MP4 encoding")
             command.add_argument("--scale", type=float, default=1.0, help="Preview scale from 0 to 1")
             command.add_argument("--font-dir", action="append", default=[], help="Additional directory containing licensed fonts")

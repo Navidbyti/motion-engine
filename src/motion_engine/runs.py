@@ -61,7 +61,7 @@ def verify_render_run(output_dir: str | Path) -> dict[str, Any]:
             actual = frames_tree_sha256(artifact, report["frameCount"])
             if item.get("treeSha256") != actual:
                 raise RunError("frame sequence hash mismatch")
-        elif item["kind"] == "video/mp4":
+        elif item["kind"] in ("video/mp4", "audio/wav"):
             if not artifact.is_file() or item.get("sha256") != file_sha256(artifact):
                 raise RunError("MP4 hash mismatch")
         else:

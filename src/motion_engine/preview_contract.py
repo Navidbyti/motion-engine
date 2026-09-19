@@ -4,6 +4,7 @@ PREVIEW_PARAMS = {
     "text": {"color", "fontSize", "wrap"},
     "shape": {"color", "shape"},
     "image": {"fit"},
+    "audio": {"gainDb"},
     "chart.bar": {"categoryField", "minimum", "maximum", "color", "baselineColor", "barWidthFraction", "labelFontFamily"},
     "chart.line": {"minimum", "maximum", "color", "baselineColor", "labelFontFamily"},
 }
@@ -13,6 +14,7 @@ PREVIEW_ANIMATIONS_BY_KIND = {
     "text": {"opacity"},
     "shape": {"opacity"},
     "image": {"opacity"},
+    "audio": set(),
     "chart.bar": {"reveal"},
     "chart.line": {"reveal"},
 }

@@ -1,23 +1,26 @@
 """Deterministic PNG and optional MP4 previews for supported MotionSpec elements.
 
-This is a preview backend. It does not create editable Adobe projects or mix audio.
+This is a preview backend. It does not create editable Adobe projects.
 Unsupported elements fail before the first frame is written.
 """
 from __future__ import annotations
 
+from array import array
 import hashlib
 import json
 import math
 import shutil
 import subprocess
+import sys
 import tempfile
+import wave
 from pathlib import Path
 from typing import Any
 
 from PIL import Image, ImageDraw, ImageFont, ImageOps, features
 
 from .preview_contract import PREVIEW_ANIMATIONS_BY_KIND, PREVIEW_EASING, PREVIEW_KINDS, PREVIEW_PARAMS
-from .revisions import spec_sha256
+from .revisions import RevisionError, resolve_local_file, spec_sha256
 from .runs import frames_tree_sha256, render_key
 from .revisions import file_sha256
 from . import __version__
@@ -94,6 +97,7 @@ class FrameRenderer:
         self.assets = {a["id"]: a for a in spec["assets"]}
         self.asset_root = Path(asset_root or ".").resolve()
         self.image_cache: dict[str, Image.Image] = {}
+        self.audio_clips: list[dict[str, Any]] = []
         self.font_dirs = [Path(p) for p in (font_dirs or [])]
         self.font_dirs += [Path("C:/Windows/Fonts"), Path("/usr/share/fonts"), Path("/Library/Fonts"), Path.home() / ".local/share/fonts"]
         self.font_cache: dict[tuple[str, int], ImageFont.FreeTypeFont] = {}
@@ -117,7 +121,9 @@ class FrameRenderer:
                     if element["params"].get("fit", "contain") not in ("contain", "cover", "stretch"):
                         raise RenderError(f"image {element['id']} has unsupported fit mode")
                     self._load_image(element)
-                if "bounds" not in element:
+                if element["kind"] == "audio":
+                    self._load_audio(element)
+                if element["kind"] != "audio" and "bounds" not in element:
                     raise RenderError(f"preview element {element['id']} requires bounds")
                 if element["kind"] == "text" and "text" not in element:
                     raise RenderError(f"text element {element['id']} requires text")
@@ -198,6 +204,35 @@ class FrameRenderer:
             raise RenderError(f"image asset {asset_id} cannot be decoded: {exc}") from exc
         self.image_cache[asset_id] = image
         return image
+
+    def _load_audio(self, element: dict[str, Any]) -> None:
+        asset = self.assets.get(element.get("assetId"))
+        if not asset or asset.get("kind") != "audio" or asset.get("status") != "available" or not asset.get("sha256"):
+            raise RenderError(f"audio {element['id']} requires an available hashed asset")
+        if element["startFrame"] < 0 or element["endFrameExclusive"] > self.duration:
+            raise RenderError(f"audio {element['id']} frame window is outside the project")
+        try:
+            path = resolve_local_file(asset, self.asset_root, "asset")
+        except RevisionError as exc:
+            raise RenderError(str(exc)) from exc
+        if path.suffix.lower() != ".wav" or file_sha256(path) != asset["sha256"]:
+            raise RenderError(f"audio {element['id']} needs a matching WAV hash")
+        try:
+            with wave.open(str(path), "rb") as source:
+                if (source.getcomptype() != "NONE" or source.getnchannels() != 1 or
+                        source.getsampwidth() != 2 or source.getframerate() != 48_000):
+                    raise RenderError(f"audio {element['id']} needs mono 16-bit PCM WAV at 48 kHz")
+                available = source.getnframes()
+        except (OSError, EOFError, wave.Error) as exc:
+            raise RenderError(f"audio {element['id']} cannot be decoded: {exc}") from exc
+        rate = self.spec["canvas"]["frameRate"]
+        count = _sample_for_frame(element["endFrameExclusive"], rate) - _sample_for_frame(element["startFrame"], rate)
+        if available < count:
+            raise RenderError(f"audio {element['id']} is shorter than its declared frame window")
+        gain = element["params"].get("gainDb", 0)
+        if not isinstance(gain, (int, float)) or isinstance(gain, bool) or not math.isfinite(gain) or not -60 <= gain <= 12:
+            raise RenderError(f"audio {element['id']} gainDb must be between -60 and 12")
+        self.audio_clips.append({"path": path, "element": element, "gain": 10 ** (gain / 20)})
 
     def _property(self, element_id: str, property_name: str, frame: int, default: float) -> float:
         keyframes = self.animations.get(element_id, {}).get(property_name)
@@ -356,6 +391,8 @@ class FrameRenderer:
             if not element["startFrame"] <= frame < element["endFrameExclusive"]:
                 continue
             kind = element["kind"]
+            if kind == "audio":
+                continue
             if kind == "text":
                 self._text(image, element, frame)
             elif kind == "shape":
@@ -379,6 +416,41 @@ def _ffmpeg_executable() -> str:
         return imageio_ffmpeg.get_ffmpeg_exe()
     except (ImportError, RuntimeError) as exc:
         raise RenderError("FFmpeg is required for MP4; install it on PATH or install imageio-ffmpeg") from exc
+
+
+def _sample_for_frame(frame: int, rate: dict[str, int]) -> int:
+    numerator = frame * 48_000 * rate["denominator"]
+    return (2 * numerator + rate["numerator"]) // (2 * rate["numerator"])
+
+
+def _mix_audio(renderer: FrameRenderer, output: Path) -> None:
+    rate = renderer.spec["canvas"]["frameRate"]
+    total = _sample_for_frame(renderer.duration, rate)
+    mixed = array("i", [0]) * total
+    for clip in renderer.audio_clips:
+        element = clip["element"]
+        start = _sample_for_frame(element["startFrame"], rate)
+        end = _sample_for_frame(element["endFrameExclusive"], rate)
+        with wave.open(str(clip["path"]), "rb") as source:
+            data = source.readframes(end - start)
+        samples = array("h")
+        samples.frombytes(data)
+        if sys.byteorder != "little":
+            samples.byteswap()
+        if len(samples) != end - start:
+            raise RenderError(f"audio {element['id']} changed or ended during mixing")
+        for offset, value in enumerate(samples):
+            mixed[start + offset] += round(value * clip["gain"])
+    if any(value < -32768 or value > 32767 for value in mixed):
+        raise RenderError("audio mix clips; lower one or more gainDb values")
+    result = array("h", mixed)
+    if sys.byteorder != "little":
+        result.byteswap()
+    with wave.open(str(output), "wb") as stream:
+        stream.setnchannels(1)
+        stream.setsampwidth(2)
+        stream.setframerate(48_000)
+        stream.writeframes(result.tobytes())
 
 
 def render_preview(spec: dict[str, Any], output_dir: str | Path, *, mp4: bool | None = None,
@@ -405,6 +477,11 @@ def render_preview(spec: dict[str, Any], output_dir: str | Path, *, mp4: bool | 
             renderer.render_frame(frame).save(frames_dir / f"{frame:06d}.png")
         outputs = [{"kind": "png_sequence", "path": "frames", "frameCount": duration,
                     "treeSha256": frames_tree_sha256(frames_dir, duration)}]
+        mix = None
+        if renderer.audio_clips:
+            mix = staging / "mix.wav"
+            _mix_audio(renderer, mix)
+            outputs.append({"kind": "audio/wav", "path": "mix.wav", "sha256": file_sha256(mix)})
         if mp4:
             video = staging / "preview.mp4"
             rate = spec["canvas"]["frameRate"]
@@ -412,8 +489,13 @@ def render_preview(spec: dict[str, Any], output_dir: str | Path, *, mp4: bool | 
                 _ffmpeg_executable(), "-hide_banner", "-loglevel", "error", "-y",
                 "-framerate", f"{rate['numerator']}/{rate['denominator']}",
                 "-i", str(frames_dir / "%06d.png"),
-                "-c:v", "libx264", "-pix_fmt", "yuv420p", "-movflags", "+faststart", str(video),
             ]
+            if mix:
+                command += ["-i", str(mix)]
+            command += ["-c:v", "libx264", "-pix_fmt", "yuv420p"]
+            if mix:
+                command += ["-c:a", "aac", "-b:a", "192k", "-shortest"]
+            command += ["-movflags", "+faststart", str(video)]
             completed = subprocess.run(command, capture_output=True, text=True, check=False)
             if completed.returncode:
                 raise RenderError(f"FFmpeg failed: {completed.stderr.strip()}")
@@ -433,7 +515,8 @@ def render_preview(spec: dict[str, Any], output_dir: str | Path, *, mp4: bool | 
             "frameRate": spec["canvas"]["frameRate"],
             "outputs": outputs,
             "issues": list({(i["code"], i["message"]): i for i in renderer.issues}.values()),
-            "note": "Deterministic preview only; no audio or editable Adobe project.",
+            "note": "Deterministic preview only; no editable Adobe project."
+                    if mix else "Deterministic silent preview only; no editable Adobe project.",
         }
         (staging / "render-manifest.json").write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         staging.rename(output)

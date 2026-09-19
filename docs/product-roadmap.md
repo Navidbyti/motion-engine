@@ -40,12 +40,13 @@ This is the ordered work list for a usable, general motion-production engine. A 
 - [x] Add explicit multiline text, opt-in space wrapping, overflow rejection, and libraqm-backed RTL preview.
 - [ ] Add word breaking for scripts without spaces, rich text, glyph coverage checks, and locale-aware formatting.
 - [ ] Add chart axes, ticks, labels, units, baseline rules, and exact-data visual conformance checks.
-- [ ] Add background music, sound effects, voice tracks, ducking, and loudness controls.
+- [x] Add frame-placed mono PCM WAV tracks with exact sample alignment, deterministic mixing, and clipping rejection.
+- [ ] Add compressed/stereo audio, background music workflows, fades, ducking, loudness controls, and audio QA.
 - [ ] Add a performance path for long videos and high-resolution frames without changing deterministic output.
 
 ## 3. Adobe-native outputs
 
-- [ ] Run a create/save/close/reopen compatibility spike on the selected installed versions of each Adobe app.
+- [ ] Run a create/save/close/reopen compatibility spike on the selected installed versions of each Adobe app. After Effects 2024 (24.5x52) passed on Windows on 2026-09-19: a scripted comp and editable text layer were saved as AEP, reopened, and inspected. Premiere Pro, Photoshop, and Illustrator remain.
 - [ ] Build an After Effects adapter for editable comps, text, shapes, charts, timing, markers, and linked media.
 - [ ] Build an Illustrator adapter for editable artboards, vector assets, type, and charts.
 - [ ] Build a Photoshop adapter for layered still assets, text, treatments, and links.

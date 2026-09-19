@@ -15,7 +15,7 @@ BASELINE_KINDS = {
 
 
 def default_capabilities() -> dict[str, dict[str, Any]]:
-    """The silent MP4 preview is available; native Adobe adapters are planned."""
+    """The preview MP4 adapter is available; native Adobe adapters are planned."""
     registry = {
         target: {"status": "planned", "supportedKinds": sorted(BASELINE_KINDS), "editableKinds": sorted(BASELINE_KINDS) if target.startswith("adobe.") else []}
         for target in ("adobe.after_effects", "adobe.premiere", "adobe.photoshop", "adobe.illustrator")
@@ -75,6 +75,12 @@ def plan(spec: dict[str, Any], capabilities: dict[str, dict[str, Any]] | None = 
                         preview_feature_gaps.add(f"image_asset:{element['id']}")
                     if element["params"].get("fit", "contain") not in ("contain", "cover", "stretch"):
                         preview_feature_gaps.add(f"image_fit:{element['id']}")
+                if element["kind"] == "audio":
+                    asset = assets.get(element.get("assetId"))
+                    if not asset or asset.get("status") != "available" or not asset.get("uri") or not asset.get("sha256"):
+                        preview_feature_gaps.add(f"audio_asset:{element['id']}")
+                    elif not str(asset["uri"]).lower().endswith(".wav"):
+                        preview_feature_gaps.add(f"audio_format:{element['id']}")
             elements.append({
                 "id": element["id"], "kind": element["kind"],
                 "startFrame": element["startFrame"],

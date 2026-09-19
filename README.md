@@ -62,7 +62,7 @@ motion-engine render examples/image-card.motion.json --output-dir image-card-pre
 python -m pytest
 ```
 
-The CLI validates and inspects MotionSpec, [imports tabular data](docs/data-import.md), checks typed dataset cells and chart ranges, compares chart values with CSV/XLSX source cells and declared decimal formulas, extracts evidence from documents, spreadsheets, images, and media headers, and produces a frame plan with target capability status. It can render silent MP4 previews for text, rectangles, local raster images, bar charts, and line charts, then create a [verifiable preview bundle](docs/preview-bundles.md). Other elements and voice audio fail explicitly. Adobe output adapters remain planned. See [ingestion](docs/ingestion.md), [planning](docs/planning.md), [preview rendering](docs/rendering.md), and [milestones](docs/milestones.md).
+The CLI validates and inspects MotionSpec, [imports tabular data](docs/data-import.md), checks typed dataset cells and chart ranges, compares chart values with CSV/XLSX source cells and declared decimal formulas, extracts evidence from documents, spreadsheets, images, and media headers, and produces a frame plan with target capability status. It can render MP4 previews for text, rectangles, local raster images, bar charts, line charts, and explicitly placed PCM WAV audio, then create a [verifiable preview bundle](docs/preview-bundles.md). Unsupported features and unlinked voice text fail explicitly. Adobe output adapters remain planned. See [ingestion](docs/ingestion.md), [planning](docs/planning.md), [preview rendering](docs/rendering.md), and [milestones](docs/milestones.md).
 
 ## Give this repository to a coding agent
 

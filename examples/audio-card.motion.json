@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "1.0.0",
+  "project": {"id": "audio-card", "title": "Synthetic audio card", "locale": "en-US", "direction": "ltr"},
+  "canvas": {"width": 640, "height": 360, "frameRate": {"numerator": 30, "denominator": 1}, "durationFrames": 60, "colorSpace": "Rec.709", "background": "#101820", "safeArea": {"top": 20, "right": 20, "bottom": 20, "left": 20}},
+  "sources": [{"id": "script", "uri": "assets/hello-script.md", "mediaType": "text/markdown", "authority": ["text", "timing"]}],
+  "assets": [{"id": "tone", "kind": "audio", "status": "available", "uri": "assets/demo-tone.wav", "sha256": "1bec0ad3696253da1ad9c394735db0752b08fa58360156d5027a77da6f5b925d"}],
+  "datasets": [],
+  "timeline": [{
+    "id": "card", "startFrame": 0, "endFrameExclusive": 60, "transitionIn": "start",
+    "elements": [
+      {"id": "title", "kind": "text", "startFrame": 0, "endFrameExclusive": 60, "bounds": {"x": 40, "y": 140, "width": 560, "height": 80}, "text": {"value": "A small beginning", "locale": "en-US", "fontFamily": "Arial", "fontWeight": 700, "align": "center"}, "params": {"color": "#FFFFFF"}, "sourceRefs": [{"sourceId": "script", "location": "line 1", "method": "manual"}]},
+      {"id": "tone_track", "kind": "audio", "startFrame": 15, "endFrameExclusive": 45, "assetId": "tone", "params": {"gainDb": 0}}
+    ],
+    "beats": [{"id": "beat_card", "startFrame": 0, "endFrameExclusive": 60, "onScreen": [{"value": "A small beginning", "locale": "en-US"}], "elementIds": ["title", "tone_track"]}],
+    "animations": [],
+    "sourceRefs": [{"sourceId": "script", "location": "line 1", "method": "manual"}]
+  }],
+  "deliverables": [{"id": "preview", "target": "video/mp4", "profile": "preview", "required": true, "editable": false}],
+  "policies": {"qa": [{"id": "no_overflow", "rule": "text.within_safe_area", "severity": "error"}], "disclosures": [], "approvals": [], "unsupportedFeature": "error"}
+}

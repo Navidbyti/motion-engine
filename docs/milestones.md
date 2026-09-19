@@ -4,7 +4,7 @@
 |---|---|---|
 | M0, repository (done) | General schema, CLI, synthetic fixtures, docs, license | Public clone installs; synthetic fixtures validate; no private files |
 | M1, ingestion and planning (done) | PDF/DOCX/text/CSV/XLSX extractors, evidence map, frame plan, capability registry | Synthetic source files retain locations; two unrelated fixtures produce valid plans; built-in targets honestly report planned |
-| M2, deterministic rendering (in progress) | Text, rectangles, local hashed raster images, bar/line charts, keyframes, data binding, scene cuts, and silent FFmpeg preview are implemented; broader primitives, audio, and visual QA remain | Public fixtures render at exact frame counts; values match sources; unsupported content fails explicitly |
+| M2, deterministic rendering (in progress) | Text, rectangles, local hashed raster images, bar/line charts, keyframes, data binding, scene cuts, a narrow WAV mix, and FFmpeg preview are implemented; broader primitives, audio formats, and visual QA remain | Public fixtures render at exact frame counts; values match sources; unsupported content fails explicitly |
 | M3, native Adobe | AE, Illustrator, Photoshop, Premiere adapters | Every requested file opens, saves, reopens, and stays editable |
 | M4, voice and optional assets | Whisper alignment, audio mix, provider manifest | Timed voice and approved assets reproduce from hashes |
 | M5, QA and package | Automated reports, visual review, portable archive | Data, language, timing, media, and native reopen gates pass |
