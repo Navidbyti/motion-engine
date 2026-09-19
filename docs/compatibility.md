@@ -9,7 +9,7 @@ The public core is tested on GitHub-hosted Windows, Linux, and macOS runners wit
 | Right-to-left preview | Requires a Pillow build with libraqm; the renderer stops clearly if unavailable |
 | After Effects text, rectangle, and linked image project | Experimental JSX exporter; save/reopen passed on Windows with After Effects 2024 24.5x52 for four public synthetic fixtures |
 | Illustrator static text and rectangle artboards | Experimental JSX exporter; save/reopen passed on Windows with Illustrator 2024 28.6.0 for two public synthetic fixtures |
-| Photoshop layered PSD probe | Save/reopen passed on Windows with Photoshop 2024 25.9.1 for one scratch editable text document; no MotionSpec adapter yet |
+| Photoshop layered PSD subset | Save/close/reopen passed on Windows with Photoshop 2024 25.9.1 for two MotionSpec fixtures: 1920×1080, five layers; 1080×1920, three layers. Editable single-line text and raster rectangles only. |
 | Premiere Pro and broader Adobe features | Planned; no app-version compatibility claim yet |
 | FFmpeg | System executable or the pinned `imageio-ffmpeg` development package for preview MP4 |
 | Fonts | Project fonts must be supplied or installed; substitution is reported in the render manifest |

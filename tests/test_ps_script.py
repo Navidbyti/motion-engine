@@ -19,6 +19,8 @@ def test_ps_script_embeds_editable_reopen_and_source_checks(tmp_path, fixture):
     content = paths[0].read_text(encoding="utf-8")
     payload = json.loads(content.removeprefix("var job = ").split(";\n", 1)[0])
     assert payload["spec"] == spec
+    assert json.loads(payload["caption"])["projectId"] == spec["project"]["id"]
+    assert "JSON.stringify" not in content
     assert "doc.saveAs(output, options, true)" in content
     assert "doc = app.open(output)" in content
     assert "reopened source provenance mismatch" in content

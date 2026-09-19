@@ -54,6 +54,7 @@ This is the ordered work list for a usable, general motion-production engine. A 
 - [ ] Build an Illustrator adapter for editable artboards, vector assets, type, and charts.
 - [x] Prove an initial static Illustrator artboard subset with editable text and rectangles on two public fixtures, with native save/reopen checks.
 - [ ] Build a Photoshop adapter for layered still assets, text, treatments, and links.
+- [x] Prove an initial static Photoshop PSD subset with editable text and separate rectangle layers on two public fixtures, with native save/close/reopen checks.
 - [ ] Build a Premiere Pro adapter for sequence tracks, cuts, markers, audio, and linked assets.
 - [ ] Implement per-adapter capability negotiation and explicit fallback records before building.
 - [ ] Verify every native file in its owning application after save and reopen; inspect structure and missing links.

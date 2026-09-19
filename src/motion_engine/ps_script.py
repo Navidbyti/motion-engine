@@ -65,7 +65,12 @@ def make_ps_script(spec: dict[str, Any], script_path: str | Path,
         raise PSExportError("script, report, and PSD output paths must not already exist")
     for path in (script, output, report):
         path.parent.mkdir(parents=True, exist_ok=True)
-    payload = json.dumps({"spec": spec, "psd": output.as_posix(), "report": report.as_posix()},
+    provenance = {"projectId": spec["project"]["id"], "sceneId": scene["id"],
+                  "sceneSourceRefs": scene["sourceRefs"],
+                  "elements": [{"id": element["id"], "sourceRefs": element.get("sourceRefs", [])}
+                               for element in scene["elements"]]}
+    payload = json.dumps({"spec": spec, "psd": output.as_posix(), "report": report.as_posix(),
+                          "caption": json.dumps(provenance, ensure_ascii=True, separators=(",", ":"))},
                          ensure_ascii=True, separators=(",", ":"))
     script.write_text("var job = " + payload + ";\n" + _SCRIPT, encoding="utf-8")
     return script
@@ -104,8 +109,6 @@ _SCRIPT = r'''
             UnitValue(spec.canvas.height, "px"), 72, spec.project.id,
             NewDocumentMode.RGB, DocumentFill.TRANSPARENT);
         // The PSD carries the source mapping even when the JSX job is moved.
-        var provenance = {projectId: spec.project.id, sceneId: scene.id,
-            sceneSourceRefs: scene.sourceRefs, elements: []};
         var background = doc.artLayers.add();
         background.name = "__background";
         doc.selection.select([[0, 0], [spec.canvas.width, 0],
@@ -134,9 +137,8 @@ _SCRIPT = r'''
             expected.push({name: element.id, kind: element.kind,
                 text: element.kind === "text" ? element.text.value : null,
                 font: element.kind === "text" ? layer.textItem.font : null});
-            provenance.elements.push({id: element.id, sourceRefs: element.sourceRefs || []});
         }
-        var caption = JSON.stringify(provenance);
+        var caption = job.caption;
         doc.info.caption = caption;
         var options = new PhotoshopSaveOptions();
         options.layers = true;
