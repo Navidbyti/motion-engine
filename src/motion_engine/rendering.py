@@ -218,20 +218,51 @@ class FrameRenderer:
             direction = None
         overlay = Image.new("RGBA", image.size, (0, 0, 0, 0))
         draw = ImageDraw.Draw(overlay)
-        bbox = draw.textbbox((0, 0), value, font=font, direction=direction)
-        text_w, text_h = bbox[2] - bbox[0], bbox[3] - bbox[1]
-        if text_w > w or text_h > h:
+        wrap = element["params"].get("wrap", False)
+        if not isinstance(wrap, bool):
+            raise RenderError(f"text {element['id']} wrap must be a boolean")
+        lines = []
+        for authored_line in value.split("\n"):
+            if not wrap:
+                lines.append(authored_line)
+                continue
+            current = ""
+            for word in authored_line.split(" "):
+                candidate = word if not current else current + " " + word
+                bbox = draw.textbbox((0, 0), candidate or " ", font=font, direction=direction)
+                if bbox[2] - bbox[0] <= w:
+                    current = candidate
+                elif current:
+                    word_box = draw.textbbox((0, 0), word or " ", font=font, direction=direction)
+                    if word_box[2] - word_box[0] > w:
+                        raise RenderError(f"text {element['id']} has an unbreakable word wider than its bounds")
+                    lines.append(current)
+                    current = word
+                else:
+                    raise RenderError(f"text {element['id']} has an unbreakable word wider than its bounds")
+            lines.append(current)
+        ascent, descent = font.getmetrics()
+        line_height = max(1, math.ceil((ascent + descent) * 1.08))
+        block_height = len(lines) * line_height
+        if block_height > h:
             raise RenderError(f"text {element['id']} overflows its bounds at frame {frame}")
         align = text.get("align", "start")
         if align == "start":
             align = "right" if direction == "rtl" else "left"
         elif align == "end":
             align = "left" if direction == "rtl" else "right"
-        text_x = x if align == "left" else x + (w - text_w) // 2 if align == "center" else x + w - text_w
-        text_y = y + (h - text_h) // 2
         opacity = max(0.0, min(1.0, self._property(element["id"], "opacity", frame, 1.0)))
         color = _rgb(element["params"].get("color", "#FFFFFF"))
-        draw.text((text_x - bbox[0], text_y - bbox[1]), value, font=font, direction=direction, fill=(*color, round(255 * opacity)))
+        for index, line in enumerate(lines):
+            if not line:
+                continue
+            bbox = draw.textbbox((0, 0), line, font=font, direction=direction)
+            text_w, text_h = bbox[2] - bbox[0], bbox[3] - bbox[1]
+            if text_w > w or text_h > line_height:
+                raise RenderError(f"text {element['id']} overflows its bounds at frame {frame}")
+            text_x = x if align == "left" else x + (w - text_w) // 2 if align == "center" else x + w - text_w
+            text_y = y + (h - block_height) // 2 + index * line_height + (line_height - text_h) // 2
+            draw.text((text_x - bbox[0], text_y - bbox[1]), line, font=font, direction=direction, fill=(*color, round(255 * opacity)))
         image.paste(overlay, (0, 0), overlay)
 
     def _shape(self, image: Image.Image, element: dict[str, Any], frame: int) -> None:

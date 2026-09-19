@@ -36,7 +36,8 @@ This is the ordered work list for a usable, general motion-production engine. A 
 - [ ] Add video plates with trimming, proxies, color conversion, and deterministic frame mapping.
 - [ ] Add tables, cards, counters, scatter charts, icons, masks, and reusable compositions as tested primitives.
 - [ ] Add scene transitions and a complete animation property/easing contract, with exact frame semantics.
-- [ ] Add multiline text layout, wrapping, overflow detection, bidi/RTL shaping, and locale-aware formatting.
+- [x] Add explicit multiline text, opt-in space wrapping, overflow rejection, and libraqm-backed RTL preview.
+- [ ] Add word breaking for scripts without spaces, rich text, glyph coverage checks, and locale-aware formatting.
 - [ ] Add chart axes, ticks, labels, units, baseline rules, and exact-data visual conformance checks.
 - [ ] Add background music, sound effects, voice tracks, ducking, and loudness controls.
 - [ ] Add a performance path for long videos and high-resolution frames without changing deterministic output.

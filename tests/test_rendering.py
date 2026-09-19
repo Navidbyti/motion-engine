@@ -59,6 +59,37 @@ def test_ltr_text_renders_without_raqm(monkeypatch):
     assert renderer.render_frame(20).getbbox() is not None
 
 
+def test_explicit_lines_and_opt_in_wrapping_respect_bounds():
+    spec = copy.deepcopy(load_spec(ROOT / "examples/hello.motion.json"))
+    title = spec["timeline"][0]["elements"][0]
+    title["text"]["value"] = "A longer line of text that wraps into several rows"
+    title["bounds"] = {"x": 160, "y": 220, "width": 700, "height": 300}
+    title["params"]["fontSize"] = 64
+    title["params"]["wrap"] = True
+    renderer = FrameRenderer(spec, scale=1)
+    assert changed(renderer.render_frame(20), Image.new("RGB", (1920, 1080), (16, 24, 32)))
+    title["params"]["wrap"] = False
+    with pytest.raises(RenderError, match="overflows"):
+        FrameRenderer(spec).render_frame(20)
+    title["text"]["value"] = "A longer line\nof text"
+    FrameRenderer(spec).render_frame(20)
+    title["text"]["value"] = "UnbreakableWordMuchLongerThanTheTextBox"
+    title["params"]["wrap"] = True
+    with pytest.raises(RenderError, match="unbreakable word"):
+        FrameRenderer(spec).render_frame(20)
+
+
+def test_multiline_rtl_text_uses_raqm_when_available():
+    if not features.check("raqm"):
+        pytest.skip("Pillow libraqm is unavailable")
+    spec = copy.deepcopy(load_spec(ROOT / "examples/weather.motion.json"))
+    heading = spec["timeline"][0]["elements"][0]
+    heading["text"]["value"] = "درجات الحرارة\nخلال العام"
+    heading["bounds"]["height"] = 180
+    heading["params"]["fontSize"] = 46
+    FrameRenderer(spec, scale=1).render_frame(0)
+
+
 def test_unsupported_content_fails_before_frame_writing(tmp_path):
     spec = copy.deepcopy(load_spec(ROOT / "examples/hello.motion.json"))
     spec["timeline"][0]["elements"][0]["kind"] = "video"

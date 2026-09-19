@@ -1,7 +1,7 @@
 """Declared feature surface of the M2 raster preview backend."""
 
 PREVIEW_PARAMS = {
-    "text": {"color", "fontSize"},
+    "text": {"color", "fontSize", "wrap"},
     "shape": {"color", "shape"},
     "image": {"fit"},
     "chart.bar": {"categoryField", "minimum", "maximum", "color", "baselineColor", "barWidthFraction", "labelFontFamily"},
