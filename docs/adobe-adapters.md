@@ -27,4 +27,8 @@ This is a static artwork subset. Elements must cover their whole scene. The expo
 
 Illustrator 2024 version 28.6.0 on Windows passed save/reopen with `examples/ai-card.motion.json` (landscape text and rectangle) and `examples/ai-vertical.motion.json` (two vertical artboards). The saved files are local demo artifacts, not repository fixtures.
 
+## Photoshop compatibility probe
+
+Photoshop 2024 version 25.9.1 on Windows passed a manual scratch create/save/close/reopen probe for a 640×360 layered PSD with editable text. The script temporarily set ruler units to pixels for dimension checks and restored the prior setting afterward. This proves the basic native path only; a MotionSpec-to-PSD exporter and public fixtures remain to be built.
+
 Sources: [Adobe After Effects scripting](https://helpx.adobe.com/after-effects/desktop/automate-in-after-effects/automate-animation/scripts.html), [aerender](https://helpx.adobe.com/after-effects/desktop/render-and-export/automate-rendering/automated-rendering-network-rendering.html), [Illustrator scripting](https://helpx.adobe.com/illustrator/desktop/automate-visualize-data/automate-actions/install-and-run-scripts.html), [Photoshop UXP scripting](https://developer.adobe.com/photoshop/uxp/scripting/), and [Premiere UXP project API](https://developer.adobe.com/premiere-pro/uxp/ppro-reference/classes/project).

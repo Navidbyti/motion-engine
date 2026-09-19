@@ -46,7 +46,7 @@ This is the ordered work list for a usable, general motion-production engine. A 
 
 ## 3. Adobe-native outputs
 
-- [ ] Run a create/save/close/reopen compatibility spike on the selected installed versions of each Adobe app. After Effects 2024 (24.5x52) and Illustrator 2024 (28.6.0) passed on Windows on 2026-09-19. Premiere Pro and Photoshop remain.
+- [ ] Run a create/save/close/reopen compatibility spike on the selected installed versions of each Adobe app. After Effects 2024 (24.5x52), Illustrator 2024 (28.6.0), and Photoshop 2024 (25.9.1) passed on Windows on 2026-09-19. Premiere Pro remains.
 - [ ] Build an After Effects adapter for editable comps, text, shapes, charts, timing, markers, and linked media.
 - [x] Prove an initial editable After Effects text and rectangle subset on three public fixtures with app-level save/reopen checks; other primitives and automated execution remain.
 - [x] Add composition markers for beat windows and verify marker comments, starts, and durations after native reopen.
