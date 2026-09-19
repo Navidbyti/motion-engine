@@ -87,20 +87,65 @@ def _csv(path: Path, source_id: str, limit: int):
 
 
 def _pdf(path: Path, source_id: str, limit: int):
+    import pdfplumber
     from pypdf import PdfReader
     records = []
     issues = []
     reader = PdfReader(str(path))
     if reader.is_encrypted:
         raise ValueError("encrypted PDF requires an unlocked source")
-    for page_number, page in enumerate(reader.pages, 1):
-        text = page.extract_text() or ""
-        if not text.strip():
-            issues.append({"code": "page_text_empty", "message": f"Page {page_number} has no extractable text; OCR or visual review may be needed"})
-        for line_number, line in enumerate(text.splitlines(), 1):
-            if line.strip():
-                records.append(_record(source_id, f"page:{page_number}/line:{line_number}", "text", line, "pypdf text extraction"))
+    with pdfplumber.open(str(path)) as document:
+        for page_number, (page, layout) in enumerate(zip(reader.pages, document.pages), 1):
+            text = page.extract_text() or ""
+            if not text.strip():
+                issues.append({"code": "page_text_empty", "message": f"Page {page_number} has no extractable text; OCR or visual review may be needed"})
+            for line_number, line in enumerate(text.splitlines(), 1):
+                if line.strip():
+                    records.append(_record(source_id, f"page:{page_number}/line:{line_number}", "text", line, "pypdf text extraction"))
+                    _check_limit(records, limit)
+            words = layout.extract_words()
+            for word_number, word in enumerate(words, 1):
+                records.append(_record(
+                    source_id, f"page:{page_number}/word:{word_number}", "positioned_text",
+                    word["text"], "pdfplumber word layout",
+                    bbox=[word[key] for key in ("x0", "top", "x1", "bottom")],
+                    pageSize=[layout.width, layout.height], coordinateSystem="top-left PDF points",
+                ))
                 _check_limit(records, limit)
+            if words:
+                issues.append({"code": "pdf_reading_order_unverified", "message": f"Page {page_number} text reading order requires visual review"})
+            tables = layout.find_tables()
+            for table_number, table in enumerate(tables, 1):
+                rows = table.extract()
+                records.append(_record(
+                    source_id, f"page:{page_number}/table:{table_number}", "table",
+                    {"rows": len(rows), "columns": max((len(row) for row in rows), default=0)},
+                    "pdfplumber table detection", bbox=list(table.bbox),
+                    pageSize=[layout.width, layout.height], coordinateSystem="top-left PDF points",
+                ))
+                _check_limit(records, limit)
+                for row_number, row in enumerate(rows, 1):
+                    for column_number, value in enumerate(row, 1):
+                        cell = table.rows[row_number - 1].cells[column_number - 1]
+                        records.append(_record(
+                            source_id, f"page:{page_number}/table:{table_number}:R{row_number}C{column_number}",
+                            "cell", value, "pdfplumber table detection",
+                            bbox=list(cell) if cell else None,
+                            pageSize=[layout.width, layout.height], coordinateSystem="top-left PDF points",
+                        ))
+                        _check_limit(records, limit)
+            if tables:
+                issues.append({"code": "pdf_table_review", "message": f"Page {page_number} detected {len(tables)} table(s); verify cell boundaries and values"})
+            for image_number, item in enumerate(layout.images, 1):
+                records.append(_record(
+                    source_id, f"page:{page_number}/image:{image_number}", "image_region",
+                    {"width": item.get("width"), "height": item.get("height")},
+                    "pdfplumber image layout",
+                    bbox=[item[key] for key in ("x0", "top", "x1", "bottom")],
+                    pageSize=[layout.width, layout.height], coordinateSystem="top-left PDF points",
+                ))
+                _check_limit(records, limit)
+            layout.close()
     return records, issues
 
 

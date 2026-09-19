@@ -4,12 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "motion-engine-spec"
-version = "0.10.0"
+version = "0.11.0"
 description = "MotionSpec validation, ingestion, planning, and deterministic previews"
 readme = "README.md"
 requires-python = ">=3.11"
 license = {file = "LICENSE"}
-dependencies = ["jsonschema>=4.21,<5", "openpyxl>=3.1,<4", "pypdf>=4,<7", "python-docx>=1.1,<2", "Pillow>=11,<13"]
+dependencies = ["jsonschema>=4.21,<5", "openpyxl>=3.1,<4", "pypdf>=4,<7", "pdfplumber>=0.11.10,<0.12", "python-docx>=1.1,<2", "Pillow>=12.2,<13"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8,<9", "reportlab>=4,<5", "imageio-ffmpeg>=0.5,<1"]

@@ -55,6 +55,50 @@ def test_pdf_text_has_page_and_line_location(tmp_path):
     assert any(x.startswith("page:1/") for x in locations)
     assert any(x.startswith("page:2/") for x in locations)
     assert any("Second page content" in r["value"] for r in result["evidence"])
+    positioned = next(r for r in result["evidence"] if r["kind"] == "positioned_text")
+    assert positioned["metadata"]["bbox"][0] >= 0
+    assert positioned["metadata"]["coordinateSystem"] == "top-left PDF points"
+    assert any(issue["code"] == "pdf_reading_order_unverified" for issue in result["issues"])
+
+
+def test_pdf_table_and_image_regions_have_page_coordinates(tmp_path):
+    from PIL import Image
+    from reportlab.lib.utils import ImageReader
+    from reportlab.pdfgen import canvas
+
+    path = tmp_path / "layout.pdf"
+    page = canvas.Canvas(str(path))
+    for x in (72, 172, 272):
+        page.line(x, 500, x, 560)
+    for y in (500, 530, 560):
+        page.line(72, y, 272, y)
+    for value, x, y in (("Year", 80, 540), ("Value", 180, 540), ("2025", 80, 510), ("12.5", 180, 510)):
+        page.drawString(x, y, value)
+    page.drawImage(ImageReader(Image.new("RGB", (8, 8), "red")), 300, 500, 32, 32)
+    page.save()
+    result = ingest(path)
+    cells = {record["location"]: record for record in result["evidence"] if record["kind"] == "cell"}
+    assert cells["page:1/table:1:R2C2"]["value"] == "12.5"
+    assert len(cells["page:1/table:1:R2C2"]["metadata"]["bbox"]) == 4
+    image = next(record for record in result["evidence"] if record["kind"] == "image_region")
+    assert image["metadata"]["bbox"][2] - image["metadata"]["bbox"][0] == 32
+    assert {issue["code"] for issue in result["issues"]} >= {"pdf_table_review", "pdf_reading_order_unverified"}
+    with pytest.raises(ValueError, match="limit"):
+        ingest(path, limit=1)
+
+
+def test_image_only_pdf_requests_ocr_review(tmp_path):
+    from PIL import Image
+    from reportlab.lib.utils import ImageReader
+    from reportlab.pdfgen import canvas
+
+    path = tmp_path / "scan.pdf"
+    page = canvas.Canvas(str(path))
+    page.drawImage(ImageReader(Image.new("RGB", (10, 10), "blue")), 72, 600, 100, 100)
+    page.save()
+    result = ingest(path)
+    assert any(issue["code"] == "page_text_empty" for issue in result["issues"])
+    assert any(record["kind"] == "image_region" for record in result["evidence"])
 
 
 def test_docx_preserves_block_order(tmp_path):
