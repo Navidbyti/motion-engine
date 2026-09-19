@@ -8,7 +8,8 @@ The public core is tested on GitHub-hosted Windows, Linux, and macOS runners wit
 | Raster/MP4 preview | Tested on all six runner combinations with the synthetic fixtures |
 | Right-to-left preview | Requires a Pillow build with libraqm; the renderer stops clearly if unavailable |
 | After Effects text, rectangle, and linked image project | Experimental JSX exporter; save/reopen passed on Windows with After Effects 2024 24.5x52 for four public synthetic fixtures |
-| Other native Adobe targets | Planned; no app-version compatibility claim yet |
+| Illustrator static text and rectangle artboards | Experimental JSX exporter; save/reopen passed on Windows with Illustrator 2024 28.6.0 for two public synthetic fixtures |
+| Premiere Pro, Photoshop, and broader Adobe features | Planned; no app-version compatibility claim yet |
 | FFmpeg | System executable or the pinned `imageio-ffmpeg` development package for preview MP4 |
 | Fonts | Project fonts must be supplied or installed; substitution is reported in the render manifest |
 

@@ -17,6 +17,7 @@ from .qa import qa_report
 from .packaging import package_preview, verify_preview_bundle
 from .data_import import import_dataset
 from .ae_script import AEExportError, make_ae_script
+from .ai_script import AIExportError, make_ai_script
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -59,6 +60,11 @@ def main(argv: list[str] | None = None) -> int:
     ae.add_argument("--output-script", required=True)
     ae.add_argument("--output-aep", required=True)
     ae.add_argument("--report", required=True)
+    ai = sub.add_parser("make-ai-script")
+    ai.add_argument("spec")
+    ai.add_argument("--output-script", required=True)
+    ai.add_argument("--output-ai", required=True)
+    ai.add_argument("--report", required=True)
     data = sub.add_parser("import-data")
     data.add_argument("source")
     data.add_argument("--project-root", required=True, help="Directory where the future MotionSpec will live")
@@ -140,6 +146,14 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps({"ok": True, "script": str(result), "aep": str(Path(args.output_aep).resolve()),
                               "report": str(Path(args.report).resolve())}, ensure_ascii=False, indent=2))
         except (OSError, AEExportError) as exc:
+            print(json.dumps({"ok": False, "errors": [str(exc)]}, ensure_ascii=False), file=sys.stderr)
+            return 2
+    elif args.command == "make-ai-script":
+        try:
+            result = make_ai_script(spec, args.output_script, args.output_ai, args.report)
+            print(json.dumps({"ok": True, "script": str(result), "ai": str(Path(args.output_ai).resolve()),
+                              "report": str(Path(args.report).resolve())}, ensure_ascii=False, indent=2))
+        except (OSError, AIExportError) as exc:
             print(json.dumps({"ok": False, "errors": [str(exc)]}, ensure_ascii=False), file=sys.stderr)
             return 2
     elif args.command == "qa":
