@@ -51,7 +51,6 @@ motion-engine validate examples/hello.motion.json
 motion-engine inspect examples/hello.motion.json
 motion-engine ingest examples/assets/hello-script.md --output evidence.json
 motion-engine make-review evidence.json --output review.json
-motion-engine verify-review review.json evidence.json
 motion-engine import-data examples/assets/weather.csv --project-root examples --dataset-id temperatures --source-id weather_csv --output dataset-fragment.json
 motion-engine plan examples/hello.motion.json --output plan.json
 motion-engine freeze examples/hello.motion.json --output revision.json
