@@ -1,0 +1,16 @@
+{
+  "items": [
+    {
+      "kind": "approval",
+      "code": "title_copy",
+      "message": "Approve the opening title as final copy",
+      "sourceId": "hello-script",
+      "evidenceLocations": ["line:1"]
+    },
+    {
+      "kind": "missing_input",
+      "code": "brand_font",
+      "message": "Supply a licensed font before native project delivery"
+    }
+  ]
+}

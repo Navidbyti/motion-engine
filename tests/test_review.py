@@ -7,6 +7,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 from motion_engine.cli import main
+from motion_engine.ingest import ingest
 from motion_engine.review import make_review, verify_review
 
 
@@ -77,3 +78,10 @@ def test_review_cli_never_overwrites_existing_decisions(tmp_path, capsys):
     assert review.read_bytes() == original
     assert main(["verify-review", str(review), str(evidence)]) == 1
     assert "pending" in capsys.readouterr().out
+
+
+def test_public_review_example_matches_public_script(tmp_path):
+    evidence = _write(tmp_path / "evidence.json", ingest(ROOT / "examples" / "assets" / "hello-script.md"))
+    review = make_review([evidence], ROOT / "examples" / "review-questions.json")
+    assert [item["kind"] for item in review["items"]] == ["approval", "missing_input"]
+    assert review["items"][0]["evidenceLocations"] == ["line:1"]
