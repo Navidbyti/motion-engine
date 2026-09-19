@@ -15,6 +15,7 @@ Input: `{jobId, projectId, revisionId, stage, inputArtifacts, options, idempoten
 | Stage | Input | Output |
 |---|---|---|
 | `ingest` | Source artifacts | Evidence records with page/sheet/line/timecode, thumbnails, extracted tables |
+| `review` | Evidence and project questions | Source-bound pending items and recorded human resolutions |
 | `interpret` | Evidence and user direction | Draft MotionSpec, conflicts, confidence |
 | `validate` | MotionSpec | JSON Schema errors, semantic errors, provenance report |
 | `plan` | Valid MotionSpec and target registry | Frame-indexed scene graph, capability report, asset requests |

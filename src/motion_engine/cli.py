@@ -20,6 +20,7 @@ from .ae_script import AEExportError, make_ae_script
 from .ai_script import AIExportError, make_ai_script
 from .ps_script import PSExportError, make_ps_script
 from .pdf_assets import extract_pdf_images
+from .review import make_review, verify_review
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -56,6 +57,14 @@ def main(argv: list[str] | None = None) -> int:
     pdf_images.add_argument("--output-dir", required=True)
     pdf_images.add_argument("--max-images", type=int, default=1000)
     pdf_images.add_argument("--max-total-bytes", type=int, default=100_000_000)
+    review = sub.add_parser("make-review")
+    review.add_argument("evidence", nargs="+", help="Evidence JSON files produced by ingest")
+    review.add_argument("--requirements", help="Optional project review questions JSON")
+    review.add_argument("--output", required=True, help="New review JSON file; existing decisions are never overwritten")
+    verify = sub.add_parser("verify-review")
+    verify.add_argument("review")
+    verify.add_argument("evidence", nargs="+")
+    verify.add_argument("--requirements")
     bundle = sub.add_parser("package-preview")
     bundle.add_argument("spec")
     bundle.add_argument("--render-dir", required=True)
@@ -98,6 +107,15 @@ def main(argv: list[str] | None = None) -> int:
                                                 args.max_images, args.max_total_bytes),
                              ensure_ascii=False, indent=2))
             return 0
+        if args.command == "make-review":
+            if Path(args.output).exists():
+                raise ValueError("review output already exists; existing decisions cannot be overwritten")
+            _emit(make_review(args.evidence, args.requirements), args.output)
+            return 0
+        if args.command == "verify-review":
+            result = verify_review(args.review, args.evidence, args.requirements)
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+            return 0 if result["status"] == "passed" else 1
         if args.command == "package-preview":
             print(json.dumps(package_preview(args.spec, args.render_dir, args.output_dir), ensure_ascii=False, indent=2))
             return 0
