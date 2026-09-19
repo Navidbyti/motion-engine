@@ -16,6 +16,7 @@ from .runs import RunError, render_key, verify_render_run
 from .qa import qa_report
 from .packaging import package_preview, verify_preview_bundle
 from .data_import import import_dataset
+from .ae_script import AEExportError, make_ae_script
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -53,6 +54,11 @@ def main(argv: list[str] | None = None) -> int:
     bundle.add_argument("--output-dir", required=True)
     verify_bundle = sub.add_parser("verify-package")
     verify_bundle.add_argument("directory")
+    ae = sub.add_parser("make-ae-script")
+    ae.add_argument("spec")
+    ae.add_argument("--output-script", required=True)
+    ae.add_argument("--output-aep", required=True)
+    ae.add_argument("--report", required=True)
     data = sub.add_parser("import-data")
     data.add_argument("source")
     data.add_argument("--project-root", required=True, help="Directory where the future MotionSpec will live")
@@ -125,6 +131,14 @@ def main(argv: list[str] | None = None) -> int:
                 raise RevisionError(f"revision output {args.output} already exists; choose a new path")
             _emit(freeze_revision(spec, Path(args.spec).resolve().parent), args.output)
         except (OSError, RevisionError) as exc:
+            print(json.dumps({"ok": False, "errors": [str(exc)]}, ensure_ascii=False), file=sys.stderr)
+            return 2
+    elif args.command == "make-ae-script":
+        try:
+            result = make_ae_script(spec, args.output_script, args.output_aep, args.report)
+            print(json.dumps({"ok": True, "script": str(result), "aep": str(Path(args.output_aep).resolve()),
+                              "report": str(Path(args.report).resolve())}, ensure_ascii=False, indent=2))
+        except (OSError, AEExportError) as exc:
             print(json.dumps({"ok": False, "errors": [str(exc)]}, ensure_ascii=False), file=sys.stderr)
             return 2
     elif args.command == "qa":

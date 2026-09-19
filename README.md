@@ -4,7 +4,7 @@ An open-source, implementation-ready design for turning scripts, documents, data
 
 ## Status
 
-This repository is a **build specification and early implementation**, not a finished production engine. It contains a general MotionSpec schema, source extractors, validation and planning commands, a deterministic visual preview renderer, adapter contracts, synthetic examples, tests, and implementation milestones. Native Adobe project generation is a future milestone. Do not describe the repository as producing `.aep`, `.prproj`, `.psd`, or `.ai` until those adapters pass native-app reopen tests.
+This repository is a **build specification and early implementation**, not a finished production engine. It contains a general MotionSpec schema, source extractors, validation and planning commands, a deterministic preview renderer, adapter contracts, synthetic examples, tests, and implementation milestones. An experimental After Effects script exporter creates editable text-only AEPs and passed two native-app reopen checks. Full After Effects coverage and Premiere, Photoshop, and Illustrator outputs remain future milestones.
 
 ## What goes in and comes out
 
@@ -59,10 +59,11 @@ motion-engine qa examples/hello.motion.json --output hello-qa.json
 motion-engine package-preview examples/hello.motion.json --render-dir hello-preview --output-dir hello-bundle
 motion-engine verify-package hello-bundle
 motion-engine render examples/image-card.motion.json --output-dir image-card-preview
+motion-engine make-ae-script examples/ae-card.motion.json --output-script build.jsx --output-aep result.aep --report ae-report.txt
 python -m pytest
 ```
 
-The CLI validates and inspects MotionSpec, [imports tabular data](docs/data-import.md), checks typed dataset cells and chart ranges, compares chart values with CSV/XLSX source cells and declared decimal formulas, extracts evidence from documents, spreadsheets, images, and media headers, and produces a frame plan with target capability status. It can render MP4 previews for text, rectangles, local raster images, bar charts, line charts, and explicitly placed PCM WAV audio, then create a [verifiable preview bundle](docs/preview-bundles.md). Unsupported features and unlinked voice text fail explicitly. Adobe output adapters remain planned. See [ingestion](docs/ingestion.md), [planning](docs/planning.md), [preview rendering](docs/rendering.md), and [milestones](docs/milestones.md).
+The CLI validates and inspects MotionSpec, [imports tabular data](docs/data-import.md), checks typed dataset cells and chart ranges, compares chart values with CSV/XLSX source cells and declared decimal formulas, extracts evidence from documents, spreadsheets, images, and media headers, and produces a frame plan with target capability status. It can render MP4 previews for text, rectangles, local raster images, bar charts, line charts, and explicitly placed PCM WAV audio, then create a [verifiable preview bundle](docs/preview-bundles.md). Unsupported features and unlinked voice text fail explicitly. A narrow [After Effects text exporter](docs/adobe-adapters.md) is available as a manual script workflow; broad Adobe output adapters remain planned. See [ingestion](docs/ingestion.md), [planning](docs/planning.md), [preview rendering](docs/rendering.md), and [milestones](docs/milestones.md).
 
 ## Give this repository to a coding agent
 
@@ -76,7 +77,7 @@ The [product completion plan](docs/product-roadmap.md) lists every remaining wor
 
 ## Examples and private acceptance test
 
-`examples/hello.motion.json`, `examples/weather.motion.json`, and `examples/image-card.motion.json` are synthetic and public. A separate owner-supplied brief, workbook, and derived spec remain outside the public repository as a **private acceptance fixture** for a 78.5-second right-to-left video with 19 beats, exact charts, and editable Adobe outputs. See [private fixture instructions](docs/private-fixtures.md). The core must pass public fixtures in other formats and languages too.
+The examples under `examples/`, including visual, audio, and After Effects text projects, are synthetic and public. A separate owner-supplied brief, workbook, and derived spec remain outside the public repository as a **private acceptance fixture** for a 78.5-second right-to-left video with 19 beats, exact charts, and editable Adobe outputs. See [private fixture instructions](docs/private-fixtures.md). The core must pass public fixtures in other formats and languages too.
 
 ## License
 
