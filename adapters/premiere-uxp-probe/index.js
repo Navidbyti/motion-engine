@@ -40,8 +40,18 @@ async function runProbe(ppro, fileSystem) {
     await project.createSequenceFromMedia(SEQUENCE_NAME, [clip], root),
     "Sequence creation failed."
   );
+  const settings = await sequence.getSettings();
+  const frameRate = ppro.FrameRate.createWithValue(30);
+  requireResult(settings.setVideoFrameRate(frameRate), "Could not set sequence frame rate to 30 fps.");
+  let settingsCommitted = false;
+  project.lockedAccess(() => {
+    settingsCommitted = project.executeTransaction((compoundAction) => {
+      compoundAction.addAction(sequence.createSetSettingsAction(settings));
+    }, "Set probe sequence frame rate");
+  });
+  requireResult(settingsCommitted, "Sequence settings transaction failed.");
   const markers = await ppro.Markers.getMarkers(sequence);
-  const markerTime = ppro.TickTime.createWithSeconds(1);
+  const markerTime = ppro.TickTime.createWithFrameAndFrameRate(30, frameRate);
   const markerDuration = ppro.TickTime.createWithSeconds(0);
   let committed = false;
   project.lockedAccess(() => {
@@ -60,6 +70,8 @@ async function runProbe(ppro, fileSystem) {
   const reopenedSequence = requireResult(
     sequences.find((item) => item.name === SEQUENCE_NAME), "Sequence was lost after reopen."
   );
+  const reopenedSettings = await reopenedSequence.getSettings();
+  requireResult(reopenedSettings.getVideoFrameRate().value === 30, "Sequence frame rate changed after reopen.");
   const videoTrack = requireResult(await reopenedSequence.getVideoTrack(0), "Video track 0 is missing.");
   const trackItems = videoTrack.getTrackItems(ppro.Constants.TrackItemType.CLIP, false);
   requireResult(trackItems.length === 1, `Expected one video clip; found ${trackItems.length}.`);

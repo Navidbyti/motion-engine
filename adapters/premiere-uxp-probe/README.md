@@ -1,6 +1,6 @@
 # Premiere 2026 UXP compatibility probe
 
-This is a narrow native test, not the MotionSpec-to-Premiere adapter. It uses a public synthetic PNG to create one new project with one sequence and one comment marker. It then saves, closes, reopens, and reads back the video track, marker, and media link. A `PASS` report is written only after every check succeeds.
+This is a narrow native test, not the MotionSpec-to-Premiere adapter. It uses a public synthetic PNG to create one new project with one 30 fps sequence and one comment marker. It then saves, closes, reopens, and reads back the frame rate, video track, marker, and media link. A `PASS` report is written only after every check succeeds.
 
 ## Requirements
 

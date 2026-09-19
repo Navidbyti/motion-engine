@@ -29,7 +29,9 @@ function fixture({ existing = [], loseMarker = false } = {}) {
   const videoTrack = {
     getTrackItems: () => [{ getProjectItem: async () => imported }]
   };
-  const sequence = { name: "Motion Engine Probe", getVideoTrack: async () => videoTrack };
+  const settings = { setVideoFrameRate: () => true, getVideoFrameRate: () => ({ value: 30 }) };
+  const sequence = { name: "Motion Engine Probe", getVideoTrack: async () => videoTrack,
+    getSettings: async () => settings, createSetSettingsAction: () => ({}) };
   const project = {
     getRootItem: async () => root,
     importFiles: async () => true,
@@ -44,7 +46,9 @@ function fixture({ existing = [], loseMarker = false } = {}) {
     Project: { createProject: async () => project, open: async () => project },
     ClipProjectItem: { cast: (item) => item },
     Markers: { getMarkers: async () => markers },
-    TickTime: { createWithSeconds: (seconds) => ({ ticks: String(seconds * 1000) }) },
+    FrameRate: { createWithValue: (value) => ({ value }) },
+    TickTime: { createWithSeconds: (seconds) => ({ ticks: String(seconds * 1000) }),
+      createWithFrameAndFrameRate: (frames, frameRate) => ({ ticks: String(frames * 1000 / frameRate.value) }) },
     Constants: { TrackItemType: { CLIP: 1 } }
   };
   return { fs, ppro, destination };
