@@ -11,7 +11,7 @@ This is the ordered work list for a usable, general motion-production engine. A 
 - [x] Publish preview outputs atomically so failed renders cannot leave a partial deliverable.
 - [x] Validate typed dataset cells and reject chart ranges that hide source values.
 - [ ] Pin a supported dependency matrix and lock reproducible build environments for Windows and macOS.
-- [ ] Add CI on both operating systems for schema, unit, integration, packaging, and synthetic media tests.
+- [x] Add CI on Windows and Linux with Python 3.11/3.12 for schema, unit, integration, packaging, and synthetic media tests. First green run: [35434145224](https://github.com/Navidbyti/motion-engine/actions/runs/35434145224).
 - [ ] Add MotionSpec migrations, canonical serialization, revision hashes, and compatibility fixtures.
 - [ ] Add a run manifest and immutable artifact store with retry-safe stage jobs.
 
