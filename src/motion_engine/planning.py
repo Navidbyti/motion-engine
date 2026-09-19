@@ -52,6 +52,7 @@ def plan(spec: dict[str, Any], capabilities: dict[str, dict[str, Any]] | None = 
     registry = capabilities if capabilities is not None else default_capabilities()
     scenes = []
     requested_kinds: set[str] = set()
+    assets = {asset["id"]: asset for asset in spec["assets"]}
     voice_requested = False
     preview_feature_gaps: set[str] = set()
     for scene in spec["timeline"]:
@@ -68,6 +69,12 @@ def plan(spec: dict[str, Any], capabilities: dict[str, dict[str, Any]] | None = 
                 preview_feature_gaps.update(f"parameter:{p}" for p in extra)
                 if element["kind"] == "shape" and element["params"].get("shape", "rect") != "rect":
                     preview_feature_gaps.add("shape:non_rectangle")
+                if element["kind"] == "image":
+                    asset = assets.get(element.get("assetId"))
+                    if not asset or asset.get("status") != "available" or not asset.get("uri") or not asset.get("sha256"):
+                        preview_feature_gaps.add(f"image_asset:{element['id']}")
+                    if element["params"].get("fit", "contain") not in ("contain", "cover", "stretch"):
+                        preview_feature_gaps.add(f"image_fit:{element['id']}")
             elements.append({
                 "id": element["id"], "kind": element["kind"],
                 "startFrame": element["startFrame"],

@@ -12,7 +12,7 @@ from motion_engine.validation import load_spec, validate_schema, validate_semant
 
 class PublicFixtureTests(unittest.TestCase):
     def examples(self):
-        for name in ("hello","weather"):
+        for name in ("hello","weather","image-card"):
             yield load_spec(ROOT/"examples"/f"{name}.motion.json")
 
     def test_schema_copy_is_in_sync(self):
@@ -22,7 +22,7 @@ class PublicFixtureTests(unittest.TestCase):
 
     def test_public_examples_semantics(self):
         examples=list(self.examples())
-        self.assertEqual([(x["project"]["locale"],x["canvas"]["width"],x["canvas"]["height"]) for x in examples],[("en-US",1920,1080),("ar-EG",1080,1080)])
+        self.assertEqual([(x["project"]["locale"],x["canvas"]["width"],x["canvas"]["height"]) for x in examples],[("en-US",1920,1080),("ar-EG",1080,1080),("en-US",640,360)])
         for spec in examples:
             self.assertEqual(validate_semantics(spec),[])
 

@@ -52,10 +52,11 @@ motion-engine inspect examples/hello.motion.json
 motion-engine ingest examples/assets/hello-script.md --output evidence.json
 motion-engine plan examples/hello.motion.json --output plan.json
 motion-engine render examples/hello.motion.json --output-dir hello-preview
+motion-engine render examples/image-card.motion.json --output-dir image-card-preview
 python -m pytest
 ```
 
-The CLI validates and inspects MotionSpec, extracts evidence from PDF/DOCX/TXT/Markdown/CSV/XLSX, and produces a frame plan with target capability status. It can render silent MP4 previews for text, rectangles, bar charts, and line charts. Other elements and voice audio fail explicitly. Adobe output adapters remain planned. See [ingestion](docs/ingestion.md), [planning](docs/planning.md), [preview rendering](docs/rendering.md), and [milestones](docs/milestones.md).
+The CLI validates and inspects MotionSpec, extracts evidence from PDF/DOCX/TXT/Markdown/CSV/XLSX, and produces a frame plan with target capability status. It can render silent MP4 previews for text, rectangles, local raster images, bar charts, and line charts. Other elements and voice audio fail explicitly. Adobe output adapters remain planned. See [ingestion](docs/ingestion.md), [planning](docs/planning.md), [preview rendering](docs/rendering.md), and [milestones](docs/milestones.md).
 
 ## Give this repository to a coding agent
 
@@ -65,9 +66,11 @@ Open the repository in your coding agent and use this prompt:
 
 `AGENTS.md` is the persistent engineering contract. [Architecture](docs/architecture.md), [service contracts](docs/contracts.md), [extension API](docs/extensions.md), and [acceptance tests](docs/acceptance-tests.md) give agents the rest of the build instructions.
 
+The [product completion plan](docs/product-roadmap.md) lists every remaining workstream and the release gates in build order.
+
 ## Examples and private acceptance test
 
-`examples/hello.motion.json` and `examples/weather.motion.json` are synthetic and public. A separate owner-supplied brief, workbook, and derived spec remain outside the public repository as a **private acceptance fixture** for a 78.5-second right-to-left video with 19 beats, exact charts, and editable Adobe outputs. See [private fixture instructions](docs/private-fixtures.md). The core must pass public fixtures in other formats and languages too.
+`examples/hello.motion.json`, `examples/weather.motion.json`, and `examples/image-card.motion.json` are synthetic and public. A separate owner-supplied brief, workbook, and derived spec remain outside the public repository as a **private acceptance fixture** for a 78.5-second right-to-left video with 19 beats, exact charts, and editable Adobe outputs. See [private fixture instructions](docs/private-fixtures.md). The core must pass public fixtures in other formats and languages too.
 
 ## License
 

@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "1.0.0",
+  "project": {"id": "image_card", "title": "Synthetic image card", "locale": "en-US", "direction": "ltr"},
+  "canvas": {"width": 640, "height": 360, "frameRate": {"numerator": 24, "denominator": 1}, "durationFrames": 96, "colorSpace": "Rec.709", "background": "#101820", "safeArea": {"top": 24, "right": 24, "bottom": 24, "left": 24}},
+  "sources": [{"id": "synthetic_source", "uri": "assets/synthetic-plate.png", "mediaType": "image/png", "sha256": "dd222ee69e94eeb008a38479846360eeb5cbeadd5def3eb6fc1869e25bdbd424", "authority": ["visual"], "license": "MIT"}],
+  "assets": [{"id": "synthetic_plate", "kind": "image", "status": "available", "uri": "assets/synthetic-plate.png", "sha256": "dd222ee69e94eeb008a38479846360eeb5cbeadd5def3eb6fc1869e25bdbd424", "license": "MIT", "approved": true, "sourceRefs": [{"sourceId": "synthetic_source", "location": "whole image", "method": "local asset"}]}],
+  "datasets": [],
+  "timeline": [{
+    "id": "card_scene", "startFrame": 0, "endFrameExclusive": 96, "transitionIn": "start",
+    "elements": [
+      {"id": "plate", "kind": "image", "startFrame": 0, "endFrameExclusive": 96, "bounds": {"x": 120, "y": 40, "width": 400, "height": 225}, "assetId": "synthetic_plate", "params": {"fit": "contain"}, "sourceRefs": [{"sourceId": "synthetic_source", "location": "whole image", "method": "local asset"}]},
+      {"id": "caption", "kind": "text", "startFrame": 0, "endFrameExclusive": 96, "bounds": {"x": 40, "y": 280, "width": 560, "height": 48}, "text": {"value": "A reusable image layer", "locale": "en-US", "fontFamily": "Arial", "align": "center"}, "params": {"color": "#FFFFFF", "fontSize": 28}}
+    ],
+    "beats": [{"id": "card_beat", "startFrame": 0, "endFrameExclusive": 96, "elementIds": ["plate", "caption"]}],
+    "animations": [{"targetId": "plate", "property": "opacity", "keyframes": [{"frame": 0, "value": 0}, {"frame": 20, "value": 1, "easing": "ease_out"}]}]
+  }],
+  "deliverables": [{"id": "preview", "target": "video/mp4", "profile": "preview", "required": true, "editable": false}],
+  "policies": {"qa": [], "disclosures": [], "unsupportedFeature": "error"}
+}

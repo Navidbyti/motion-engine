@@ -3,6 +3,7 @@
 PREVIEW_PARAMS = {
     "text": {"color", "fontSize"},
     "shape": {"color", "shape"},
+    "image": {"fit"},
     "chart.bar": {"categoryField", "minimum", "maximum", "color", "baselineColor", "barWidthFraction", "labelFontFamily"},
     "chart.line": {"minimum", "maximum", "color", "baselineColor", "labelFontFamily"},
 }
@@ -11,6 +12,7 @@ PREVIEW_ANIMATIONS = {"opacity", "reveal"}
 PREVIEW_ANIMATIONS_BY_KIND = {
     "text": {"opacity"},
     "shape": {"opacity"},
+    "image": {"opacity"},
     "chart.bar": {"reveal"},
     "chart.line": {"reveal"},
 }

@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from pathlib import Path
 
 from .validation import load_spec, validate
 from .ingest import ingest
@@ -75,7 +76,8 @@ def main(argv: list[str] | None = None) -> int:
         try:
             encode_mp4 = True if args.mp4 else False if args.frames_only else None
             result = render_preview(spec, args.output_dir, mp4=encode_mp4, scale=args.scale,
-                                    font_dirs=args.font_dir, max_frames=args.max_frames)
+                                    font_dirs=args.font_dir, max_frames=args.max_frames,
+                                    asset_root=Path(args.spec).resolve().parent)
             print(json.dumps(result, ensure_ascii=False, indent=2))
         except (OSError, ValueError, RenderError) as exc:
             print(json.dumps({"ok": False, "errors": [str(exc)]}, ensure_ascii=False), file=sys.stderr)

@@ -1,4 +1,5 @@
 import copy
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -111,3 +112,47 @@ def test_unsupported_motion_is_reported_before_rendering(change, expected):
     assert expected in result["capabilities"][0]["unsupportedFeatures"]
     with pytest.raises(RenderError, match="unsupported preview"):
         FrameRenderer(spec, scale=0.1)
+
+
+@pytest.mark.parametrize("example,fit", [("hello.motion.json", "contain"), ("weather.motion.json", "cover")])
+def test_hashed_image_asset_renders_in_different_projects(tmp_path, example, fit):
+    asset_path = tmp_path / "plate.png"
+    Image.new("RGBA", (60, 20), (255, 0, 0, 255)).save(asset_path)
+    spec = copy.deepcopy(load_spec(ROOT / "examples" / example))
+    spec["assets"].append({"id": "plate_asset", "kind": "image", "status": "available", "uri": "plate.png", "sha256": hashlib.sha256(asset_path.read_bytes()).hexdigest()})
+    scene = spec["timeline"][0]
+    scene["elements"].append({"id": "plate", "kind": "image", "startFrame": 0, "endFrameExclusive": scene["endFrameExclusive"], "bounds": {"x": 0, "y": 0, "width": 120, "height": 120}, "assetId": "plate_asset", "params": {"fit": fit}, "zIndex": -1})
+    assert not plan(spec)["capabilities"][0]["unsupportedKinds"]
+    renderer = FrameRenderer(spec, scale=1, asset_root=tmp_path)
+    frame = renderer.render_frame(0)
+    assert frame.getpixel((60, 60)) == (255, 0, 0)
+    if fit == "contain":
+        assert frame.getpixel((60, 1)) != (255, 0, 0)
+    else:
+        assert frame.getpixel((60, 1)) == (255, 0, 0)
+
+
+def test_image_asset_hash_mismatch_stops_before_output(tmp_path):
+    Image.new("RGB", (4, 4), (255, 0, 0)).save(tmp_path / "plate.png")
+    spec = copy.deepcopy(load_spec(ROOT / "examples/hello.motion.json"))
+    spec["assets"].append({"id": "plate_asset", "kind": "image", "status": "available", "uri": "plate.png", "sha256": "0" * 64})
+    spec["timeline"][0]["elements"].append({"id": "plate", "kind": "image", "startFrame": 0, "endFrameExclusive": 90, "bounds": {"x": 0, "y": 0, "width": 30, "height": 30}, "assetId": "plate_asset", "params": {}})
+    with pytest.raises(RenderError, match="hash mismatch"):
+        render_preview(spec, tmp_path / "out", mp4=False, scale=0.1, asset_root=tmp_path)
+    assert not (tmp_path / "out").exists()
+
+
+def test_image_asset_cannot_escape_root(tmp_path):
+    spec = copy.deepcopy(load_spec(ROOT / "examples/hello.motion.json"))
+    spec["assets"].append({"id": "plate_asset", "kind": "image", "status": "available", "uri": "../plate.png", "sha256": "0" * 64})
+    spec["timeline"][0]["elements"].append({"id": "plate", "kind": "image", "startFrame": 0, "endFrameExclusive": 90, "bounds": {"x": 0, "y": 0, "width": 30, "height": 30}, "assetId": "plate_asset", "params": {}})
+    with pytest.raises(RenderError, match="portable relative file URI"):
+        FrameRenderer(spec, asset_root=tmp_path)
+
+
+def test_planner_rejects_missing_image_source():
+    spec = copy.deepcopy(load_spec(ROOT / "examples/image-card.motion.json"))
+    del spec["assets"][0]["sha256"]
+    report = plan(spec)
+    assert not report["buildable"]
+    assert "image_asset:plate" in report["capabilities"][0]["unsupportedFeatures"]

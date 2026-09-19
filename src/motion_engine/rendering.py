@@ -13,7 +13,7 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
-from PIL import Image, ImageDraw, ImageFont, features
+from PIL import Image, ImageDraw, ImageFont, ImageOps, features
 
 from .preview_contract import PREVIEW_ANIMATIONS_BY_KIND, PREVIEW_EASING, PREVIEW_KINDS, PREVIEW_PARAMS
 
@@ -74,7 +74,8 @@ def _interpolate(keyframes: list[dict[str, Any]], frame: int) -> float:
 
 class FrameRenderer:
     def __init__(self, spec: dict[str, Any], scale: float = 1.0,
-                 font_dirs: list[str | Path] | None = None):
+                 font_dirs: list[str | Path] | None = None,
+                 asset_root: str | Path | None = None):
         if not 0 < scale <= 1:
             raise RenderError("scale must be greater than 0 and at most 1")
         self.spec = spec
@@ -85,6 +86,9 @@ class FrameRenderer:
         self.duration = canvas["durationFrames"]
         self.background = _rgb(canvas.get("background", "#000000"))
         self.datasets = {d["id"]: d for d in spec["datasets"]}
+        self.assets = {a["id"]: a for a in spec["assets"]}
+        self.asset_root = Path(asset_root or ".").resolve()
+        self.image_cache: dict[str, Image.Image] = {}
         self.font_dirs = [Path(p) for p in (font_dirs or [])]
         self.font_dirs += [Path("C:/Windows/Fonts"), Path("/usr/share/fonts"), Path("/Library/Fonts"), Path.home() / ".local/share/fonts"]
         self.font_cache: dict[tuple[str, int], ImageFont.FreeTypeFont] = {}
@@ -104,6 +108,10 @@ class FrameRenderer:
                     raise RenderError(f"element {element['id']} has unsupported preview parameters {sorted(extra_params)}")
                 if element["kind"] == "shape" and element["params"].get("shape", "rect") != "rect":
                     raise RenderError(f"shape {element['id']} supports rectangles only")
+                if element["kind"] == "image":
+                    if element["params"].get("fit", "contain") not in ("contain", "cover", "stretch"):
+                        raise RenderError(f"image {element['id']} has unsupported fit mode")
+                    self._load_image(element)
                 if "bounds" not in element:
                     raise RenderError(f"preview element {element['id']} requires bounds")
                 if element["kind"] == "text" and "text" not in element:
@@ -155,6 +163,37 @@ class FrameRenderer:
         w, h = round(value["width"] * self.scale), round(value["height"] * self.scale)
         return x, y, max(1, w), max(1, h)
 
+    def _load_image(self, element: dict[str, Any]) -> Image.Image:
+        asset_id = element.get("assetId")
+        if asset_id in self.image_cache:
+            return self.image_cache[asset_id]
+        asset = self.assets.get(asset_id)
+        if not asset or asset.get("status") != "available":
+            raise RenderError(f"image {element['id']} requires an available asset")
+        uri = asset.get("uri", "")
+        relative = Path(uri)
+        if not uri or relative.is_absolute() or ".." in relative.parts or ":" in uri:
+            raise RenderError(f"image asset {asset_id} needs a portable relative file URI")
+        path = (self.asset_root / relative).resolve()
+        if not path.is_relative_to(self.asset_root) or not path.is_file():
+            raise RenderError(f"image asset {asset_id} is missing or outside asset root")
+        expected = asset.get("sha256")
+        if not expected:
+            raise RenderError(f"image asset {asset_id} requires sha256")
+        if hashlib.sha256(path.read_bytes()).hexdigest() != expected:
+            raise RenderError(f"image asset {asset_id} hash mismatch")
+        try:
+            with Image.open(path) as source:
+                if source.format not in ("PNG", "JPEG", "WEBP"):
+                    raise RenderError(f"image asset {asset_id} format is unsupported")
+                if source.width * source.height > 50_000_000:
+                    raise RenderError(f"image asset {asset_id} exceeds 50 megapixels")
+                image = ImageOps.exif_transpose(source).convert("RGBA")
+        except (OSError, ValueError) as exc:
+            raise RenderError(f"image asset {asset_id} cannot be decoded: {exc}") from exc
+        self.image_cache[asset_id] = image
+        return image
+
     def _property(self, element_id: str, property_name: str, frame: int, default: float) -> float:
         keyframes = self.animations.get(element_id, {}).get(property_name)
         return _interpolate(keyframes, frame) if keyframes else default
@@ -195,6 +234,23 @@ class FrameRenderer:
         color = _rgb(element["params"].get("color", "#FFFFFF"))
         ImageDraw.Draw(overlay).rectangle((x, y, x + w, y + h), fill=(*color, round(255 * opacity)))
         image.paste(overlay, (0, 0), overlay)
+
+    def _image(self, image: Image.Image, element: dict[str, Any], frame: int) -> None:
+        source = self._load_image(element)
+        x, y, w, h = self._bounds(element["bounds"])
+        fit = element["params"].get("fit", "contain")
+        if fit == "stretch":
+            rendered = source.resize((w, h), Image.Resampling.LANCZOS)
+        else:
+            ratio = min(w / source.width, h / source.height) if fit == "contain" else max(w / source.width, h / source.height)
+            scaled = source.resize((max(1, round(source.width * ratio)), max(1, round(source.height * ratio))), Image.Resampling.LANCZOS)
+            rendered = scaled if fit == "contain" else scaled.crop(((scaled.width - w) // 2, (scaled.height - h) // 2, (scaled.width - w) // 2 + w, (scaled.height - h) // 2 + h))
+        opacity = max(0.0, min(1.0, self._property(element["id"], "opacity", frame, 1.0)))
+        if opacity < 1:
+            rendered = rendered.copy()
+            rendered.putalpha(rendered.getchannel("A").point(lambda a: round(a * opacity)))
+        position = (x + (w - rendered.width) // 2, y + (h - rendered.height) // 2)
+        image.paste(rendered, position, rendered)
 
     def _chart(self, image: Image.Image, element: dict[str, Any], frame: int) -> None:
         binding = element["dataBinding"]
@@ -266,6 +322,8 @@ class FrameRenderer:
                 self._text(image, element, frame)
             elif kind == "shape":
                 self._shape(image, element, frame)
+            elif kind == "image":
+                self._image(image, element, frame)
             else:
                 self._chart(image, element, frame)
         for disclosure in self.spec["policies"]["disclosures"]:
@@ -287,13 +345,13 @@ def _ffmpeg_executable() -> str:
 
 def render_preview(spec: dict[str, Any], output_dir: str | Path, *, mp4: bool | None = None,
                    scale: float = 1.0, font_dirs: list[str | Path] | None = None,
-                   max_frames: int = 10_000) -> dict[str, Any]:
+                   max_frames: int = 10_000, asset_root: str | Path | None = None) -> dict[str, Any]:
     if mp4 is None:
         mp4 = any(d["target"] == "video/mp4" and d["required"] for d in spec["deliverables"])
     duration = spec["canvas"]["durationFrames"]
     if duration > max_frames:
         raise RenderError(f"{duration} frames exceeds safety limit {max_frames}; increase it explicitly")
-    renderer = FrameRenderer(spec, scale=scale, font_dirs=font_dirs)
+    renderer = FrameRenderer(spec, scale=scale, font_dirs=font_dirs, asset_root=asset_root)
     if mp4 and (renderer.width % 2 or renderer.height % 2):
         raise RenderError("MP4 preview dimensions must be even; choose another scale")
     output = Path(output_dir)
