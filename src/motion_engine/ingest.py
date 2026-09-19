@@ -158,22 +158,39 @@ def _docx(path: Path, source_id: str, limit: int):
 
     document = Document(str(path))
     records = []
-    block_number = 0
-    for child in document.element.body.iterchildren():
-        if isinstance(child, CT_P):
-            block_number += 1
-            value = Paragraph(child, document).text
-            if value.strip():
-                records.append(_record(source_id, f"block:{block_number}/paragraph", "text", value, "python-docx"))
-                _check_limit(records, limit)
-        elif isinstance(child, CT_Tbl):
-            block_number += 1
-            table = Table(child, document)
-            for row_number, row in enumerate(table.rows, 1):
-                for col_number, cell in enumerate(row.cells, 1):
-                    records.append(_record(source_id, f"block:{block_number}/table:R{row_number}C{col_number}", "cell", cell.text, "python-docx"))
+    issues = []
+
+    def blocks(element: Any, parent: Any, prefix: str) -> None:
+        block_number = 0
+        for child in element.iterchildren():
+            if isinstance(child, CT_P):
+                block_number += 1
+                value = Paragraph(child, parent).text
+                if value.strip():
+                    records.append(_record(source_id, f"{prefix}block:{block_number}/paragraph", "text", value, "python-docx"))
                     _check_limit(records, limit)
-    return records, []
+            elif isinstance(child, CT_Tbl):
+                block_number += 1
+                table = Table(child, parent)
+                for row_number, row in enumerate(table.rows, 1):
+                    for col_number, cell in enumerate(row.cells, 1):
+                        records.append(_record(source_id, f"{prefix}block:{block_number}/table:R{row_number}C{col_number}", "cell", cell.text, "python-docx"))
+                        _check_limit(records, limit)
+        additions = len(element.xpath(".//w:ins"))
+        deletions = len(element.xpath(".//w:del"))
+        drawings = len(element.xpath(".//w:drawing"))
+        if additions or deletions:
+            issues.append({"code": "docx_tracked_changes", "message": f"{prefix or 'body/'} has {additions} insertion(s) and {deletions} deletion(s); review revision state"})
+        if drawings:
+            issues.append({"code": "docx_drawings_unparsed", "message": f"{prefix or 'body/'} has {drawings} drawing(s); visual content is not extracted"})
+
+    blocks(document.element.body, document, "")
+    for section_number, section in enumerate(document.sections, 1):
+        for name in ("header", "footer", "first_page_header", "first_page_footer", "even_page_header", "even_page_footer"):
+            part = getattr(section, name)
+            if not part.is_linked_to_previous:
+                blocks(part._element, part, f"section:{section_number}/{name}/")
+    return records, issues
 
 
 def _json_value(value: Any) -> Any:

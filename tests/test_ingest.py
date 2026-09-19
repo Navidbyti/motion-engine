@@ -121,6 +121,36 @@ def test_docx_preserves_block_order(tmp_path):
     ]
 
 
+def test_docx_headers_footers_and_review_warnings(tmp_path):
+    from docx import Document
+    from docx.oxml import OxmlElement
+    from docx.oxml.ns import qn
+
+    path = tmp_path / "layout.docx"
+    document = Document()
+    document.add_paragraph("Main body")
+    document.sections[0].header.paragraphs[0].text = "Confidential header"
+    document.sections[0].footer.paragraphs[0].text = "Page footer"
+    paragraph = document.add_paragraph()
+    inserted = OxmlElement("w:ins")
+    inserted.set(qn("w:id"), "1")
+    run = OxmlElement("w:r")
+    value = OxmlElement("w:t")
+    value.text = "Revised text"
+    run.append(value)
+    inserted.append(run)
+    paragraph._p.append(inserted)
+    drawing = OxmlElement("w:drawing")
+    paragraph.add_run()._r.append(drawing)
+    document.save(path)
+
+    result = ingest(path)
+    locations = {record["location"]: record["value"] for record in result["evidence"]}
+    assert locations["section:1/header/block:1/paragraph"] == "Confidential header"
+    assert locations["section:1/footer/block:1/paragraph"] == "Page footer"
+    assert {issue["code"] for issue in result["issues"]} == {"docx_tracked_changes", "docx_drawings_unparsed"}
+
+
 def test_xlsx_keeps_cells_and_flags_uncalculated_formula(tmp_path):
     from openpyxl import Workbook
 

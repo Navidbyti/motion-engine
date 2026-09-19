@@ -9,10 +9,10 @@ Output is `{source, evidence, issues, recordCount}`. `source` includes media typ
 | TXT/Markdown | UTF-8 lines | Other encodings need a new parser or preconversion |
 | CSV | UTF-8 CSV cells and headers | Requires unique nonblank headers and equal-width rows |
 | PDF | pypdf text lines; pdfplumber word boxes, detected table cells, and image regions in top-left PDF-point coordinates | Reading order and detected table boundaries require visual review; image regions are located but their contents are not interpreted; pages without extractable text request OCR |
-| DOCX | paragraphs and tables in document body order | Headers, footers, drawings, and tracked-change review are later work |
+| DOCX | body paragraphs and tables in document order; section headers and footers, including first/even page variants | Drawings and tracked changes are flagged for review; drawing content and revision resolution are not extracted |
 | XLSX | openpyxl values and formula strings | Formula results are cached values only; missing cache is flagged, never recalculated by this parser |
 | PNG/JPEG/WebP | Pillow headers | Dimensions, mode, frame count, EXIF orientation, and ICC hash; not OCR or object recognition |
 | WAV | Python wave header | Exact sample count, sample rate, channels, and rational duration for supported WAV files |
 | MP3/M4A/MP4/MOV/MKV | FFprobe JSON | Stream codec, dimensions, rational frame-rate string, sample rate, channels, and duration when present; missing FFprobe produces an explicit issue |
 
-Parsers never fetch external links, execute macros, or rewrite the source. They can be registered by extension through `register_parser`. OCR, embedded image export, waveform/word timing, and visual interpretation remain later work.
+Parsers never fetch external links, execute macros, or rewrite the source. They can be registered by extension through `register_parser`. OCR, embedded image export, DOCX drawing relationships, waveform/word timing, and visual interpretation remain later work.
