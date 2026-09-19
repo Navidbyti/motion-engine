@@ -21,7 +21,7 @@ The core makes no assumption about language, script direction, subject matter, a
 ### To read, validate, and develop the core
 
 - Git.
-- Python 3.11 or newer. Install the package with `python -m pip install -e ".[dev]"`.
+- Python 3.11 or newer. Python 3.11 and 3.12 are verified in CI. Install the tested development set with `python -m pip install -e ".[dev]" -c requirements-dev.lock`.
 - Node.js 20 or newer for the planned TypeScript/Adobe adapters.
 - FFmpeg and FFprobe on `PATH` for media probing, proxies, audio, and exports.
 - Poppler for PDF rendering/inspection (optional for the initial CLI, required for PDF visual QA).
@@ -46,7 +46,7 @@ Do not commit API keys, licensed fonts, model weights, customer inputs, or Adobe
 ```bash
 git clone https://github.com/Navidbyti/motion-engine.git
 cd motion-engine
-python -m pip install -e ".[dev]"
+python -m pip install -e ".[dev]" -c requirements-dev.lock
 motion-engine validate examples/hello.motion.json
 motion-engine inspect examples/hello.motion.json
 motion-engine ingest examples/assets/hello-script.md --output evidence.json
