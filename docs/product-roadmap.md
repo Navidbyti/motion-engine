@@ -20,7 +20,7 @@ This is the ordered work list for a usable, general motion-production engine. A 
 
 ## 1. Source understanding and authoring
 
-- [ ] Extract PDF images and tables with page coordinates; flag ambiguous reading order and scans for OCR review.
+- [x] Extract embedded PDF images and detected tables with page coordinates where available; flag ambiguous reading order, unmatched image placements, and scans for OCR review.
 - [ ] Extract DOCX headers, footers, drawing relationships, and tracked-change warnings.
 - [x] Probe image, WAV, compressed-audio, and video headers with source hashes and stream locations; report missing FFprobe.
 - [ ] Add full color-space and timecode interpretation, plus deep media validation beyond header metadata.

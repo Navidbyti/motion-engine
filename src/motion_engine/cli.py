@@ -19,6 +19,7 @@ from .data_import import import_dataset
 from .ae_script import AEExportError, make_ae_script
 from .ai_script import AIExportError, make_ai_script
 from .ps_script import PSExportError, make_ps_script
+from .pdf_assets import extract_pdf_images
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -50,6 +51,11 @@ def main(argv: list[str] | None = None) -> int:
     ingestion.add_argument("--source-id")
     ingestion.add_argument("--limit", type=int, default=100_000)
     ingestion.add_argument("--output", help="Write evidence JSON to this file")
+    pdf_images = sub.add_parser("extract-pdf-images")
+    pdf_images.add_argument("source")
+    pdf_images.add_argument("--output-dir", required=True)
+    pdf_images.add_argument("--max-images", type=int, default=1000)
+    pdf_images.add_argument("--max-total-bytes", type=int, default=100_000_000)
     bundle = sub.add_parser("package-preview")
     bundle.add_argument("spec")
     bundle.add_argument("--render-dir", required=True)
@@ -86,6 +92,11 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "ingest":
             result = ingest(args.source, args.source_id, args.limit)
             _emit(result, args.output)
+            return 0
+        if args.command == "extract-pdf-images":
+            print(json.dumps(extract_pdf_images(args.source, args.output_dir,
+                                                args.max_images, args.max_total_bytes),
+                             ensure_ascii=False, indent=2))
             return 0
         if args.command == "package-preview":
             print(json.dumps(package_preview(args.spec, args.render_dir, args.output_dir), ensure_ascii=False, indent=2))
