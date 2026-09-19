@@ -5,7 +5,7 @@
 1. `examples/hello.motion.json` (English, 16:9, text) and `examples/weather.motion.json` (Arabic, 1:1, data chart) validate against the same schema and semantic checker.
 2. IDs and source, asset, dataset, element, beat, animation, and disclosure references resolve. Scene and beat ranges use integer frames, are contiguous when present, and stay within canvas duration.
 3. Invalid examples fail with actionable errors for duplicate IDs, missing sources, wrong data bindings, unsupported element kinds, non-monotonic keyframes, and unfulfilled editability requirements.
-4. A source parser preserves hashes and page, sheet, line, or timecode locators. It reports uncertainty and never executes document text as instructions.
+4. A source parser preserves hashes and page, sheet, or line locators (timecode begins with audio/video ingestion). It reports uncertainty and never executes document text as instructions. PDF pages without text request OCR/visual review; spreadsheet formulas without cached results request recalculation rather than using blank as zero.
 5. Exact text and chart data survive `source → MotionSpec → plan → output` without model-generated substitution. Localization policies are per project or text element.
 
 ## Adapter and media gates

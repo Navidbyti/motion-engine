@@ -18,7 +18,7 @@ Build a reusable motion-graphics engine. The owner's private video is one accept
 
 ## Development sequence
 
-1. Read `README.md`, the schema, and milestone M1.
+1. Read `README.md`, the schema, and the next unfinished milestone.
 2. Implement one generic contract at a time; add a public fixture that exercises it.
 3. Run schema, semantic, media, and adapter tests appropriate to the change.
 4. Record compatibility versions for Adobe, FFmpeg, fonts, and model providers.

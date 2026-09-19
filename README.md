@@ -4,7 +4,7 @@ An open-source, implementation-ready design for turning scripts, documents, data
 
 ## Status
 
-This repository is a **build specification and starter CLI**, not a finished video generator. It contains a general MotionSpec schema, adapter contracts, a working validate/inspect CLI, synthetic example, tests, and implementation milestones. Native Adobe project generation and rendering are future milestones. Do not describe the repository as producing `.aep`, `.prproj`, `.psd`, or `.ai` until those adapters pass native-app reopen tests.
+This repository is a **build specification and early implementation**, not a finished video generator. It contains a general MotionSpec schema, source extractors, validation and planning commands, adapter contracts, synthetic examples, tests, and implementation milestones. Native Adobe project generation and rendering are future milestones. Do not describe the repository as producing `.aep`, `.prproj`, `.psd`, or `.ai` until those adapters pass native-app reopen tests.
 
 ## What goes in and comes out
 
@@ -49,16 +49,18 @@ cd motion-engine
 python -m pip install -e ".[dev]"
 motion-engine validate examples/hello.motion.json
 motion-engine inspect examples/hello.motion.json
+motion-engine ingest examples/assets/hello-script.md --output evidence.json
+motion-engine plan examples/hello.motion.json --output plan.json
 python -m pytest
 ```
 
-The CLI currently validates and inspects MotionSpec. Building a video is the implementation work defined in [milestones](docs/milestones.md).
+The CLI currently validates and inspects MotionSpec, extracts evidence from PDF/DOCX/TXT/Markdown/CSV/XLSX, and produces a frame plan with target capability status. `plan.json` reports `buildable: false` for built-in output targets because no renderer is implemented yet. Building a video is the implementation work defined in [milestones](docs/milestones.md). See [ingestion](docs/ingestion.md) and [planning](docs/planning.md).
 
 ## Give this repository to a coding agent
 
 Open the repository in your coding agent and use this prompt:
 
-> Read AGENTS.md, MotionSpec.schema.json, and docs/milestones.md. Implement M1 in small commits. Keep the core independent of the example subject, language, aspect ratio, and provider. Run the tests and add conformance tests for each new adapter. Do not claim native outputs until they open and remain editable in the owning application.
+> Read AGENTS.md, MotionSpec.schema.json, and docs/milestones.md. Implement M2 in small commits. Keep the core independent of the example subject, language, aspect ratio, and provider. Run the tests and add conformance tests for each new adapter. Do not claim native outputs until they open and remain editable in the owning application.
 
 `AGENTS.md` is the persistent engineering contract. [Architecture](docs/architecture.md), [service contracts](docs/contracts.md), [extension API](docs/extensions.md), and [acceptance tests](docs/acceptance-tests.md) give agents the rest of the build instructions.
 

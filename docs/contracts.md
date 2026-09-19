@@ -35,4 +35,4 @@ Input: `{jobId, projectId, revisionId, stage, inputArtifacts, options, idempoten
 | GET | `/v1/jobs/{id}` | Status, issues, artifacts |
 | GET | `/v1/projects/{id}/revisions/{rev}/artifacts` | Manifest |
 
-The CLI uses the same stage names: `motion-engine ingest`, `validate`, `plan`, `build`, `render`, `qa`, `package` when implemented. At present only `validate` and `inspect` exist. Future multi-user deployments need authentication, access control, signed artifact URLs, audit logs, and server-side provider credentials.
+The CLI uses the same stage names: `motion-engine ingest`, `validate`, `plan`, `build`, `render`, `qa`, `package` when implemented. At present `ingest`, `validate`, `inspect`, and `plan` exist. Future multi-user deployments need authentication, access control, signed artifact URLs, audit logs, and server-side provider credentials.

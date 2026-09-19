@@ -1,6 +1,6 @@
 # Extension API
 
-Core entry points are registries. Extension identifiers are namespaced, such as `org.example.chart.radial` or `adobe.after_effects`. Each extension publishes a manifest with semantic version, supported OS, runtime, input/output kinds, editability guarantees, and the MotionSpec versions it accepts.
+Core entry points are registries. Extension identifiers are namespaced, such as `org.example.chart.radial` or `adobe.after_effects`. Each extension publishes a manifest with semantic version, supported OS, runtime, input/output kinds, editability guarantees, and the MotionSpec versions it accepts. M1's `register_parser(".ext", parser)` is the first working extension point; a parser returns evidence records and issues without interpreting them.
 
 ```python
 class SourceParser:

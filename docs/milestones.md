@@ -2,8 +2,8 @@
 
 | Milestone | Result | Exit gate |
 |---|---|---|
-| M0, repository | General schema, CLI, synthetic fixtures, docs, license | Public clone installs; both fixtures validate; no private files |
-| M1, ingestion and planning | PDF/DOCX/text/CSV/XLSX extractors, evidence map, frame plan, capability registry | Two unrelated inputs produce valid plans with source locations |
+| M0, repository (done) | General schema, CLI, synthetic fixtures, docs, license | Public clone installs; both fixtures validate; no private files |
+| M1, ingestion and planning (done) | PDF/DOCX/text/CSV/XLSX extractors, evidence map, frame plan, capability registry | Synthetic source files retain locations; two unrelated fixtures produce valid plans; built-in targets honestly report planned |
 | M2, deterministic rendering | Text, shapes, charts, transitions, data binding, FFmpeg preview | Public fixtures render at exact frame counts; values match sources |
 | M3, native Adobe | AE, Illustrator, Photoshop, Premiere adapters | Every requested file opens, saves, reopens, and stays editable |
 | M4, voice and optional assets | Whisper alignment, audio mix, provider manifest | Timed voice and approved assets reproduce from hashes |
