@@ -148,7 +148,32 @@ def test_docx_headers_footers_and_review_warnings(tmp_path):
     locations = {record["location"]: record["value"] for record in result["evidence"]}
     assert locations["section:1/header/block:1/paragraph"] == "Confidential header"
     assert locations["section:1/footer/block:1/paragraph"] == "Page footer"
-    assert {issue["code"] for issue in result["issues"]} == {"docx_tracked_changes", "docx_drawings_unparsed"}
+    assert {issue["code"] for issue in result["issues"]} == {"docx_tracked_changes", "docx_drawings_unparsed", "docx_drawing_visual_review"}
+
+
+def test_docx_embedded_images_keep_body_and_header_relationship_evidence(tmp_path):
+    from docx import Document
+    from docx.shared import Inches
+    from PIL import Image
+
+    picture = tmp_path / "shape.png"
+    Image.new("RGB", (12, 8), "green").save(picture)
+    expected_hash = hashlib.sha256(picture.read_bytes()).hexdigest()
+    document = Document()
+    document.add_paragraph("Body artwork").add_run().add_picture(str(picture), width=Inches(1))
+    document.sections[0].header.paragraphs[0].add_run().add_picture(str(picture), width=Inches(0.5))
+    path = tmp_path / "images.docx"
+    document.save(path)
+
+    result = ingest(path)
+    images = [record for record in result["evidence"] if record["kind"] == "embedded_image"]
+    assert [record["location"] for record in images] == ["drawing:1/image:1", "section:1/header/drawing:1/image:1"]
+    assert all(record["value"]["sha256"] == expected_hash for record in images)
+    assert all(record["value"]["contentType"] == "image/png" for record in images)
+    assert all(record["metadata"]["relationshipId"].startswith("rId") for record in images)
+    assert {issue["code"] for issue in result["issues"]} == {"docx_drawing_visual_review"}
+    with pytest.raises(ValueError, match="limit"):
+        ingest(path, limit=2)
 
 
 def test_xlsx_keeps_cells_and_flags_uncalculated_formula(tmp_path):

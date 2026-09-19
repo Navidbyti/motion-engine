@@ -151,6 +151,7 @@ def _pdf(path: Path, source_id: str, limit: int):
 
 def _docx(path: Path, source_id: str, limit: int):
     from docx import Document
+    from docx.oxml.ns import qn
     from docx.oxml.table import CT_Tbl
     from docx.oxml.text.paragraph import CT_P
     from docx.table import Table
@@ -178,11 +179,31 @@ def _docx(path: Path, source_id: str, limit: int):
                         _check_limit(records, limit)
         additions = len(element.xpath(".//w:ins"))
         deletions = len(element.xpath(".//w:del"))
-        drawings = len(element.xpath(".//w:drawing"))
+        drawings = element.xpath(".//w:drawing")
         if additions or deletions:
             issues.append({"code": "docx_tracked_changes", "message": f"{prefix or 'body/'} has {additions} insertion(s) and {deletions} deletion(s); review revision state"})
         if drawings:
-            issues.append({"code": "docx_drawings_unparsed", "message": f"{prefix or 'body/'} has {drawings} drawing(s); visual content is not extracted"})
+            issues.append({"code": "docx_drawing_visual_review", "message": f"{prefix or 'body/'} has {len(drawings)} drawing(s); placement and visual content require review"})
+        for drawing_number, drawing in enumerate(drawings, 1):
+            blips = drawing.xpath(".//a:blip")
+            if not blips:
+                issues.append({"code": "docx_drawings_unparsed", "message": f"{prefix or 'body/'} drawing {drawing_number} has no embedded image relationship"})
+            for image_number, blip in enumerate(blips, 1):
+                relationship_id = blip.get(qn("r:embed"))
+                location = f"{prefix}drawing:{drawing_number}/image:{image_number}"
+                relationship = parent.part.rels.get(relationship_id) if relationship_id else None
+                if relationship is None or relationship.is_external:
+                    issues.append({"code": "docx_image_relationship_unresolved", "message": f"{location} has no local embedded image relationship"})
+                    continue
+                target = relationship.target_part
+                blob = target.blob
+                records.append(_record(
+                    source_id, location, "embedded_image",
+                    {"sha256": hashlib.sha256(blob).hexdigest(), "byteLength": len(blob),
+                     "contentType": target.content_type, "partName": str(target.partname)},
+                    "python-docx relationship", relationshipId=relationship_id,
+                ))
+                _check_limit(records, limit)
 
     blocks(document.element.body, document, "")
     for section_number, section in enumerate(document.sections, 1):
