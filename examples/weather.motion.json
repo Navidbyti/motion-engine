@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "1.0.0",
+  "project": {"id": "weather_sample", "title": "درجات الحرارة", "locale": "ar-EG", "direction": "rtl", "description": "Synthetic data example, not a weather forecast."},
+  "canvas": {"width": 1080, "height": 1080, "frameRate": {"numerator": 24, "denominator": 1}, "durationFrames": 120, "colorSpace": "Rec.709", "safeArea": {"top": 60, "right": 60, "bottom": 60, "left": 60}},
+  "sources": [{"id": "weather_csv", "uri": "examples/assets/weather.csv", "mediaType": "text/csv", "authority": ["data"]}],
+  "assets": [],
+  "datasets": [{"id": "temperatures", "description": "Synthetic temperatures for interface testing", "columns": [{"name": "city", "type": "string"}, {"name": "temperatureC", "type": "number", "unit": "°C"}], "rows": [{"city": "Cairo", "temperatureC": 31}, {"city": "Rabat", "temperatureC": 24}, {"city": "Tunis", "temperatureC": 28}], "sourceRefs": [{"sourceId": "weather_csv", "location": "rows 2-4", "method": "CSV parser"}]}],
+  "timeline": [{
+    "id": "comparison", "startFrame": 0, "endFrameExclusive": 120, "transitionIn": "start",
+    "elements": [
+      {"id": "heading", "kind": "text", "startFrame": 0, "endFrameExclusive": 120, "bounds": {"x": 80, "y": 90, "width": 920, "height": 110}, "text": {"value": "درجات الحرارة", "locale": "ar-EG", "direction": "rtl", "fontFamily": "Noto Sans Arabic", "fontWeight": 700, "align": "right"}, "params": {"color": "#FFFFFF"}},
+      {"id": "bars", "kind": "chart.bar", "startFrame": 24, "endFrameExclusive": 120, "bounds": {"x": 100, "y": 300, "width": 880, "height": 600}, "dataBinding": {"datasetId": "temperatures", "field": "temperatureC", "format": {"unit": "°C"}}, "params": {"categoryField": "city", "minimum": 0, "maximum": 40, "color": "#0CA30C"}, "sourceRefs": [{"sourceId": "weather_csv", "location": "B2:B4", "method": "CSV parser"}]}
+    ],
+    "beats": [
+      {"id": "heading_beat", "startFrame": 0, "endFrameExclusive": 24, "onScreen": [{"value": "درجات الحرارة", "locale": "ar-EG", "direction": "rtl"}], "elementIds": ["heading"]},
+      {"id": "chart_beat", "startFrame": 24, "endFrameExclusive": 120, "elementIds": ["heading", "bars"]}
+    ],
+    "animations": [{"targetId": "bars", "property": "reveal", "keyframes": [{"frame": 24, "value": 0}, {"frame": 60, "value": 1, "easing": "ease_out"}]}]
+  }],
+  "deliverables": [{"id": "preview", "target": "video/mp4", "profile": "preview", "required": true, "editable": false}],
+  "policies": {"qa": [{"id": "values_match_source", "rule": "chart.data_exact", "severity": "error"}, {"id": "rtl_review", "rule": "text.visual_review", "severity": "warning", "params": {"locale": "ar-EG"}}], "disclosures": [], "approvals": ["visual and language review"], "unsupportedFeature": "error"}
+}

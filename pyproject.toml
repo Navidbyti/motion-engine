@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "motion-engine-spec"
+version = "0.1.0"
+description = "MotionSpec validation and starter contracts for an extensible motion graphics engine"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {file = "LICENSE"}
+dependencies = ["jsonschema>=4.21,<5"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8,<9", "openpyxl>=3.1,<4", "pypdf>=4,<7"]
+
+[project.scripts]
+motion-engine = "motion_engine.cli:main"
+
+[tool.setuptools.package-data]
+motion_engine = ["MotionSpec.schema.json"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
