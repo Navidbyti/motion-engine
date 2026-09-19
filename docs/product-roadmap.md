@@ -64,7 +64,8 @@ This is the ordered work list for a usable, general motion-production engine. A 
 
 - [x] Add an initial QA gate for input hashes, missing source references/assets, safe areas, disclosure timing, font substitutions, and render integrity.
 - [x] Compare direct-copy chart columns with exact CSV/XLSX source cells and reject mismatches or missing mappings.
-- [ ] Verify deterministic transforms for derived/rebased values and check every claim citation.
+- [x] Verify explicit decimal arithmetic and rounding for derived/rebased chart values.
+- [ ] Add broader transformation operators and check every claim citation.
 - [ ] Build rendered QA for frame drops, blank frames, clipping, text overflow, and chart geometry beyond hash and frame-count checks.
 - [ ] Build audio QA for duration, sync, silence, clipping, and loudness.
 - [ ] Create contact sheets, review notes, and a gate that blocks unapproved critical findings.
