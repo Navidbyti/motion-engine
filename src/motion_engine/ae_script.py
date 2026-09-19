@@ -25,6 +25,9 @@ def make_ae_script(spec: dict[str, Any], script_path: str | Path,
     if any(beat.get("voice", {}).get("value", "").strip()
            for scene in spec["timeline"] for beat in scene["beats"]):
         raise AEExportError("initial After Effects adapter does not support voice audio")
+    beat_starts = [beat["startFrame"] for scene in spec["timeline"] for beat in scene["beats"]]
+    if len(beat_starts) != len(set(beat_starts)):
+        raise AEExportError("After Effects beat markers need unique start frames")
     for scene in spec["timeline"]:
         for element in scene["elements"]:
             if element["kind"] not in ("text", "shape"):
@@ -83,6 +86,7 @@ _SCRIPT = r'''
             spec.canvas.height, 1, duration, rate);
         master.bgColor = hexColor(spec.canvas.background || "#000000");
         var expected = [];
+        var expectedBeats = [];
         for (var i = 0; i < spec.timeline.length; i++) {
             var scene = spec.timeline[i];
             var sceneComp = app.project.items.addComp(scene.id, spec.canvas.width, spec.canvas.height,
@@ -94,6 +98,14 @@ _SCRIPT = r'''
             parent.inPoint = scene.startFrame / rate;
             parent.outPoint = scene.endFrameExclusive / rate;
             expected.push({name: scene.id, count: scene.elements.length});
+            for (var q = 0; q < scene.beats.length; q++) {
+                var beat = scene.beats[q];
+                var marker = new MarkerValue(scene.id + "/" + beat.id);
+                marker.duration = (beat.endFrameExclusive - beat.startFrame) / rate;
+                master.markerProperty.setValueAtTime(beat.startFrame / rate, marker);
+                expectedBeats.push({comment: marker.comment, start: beat.startFrame / rate,
+                    duration: marker.duration});
+            }
             for (var j = 0; j < scene.elements.length; j++) {
                 var element = scene.elements[j];
                 var layer;
@@ -154,6 +166,15 @@ _SCRIPT = r'''
         if (!foundMaster || foundMaster.numLayers !== expected.length ||
             foundMaster.width !== spec.canvas.width || foundMaster.height !== spec.canvas.height ||
             Math.abs(foundMaster.duration - duration) > 0.0001) throw new Error("reopened master mismatch");
+        if (foundMaster.markerProperty.numKeys !== expectedBeats.length)
+            throw new Error("reopened beat marker count mismatch");
+        for (var m = 0; m < expectedBeats.length; m++) {
+            var actualMarker = foundMaster.markerProperty.keyValue(m + 1);
+            if (actualMarker.comment !== expectedBeats[m].comment ||
+                Math.abs(foundMaster.markerProperty.keyTime(m + 1) - expectedBeats[m].start) > 0.0001 ||
+                Math.abs(actualMarker.duration - expectedBeats[m].duration) > 0.0001)
+                throw new Error("reopened beat marker mismatch: " + expectedBeats[m].comment);
+        }
         for (var b = 0; b < expected.length; b++) {
             var entry = expected[b];
             var sceneLayer = foundMaster.layer(expected.length - b);

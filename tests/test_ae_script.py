@@ -27,6 +27,7 @@ def test_ae_script_embeds_text_project_and_reopen_checks(tmp_path, fixture):
     assert "app.project.save(outputFile)" in content
     assert "app.open(outputFile)" in content
     assert "reopened font mismatch" in content
+    assert "reopened beat marker mismatch" in content
     if fixture == "ae-shapes.motion.json":
         assert "ADBE Vector Shape - Rect" in content
         assert "ADBE Vector Fill Color" in content
