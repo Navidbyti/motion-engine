@@ -46,6 +46,51 @@ def test_shape_accent_sits_between_title_and_subtitle():
     assert accent["y"] + accent["height"] <= subtitle["y"]
 
 
+@pytest.mark.parametrize("name,size", [
+    ("card-horizontal", (640, 360)),
+    ("card-vertical", (360, 640)),
+])
+def test_card_layout_public_fixtures_render_with_contrasting_text(tmp_path, name, size):
+    from jsonschema import Draft202012Validator
+
+    from motion_engine.director_schema import DIRECTOR_PLAN_SCHEMA
+
+    examples = ROOT / "examples"
+    proposal = json.loads((examples / f"{name}.plan.json").read_text(encoding="utf-8"))
+    assert not list(Draft202012Validator(DIRECTOR_PLAN_SCHEMA).iter_errors(proposal))
+    prompt = tmp_path / "prompt.txt"
+    prompt.write_text((examples / "assets" / f"{name}.txt").read_text(encoding="utf-8"), encoding="utf-8")
+    spec = compile_director_plan(prompt, tmp_path / "card.motion.json", proposal,
+                                 project_id="card_study", width=size[0], height=size[1], fps=24)
+    assert not validate(spec)
+    for scene, source in zip(spec["timeline"], proposal["scenes"]):
+        card = next(element for element in scene["elements"] if element["id"].startswith("card_"))
+        texts = [element for element in scene["elements"] if element["kind"] == "text"]
+        assert card["params"]["color"] == source["accent"]
+        assert all(card["bounds"]["x"] < item["bounds"]["x"]
+                   and item["bounds"]["x"] + item["bounds"]["width"]
+                   < card["bounds"]["x"] + card["bounds"]["width"] for item in texts)
+        assert all(item["params"]["color"] in ("#000000", "#FFFFFF") for item in texts)
+        channels = [int(source["accent"][index:index + 2], 16) / 255 for index in (1, 3, 5)]
+        linear = [value / 12.92 if value <= 0.04045 else ((value + 0.055) / 1.055) ** 2.4
+                  for value in channels]
+        luminance = sum(value * weight for value, weight in zip(linear, (0.2126, 0.7152, 0.0722)))
+        assert all(((luminance + 0.05) / 0.05 if item["params"]["color"] == "#000000"
+                    else 1.05 / (luminance + 0.05)) >= 4.5 for item in texts)
+    renderer = FrameRenderer(spec, asset_root=tmp_path)
+    assert ImageChops.difference(renderer.render_frame(12), renderer.render_frame(36)).getbbox()
+
+
+def test_card_layout_rejects_asset_only_zoom(tmp_path):
+    prompt = tmp_path / "prompt.txt"
+    prompt.write_text("Show a card", encoding="utf-8")
+    proposal = json.loads((ROOT / "examples/card-horizontal.plan.json").read_text(encoding="utf-8"))
+    proposal["scenes"][0]["motion"] = "zoom"
+    with pytest.raises(DirectorError, match="zoom needs an image"):
+        compile_director_plan(prompt, tmp_path / "card.motion.json", proposal,
+                              project_id="card_study", width=640, height=360, fps=24)
+
+
 def test_slide_motion_moves_title_from_offscreen(tmp_path):
     prompt = tmp_path / "prompt.txt"
     prompt.write_text("A short title with a slide entrance.", encoding="utf-8")

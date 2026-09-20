@@ -1,0 +1,11 @@
+{
+  "title": "Vertical card study",
+  "locale": "en-US",
+  "direction": "ltr",
+  "researchRequired": false,
+  "assetRequests": [],
+  "scenes": [
+    {"durationFrames": 24, "visual": "card", "assetId": "", "title": "A small spark", "subtitle": "A larger story", "background": "#080D13", "accent": "#BF3F76", "motion": "slide"},
+    {"durationFrames": 24, "visual": "card", "assetId": "", "title": "A clear end", "subtitle": "Done", "background": "#16213E", "accent": "#F5F5F0", "motion": "fade"}
+  ]
+}

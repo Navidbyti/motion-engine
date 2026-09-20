@@ -4,7 +4,7 @@ SCENE_SCHEMA = {
     "type": "object", "additionalProperties": False,
     "properties": {
         "durationFrames": {"type": "integer"},
-        "visual": {"type": "string", "enum": ["typography", "shape", "asset"]},
+        "visual": {"type": "string", "enum": ["typography", "shape", "card", "asset"]},
         "assetId": {"type": "string"},
         "title": {"type": "string"},
         "subtitle": {"type": "string"},

@@ -20,6 +20,14 @@ class DirectorError(ValueError):
     pass
 
 
+def _card_text_color(hex_color: str) -> str:
+    channels = [int(hex_color[index:index + 2], 16) / 255 for index in (1, 3, 5)]
+    linear = [value / 12.92 if value <= 0.04045 else ((value + 0.055) / 1.055) ** 2.4
+              for value in channels]
+    luminance = sum(value * weight for value, weight in zip(linear, (0.2126, 0.7152, 0.0722)))
+    return "#000000" if (luminance + 0.05) / 0.05 >= 1.05 / (luminance + 0.05) else "#FFFFFF"
+
+
 def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
                           proposal: dict[str, Any], *, project_id: str,
                           width: int = 1080, height: int = 1920, fps: int = 30,
@@ -146,7 +154,7 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
         visual, asset_id, motion = scene["visual"], scene["assetId"], scene["motion"]
         if not isinstance(asset_id, str):
             raise DirectorError(f"scene {index} asset ID must be a string")
-        if visual not in ("typography", "shape", "asset") or motion not in ("none", "fade", "zoom", "slide"):
+        if visual not in ("typography", "shape", "card", "asset") or motion not in ("none", "fade", "zoom", "slide"):
             raise DirectorError(f"scene {index} visual or motion is unsupported")
         if visual == "asset" and asset_id not in asset_ids:
             raise DirectorError(f"scene {index} requests unavailable asset {asset_id!r}; generate or import it first")
@@ -183,6 +191,12 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
                              "bounds": {"x": inset, "y": round(height * 0.59),
                                         "width": width - 2 * inset, "height": max(12, round(height * 0.06))},
                              "params": {"shape": "rect", "color": scene["accent"]}, "zIndex": 0})
+        if visual == "card":
+            elements.append({"id": f"card_{index}", "kind": "shape", "startFrame": start,
+                             "endFrameExclusive": end,
+                             "bounds": {"x": inset, "y": inset,
+                                        "width": width - 2 * inset, "height": height - 2 * inset},
+                             "params": {"shape": "rect", "color": scene["accent"]}, "zIndex": 0})
         for role, value in (("title", scene["title"]), ("subtitle", scene["subtitle"])):
             if not value.strip():
                 continue
@@ -191,16 +205,23 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
             if visual == "asset":
                 y = round(height * (0.62 if title else 0.80))
                 box_h = round(height * (0.18 if title else 0.16))
+            elif visual == "card":
+                card_h = height - 2 * inset
+                y = inset + round(card_h * (0.18 if title else 0.62))
+                box_h = round(card_h * (0.36 if title else 0.22))
             else:
                 y = round(height * (0.22 if title else 0.68))
                 box_h = round(height * (0.35 if title else 0.18))
+            text_x = 2 * inset if visual == "card" else inset
+            text_width = width - 4 * inset if visual == "card" else width - 2 * inset
             elements.append({"id": element_id, "kind": "text", "startFrame": start,
                              "endFrameExclusive": end,
-                             "bounds": {"x": inset, "y": y, "width": width - 2 * inset, "height": box_h},
+                             "bounds": {"x": text_x, "y": y, "width": text_width, "height": box_h},
                              "text": {"value": value, "locale": proposal["locale"],
                                       "direction": proposal["direction"], "fontFamily": "DejaVu Sans",
                                       "fontWeight": 700 if title else 400, "align": "center"},
-                             "params": {"color": "#FFFFFF", "fontSize": max(20, round(min(width, height) * (0.055 if title else 0.038))), "wrap": True},
+                             "params": {"color": _card_text_color(scene["accent"]) if visual == "card" else "#FFFFFF",
+                                        "fontSize": max(20, round(min(width, height) * (0.055 if title else 0.038))), "wrap": True},
                              "zIndex": 2, "sourceRefs": [ref, *claim_refs]})
             if motion == "fade":
                 animations.append({"targetId": element_id, "property": "opacity", "keyframes": [
@@ -211,7 +232,7 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
                 enter_x = -round(width - 2 * inset) if proposal["direction"] == "ltr" else width
                 animations.append({"targetId": element_id, "property": "x", "keyframes": [
                     {"frame": begin, "value": enter_x},
-                    {"frame": finish, "value": inset, "easing": "ease_out"}]})
+                    {"frame": finish, "value": text_x, "easing": "ease_out"}]})
         timeline.append({"id": scene_id, "startFrame": start, "endFrameExclusive": end,
                          "transitionIn": "start" if index == 1 else "cut", "elements": elements,
                          "beats": [{"id": f"beat_{index}", "startFrame": start, "endFrameExclusive": end,
