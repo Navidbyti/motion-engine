@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 from typing import Any
 
@@ -9,6 +10,18 @@ from PIL import Image
 
 from .validation import validate
 from .revisions import RevisionError, file_sha256, resolve_local_file
+
+
+def _linear_value(keys: list[dict[str, Any]], frame: int) -> float:
+    if frame <= keys[0]["frame"]:
+        return float(keys[0]["value"])
+    for left, right in zip(keys, keys[1:]):
+        if frame <= right["frame"]:
+            if frame == right["frame"]:
+                return float(right["value"])
+            fraction = (frame - left["frame"]) / (right["frame"] - left["frame"])
+            return float(left["value"] + (right["value"] - left["value"]) * fraction)
+    return float(keys[-1]["value"])
 
 
 class AEExportError(ValueError):
@@ -55,7 +68,9 @@ def make_ae_script(spec: dict[str, Any], script_path: str | Path,
     beat_starts = [beat["startFrame"] for scene in spec["timeline"] for beat in scene["beats"]]
     if len(beat_starts) != len(set(beat_starts)):
         raise AEExportError("After Effects beat markers need unique start frames")
+    position_tracks = {}
     for scene in spec["timeline"]:
+        scene_elements = {element["id"]: element for element in scene["elements"]}
         for element in scene["elements"]:
             if element["kind"] not in ("text", "shape", "image"):
                 raise AEExportError(f"initial After Effects adapter does not support {element['kind']}")
@@ -79,11 +94,30 @@ def make_ae_script(spec: dict[str, Any], script_path: str | Path,
                 if set(element["params"]) - {"fit"} or element["params"].get("fit", "contain") not in ("contain", "stretch"):
                     raise AEExportError(f"image {element['id']} supports contain or stretch only")
         for animation in scene["animations"]:
-            if animation["property"] != "opacity" or any(
-                key.get("easing", "linear") != "linear" or not isinstance(key["value"], (int, float))
-                or not 0 <= key["value"] <= 1 for key in animation["keyframes"]
-            ):
-                raise AEExportError("initial After Effects adapter supports only linear opacity keyframes from 0 to 1")
+            prop = animation["property"]
+            element = scene_elements.get(animation["targetId"])
+            keys = animation["keyframes"]
+            limit = 1 if prop == "opacity" else spec["canvas"]["width" if prop == "x" else "height"] if prop in ("x", "y") else None
+            if (element is None or limit is None or not keys
+                or any(key.get("easing", "linear") != "linear"
+                       or not isinstance(key["value"], (int, float)) or isinstance(key["value"], bool)
+                       or not math.isfinite(key["value"])
+                       or not ((0 <= key["value"] <= 1) if prop == "opacity" else (-limit <= key["value"] <= limit))
+                       or not element["startFrame"] <= key["frame"] < element["endFrameExclusive"]
+                       for key in keys)
+                or [key["frame"] for key in keys] != sorted({key["frame"] for key in keys})):
+                raise AEExportError("initial After Effects adapter supports only linear opacity or x/y keyframes within the element window")
+        for element in scene["elements"]:
+            axes = {animation["property"]: animation["keyframes"] for animation in scene["animations"]
+                    if animation["targetId"] == element["id"] and animation["property"] in ("x", "y")}
+            if not axes:
+                continue
+            frames = sorted({key["frame"] for keys in axes.values() for key in keys})
+            position_tracks[scene["id"] + "/" + element["id"]] = [
+                {"frame": frame,
+                 "value": [(_linear_value(axes["x"], frame) if "x" in axes else element["bounds"]["x"]) + element["bounds"]["width"] / 2,
+                           (_linear_value(axes["y"], frame) if "y" in axes else element["bounds"]["y"]) + element["bounds"]["height"] / 2]}
+                for frame in frames]
     output = Path(aep_path).resolve()
     report = Path(report_path).resolve()
     script = Path(script_path).resolve()
@@ -93,7 +127,8 @@ def make_ae_script(spec: dict[str, Any], script_path: str | Path,
         raise AEExportError("script, report, and AEP output paths must not already exist")
     for path in (output, report, script):
         path.parent.mkdir(parents=True, exist_ok=True)
-    job = {"spec": spec, "aep": output.as_posix(), "report": report.as_posix(), "imageAssets": images}
+    job = {"spec": spec, "aep": output.as_posix(), "report": report.as_posix(),
+           "imageAssets": images, "positionTracks": position_tracks}
     payload = json.dumps(job, ensure_ascii=True, separators=(",", ":"))
     source = "var job = " + payload + ";\n" + _SCRIPT
     script.write_text(source, encoding="utf-8")
@@ -195,14 +230,27 @@ _SCRIPT = r'''
                     element.bounds.x + element.bounds.width / 2,
                     element.bounds.y + element.bounds.height / 2
                 ]);
+                var positionTrack = job.positionTracks[scene.id + "/" + element.id];
+                if (positionTrack) {
+                    var position = layer.property("Transform").property("Position");
+                    for (var p = 0; p < positionTrack.length; p++)
+                        position.setValueAtTime((positionTrack[p].frame - scene.startFrame) / rate,
+                            positionTrack[p].value);
+                    for (var p = 1; p <= position.numKeys; p++)
+                        position.setInterpolationTypeAtKey(p, KeyframeInterpolationType.LINEAR,
+                            KeyframeInterpolationType.LINEAR);
+                }
                 for (var k = 0; k < scene.animations.length; k++) {
                     var animation = scene.animations[k];
-                    if (animation.targetId !== element.id) continue;
+                    if (animation.targetId !== element.id || animation.property !== "opacity") continue;
                     var opacity = layer.property("Transform").property("Opacity");
                     for (var n = 0; n < animation.keyframes.length; n++) {
                         var key = animation.keyframes[n];
                         opacity.setValueAtTime((key.frame - scene.startFrame) / rate, key.value * 100);
                     }
+                    for (var n = 1; n <= opacity.numKeys; n++)
+                        opacity.setInterpolationTypeAtKey(n, KeyframeInterpolationType.LINEAR,
+                            KeyframeInterpolationType.LINEAR);
                 }
             }
         }
@@ -242,6 +290,20 @@ _SCRIPT = r'''
                 if (Math.abs(reopenedText.inPoint - (original[c].startFrame - spec.timeline[b].startFrame) / rate) > 0.0001 ||
                     Math.abs(reopenedText.outPoint - (original[c].endFrameExclusive - spec.timeline[b].startFrame) / rate) > 0.0001)
                     throw new Error("reopened element timing mismatch: " + original[c].id);
+                var positionTrack = job.positionTracks[spec.timeline[b].id + "/" + original[c].id];
+                if (positionTrack) {
+                    var reopenedPosition = reopenedText.property("Transform").property("Position");
+                    if (reopenedPosition.numKeys !== positionTrack.length)
+                        throw new Error("reopened position key count mismatch: " + original[c].id);
+                    for (var p = 0; p < positionTrack.length; p++) {
+                        var positionValue = reopenedPosition.keyValue(p + 1);
+                        if (Math.abs(reopenedPosition.keyTime(p + 1) -
+                                     (positionTrack[p].frame - spec.timeline[b].startFrame) / rate) > 0.0001 ||
+                            Math.abs(positionValue[0] - positionTrack[p].value[0]) > 0.001 ||
+                            Math.abs(positionValue[1] - positionTrack[p].value[1]) > 0.001)
+                            throw new Error("reopened position key mismatch: " + original[c].id);
+                    }
+                }
                 if (original[c].kind === "text") {
                     if (reopenedText.property("Source Text").value.text !== original[c].text.value)
                         throw new Error("reopened text mismatch: " + original[c].id);

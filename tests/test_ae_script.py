@@ -15,7 +15,7 @@ def _paths(tmp_path):
     return (tmp_path / "build.jsx", tmp_path / "result.aep", tmp_path / "report.txt")
 
 
-@pytest.mark.parametrize("fixture", ["ae-card.motion.json", "ae-vertical.motion.json", "ae-shapes.motion.json", "ae-image.motion.json"])
+@pytest.mark.parametrize("fixture", ["ae-card.motion.json", "ae-vertical.motion.json", "ae-shapes.motion.json", "ae-image.motion.json", "ae-card-position.motion.json", "ae-vertical-position.motion.json"])
 def test_ae_script_embeds_text_project_and_reopen_checks(tmp_path, fixture):
     spec = load_spec(ROOT / "examples" / fixture)
     script, aep, report = _paths(tmp_path)
@@ -62,3 +62,30 @@ def test_ae_image_import_rejects_changed_hash(tmp_path):
     spec["assets"][0]["sha256"] = "0" * 64
     with pytest.raises(AEExportError, match="SHA-256 mismatch"):
         make_ae_script(spec, *_paths(tmp_path), asset_root=ROOT / "examples")
+
+
+def test_ae_script_builds_editable_linear_position_tracks(tmp_path):
+    spec = load_spec(ROOT / "examples/ae-card.motion.json")
+    spec["timeline"][0]["animations"].extend([
+        {"targetId": "title", "property": "x", "keyframes": [
+            {"frame": 0, "value": -1200}, {"frame": 20, "value": 160, "easing": "linear"}]},
+        {"targetId": "title", "property": "y", "keyframes": [
+            {"frame": 10, "value": 490}, {"frame": 20, "value": 330, "easing": "linear"}]},
+    ])
+    script, aep, report = _paths(tmp_path)
+    make_ae_script(spec, script, aep, report)
+    content = script.read_text(encoding="utf-8")
+    payload = json.loads(content.removeprefix("var job = ").split(";\n", 1)[0])
+    track = payload["positionTracks"]["opening/title"]
+    assert [key["frame"] for key in track] == [0, 10, 20]
+    assert track[0]["value"] == [-400.0, 580.0]
+    assert track[-1]["value"] == [960.0, 420.0]
+    assert "reopened position key mismatch" in content
+
+
+def test_ae_script_rejects_position_easing_until_native_verified(tmp_path):
+    spec = load_spec(ROOT / "examples/ae-card.motion.json")
+    spec["timeline"][0]["animations"].append({"targetId": "title", "property": "x", "keyframes": [
+        {"frame": 0, "value": -1200}, {"frame": 20, "value": 160, "easing": "ease_out"}]})
+    with pytest.raises(AEExportError, match="linear opacity or x/y"):
+        make_ae_script(spec, *_paths(tmp_path))
