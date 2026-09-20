@@ -24,7 +24,7 @@ This is the ordered work list for a usable, general motion-production engine. A 
 - [x] Add a first whole-video director slice: a desktop-agent-authored plan, capability-checked MotionSpec compilation, and one-command preview rendering for creative text/shape/supplied-asset briefs. Factual research remains unverified.
 - [x] Make the director declare unmet visual asset requests and stop compilation until the required shot exists; do not silently substitute an unrelated primitive.
 - [ ] Verify researched claims against stored evidence spans and dates, including checks that challenge a prompt's premise before narration is written.
-- [x] Add a local claim ledger with source hashes, exact excerpt checks, event/publication/retrieval dates, and an explicit semantic-review warning. Scene-to-claim binding and truth assessment remain open.
+- [x] Add a local claim ledger with source hashes, exact excerpt checks, event/publication/retrieval dates, scene-to-claim mapping, and an explicit semantic-review warning. Truth assessment and reviewed factual release remain open.
 - [x] Add hash-bound typed scene revisions for text, color, and image zoom; preserve unrelated scenes and cite the revision request.
 - [x] Add a desktop-agent-authored typed-revision route for scene text, color, and visual zoom, followed by a version-bound render. Broader edit types remain open.
 - [x] Add scoped image/video shot replacement with approved local assets, hash and frame checks, provenance, and a version-bound render. Scene insertion and asset generation remain open.

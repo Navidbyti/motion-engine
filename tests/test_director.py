@@ -37,6 +37,15 @@ def test_public_director_plans_compile_to_whole_renderable_drafts(name, assets_f
     assert ImageChops.difference(renderer.render_frame(0), renderer.render_frame(duration - 1)).getbbox()
 
 
+def test_shape_accent_sits_between_title_and_subtitle():
+    spec = load_spec(ROOT / "examples/director-abstract.motion.json")
+    scene = next(scene for scene in spec["timeline"] if any(e["id"] == "accent_2" for e in scene["elements"]))
+    elements = {item["id"]: item for item in scene["elements"]}
+    title, accent, subtitle = (elements[name]["bounds"] for name in ("title_2", "accent_2", "subtitle_2"))
+    assert title["y"] + title["height"] <= accent["y"]
+    assert accent["y"] + accent["height"] <= subtitle["y"]
+
+
 def test_director_research_and_missing_asset_are_explicit(tmp_path):
     prompt = tmp_path / "prompt.txt"
     prompt.write_text("Create a researched explainer about a historical claim.", encoding="utf-8")

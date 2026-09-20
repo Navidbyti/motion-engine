@@ -4,9 +4,10 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from .revisions import RevisionError, freeze_revision, spec_sha256
+from .revisions import RevisionError, freeze_revision, resolve_local_file, spec_sha256
 from .runs import RunError, verify_render_run
 from .data_qa import check_chart_data
+from .claims import verify_claims
 
 
 def _issue(code: str, severity: str, message: str, target_id: str | None = None) -> dict[str, str]:
@@ -67,6 +68,29 @@ def qa_report(spec: dict[str, Any], spec_dir: str | Path, render_dir: str | Path
                 issues.extend(check_chart_data(spec, spec_dir, severity))
             else:
                 issues.append(_issue("data_source_unverifiable", severity, "Source revision did not verify", rule["id"]))
+        elif name == "claim.semantic_review":
+            ledger_source = next((source for source in spec["sources"] if source["id"] == "claim_ledger"), None)
+            if ledger_source is None:
+                issues.append(_issue("claim_ledger_missing", "error", "Factual draft has no claim ledger"))
+            else:
+                try:
+                    ledger_path = resolve_local_file(ledger_source, spec_dir, "claim ledger")
+                    result = verify_claims(ledger_path)
+                    if result["status"] != "source_linked":
+                        issues.append(_issue("claim_sources_invalid", "error", "Claim ledger source links no longer verify"))
+                    else:
+                        import json
+                        ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
+                        locations = {f"/claims/{index}" for index in range(len(ledger["claims"]))}
+                        for scene in spec["timeline"]:
+                            refs = [ref for ref in scene.get("sourceRefs", [])
+                                    if ref["sourceId"] == "claim_ledger" and ref["location"] in locations]
+                            if not refs:
+                                issues.append(_issue("claim_link_missing", "error", "Scene has no current claim mapping", scene["id"]))
+                        issues.append(_issue("claim_semantic_review_required", "warning",
+                                             "A producer must review claim wording, source quality, and support before factual release"))
+                except (OSError, ValueError, KeyError, TypeError, RevisionError) as exc:
+                    issues.append(_issue("claim_sources_invalid", "error", str(exc)))
         else:
             issues.append(_issue("qa_rule_unimplemented", "error" if severity == "error" else "warning", f"QA rule {name!r} is not implemented", rule["id"]))
 

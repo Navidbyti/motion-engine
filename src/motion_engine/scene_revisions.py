@@ -79,6 +79,9 @@ def revise_scene(spec: dict[str, Any], request: dict[str, Any], *,
                         if line["value"] == previous:
                             line["value"] = value
                     beat["sourceRefs"] = [ref]
+            if any(source["id"] == "claim_ledger" for source in spec["sources"]):
+                target_scene["sourceRefs"] = [item for item in target_scene.get("sourceRefs", [])
+                                               if item["sourceId"] != "claim_ledger"]
         elif action == "set_color":
             if element["kind"] not in ("text", "shape", "chart.bar", "chart.line") or not isinstance(value, str):
                 raise SceneRevisionError(f"operation {index}: set_color needs a colorable element and hex string")

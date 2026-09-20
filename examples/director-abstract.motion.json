@@ -5,7 +5,7 @@
     "title": "Ideas in motion",
     "locale": "en-US",
     "direction": "ltr",
-    "description": "Model-directed first draft; review visuals, exact text, and source meaning."
+    "description": "Desktop-agent-directed first draft; review visuals, exact text, and source meaning."
   },
   "canvas": {
     "width": 320,
@@ -246,7 +246,7 @@
           "endFrameExclusive": 48,
           "bounds": {
             "x": 24,
-            "y": 72,
+            "y": 106,
             "width": 272,
             "height": 12
           },

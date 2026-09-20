@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from .planning import plan
+from .claims import verify_claims
 from .revisions import file_sha256, resolve_local_file
 from .validation import validate
 
@@ -23,7 +24,8 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
                           proposal: dict[str, Any], *, project_id: str,
                           width: int = 1080, height: int = 1920, fps: int = 30,
                           assets: list[dict[str, Any]] | None = None,
-                          proposal_path: str | Path | None = None) -> dict[str, Any]:
+                          proposal_path: str | Path | None = None,
+                          claim_ledger_path: str | Path | None = None) -> dict[str, Any]:
     prompt = Path(prompt_path).resolve()
     output = Path(output_path).resolve()
     try:
@@ -58,8 +60,32 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
     required = {"title", "locale", "direction", "researchRequired", "assetRequests", "scenes"}
     if not isinstance(proposal, dict) or set(proposal) != required:
         raise DirectorError("director plan needs title, locale, direction, researchRequired, assetRequests, and scenes only")
-    if proposal["researchRequired"] is not False:
-        raise DirectorError("research-required plan needs an evidence-bound research stage before video drafting")
+    claim_source = None
+    research_sources = []
+    claim_locations = {}
+    if proposal["researchRequired"] is True:
+        if claim_ledger_path is None:
+            raise DirectorError("research-required plan needs a claim ledger")
+        ledger_file = Path(claim_ledger_path).resolve()
+        try:
+            ledger_uri = ledger_file.relative_to(output.parent).as_posix()
+        except ValueError as exc:
+            raise DirectorError("claim ledger must be inside the MotionSpec directory") from exc
+        report = verify_claims(ledger_file)
+        if report["status"] != "source_linked":
+            raise DirectorError("claim ledger source links failed: " + "; ".join(issue["message"] for issue in report["issues"]))
+        ledger = json.loads(ledger_file.read_text(encoding="utf-8"))
+        claim_locations = {claim["id"]: f"/claims/{index}" for index, claim in enumerate(ledger["claims"])}
+        claim_source = {"id": "claim_ledger", "uri": ledger_uri, "mediaType": "application/json",
+                        "sha256": file_sha256(ledger_file), "authority": ["agent research ledger"]}
+        for source in ledger["sources"]:
+            source_file = (ledger_file.parent / source["uri"]).resolve()
+            source_uri = source_file.relative_to(output.parent).as_posix()
+            research_sources.append({"id": "claim_source_" + source["id"], "uri": source_uri,
+                                     "mediaType": "text/plain", "sha256": source["sha256"],
+                                     "authority": [source["publisher"]]})
+    elif proposal["researchRequired"] is not False or claim_ledger_path is not None:
+        raise DirectorError("claim ledger is only accepted for a research-required plan")
     if not isinstance(proposal["assetRequests"], list):
         raise DirectorError("assetRequests must be a list")
     if proposal["assetRequests"]:
@@ -92,8 +118,17 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
     cursor = 0
     scene_keys = {"durationFrames", "visual", "assetId", "title", "subtitle", "background", "accent", "motion"}
     for index, scene in enumerate(proposal["scenes"], 1):
-        if not isinstance(scene, dict) or set(scene) != scene_keys:
+        if not isinstance(scene, dict) or not scene_keys <= set(scene) or set(scene) - scene_keys - {"claimIds"}:
             raise DirectorError(f"scene {index} has missing or unknown plan fields")
+        scene_claim_ids = scene.get("claimIds", [])
+        if not isinstance(scene_claim_ids, list) or any(not isinstance(item, str) for item in scene_claim_ids) or len(scene_claim_ids) != len(set(scene_claim_ids)):
+            raise DirectorError(f"scene {index} claimIds must be a list of unique IDs")
+        if proposal["researchRequired"] and not scene_claim_ids:
+            raise DirectorError(f"scene {index} needs at least one cited claim")
+        if any(item not in claim_locations for item in scene_claim_ids):
+            raise DirectorError(f"scene {index} references an unknown claim ID")
+        claim_refs = [{"sourceId": "claim_ledger", "location": claim_locations[item],
+                       "method": "agent claim mapping", "confidence": 0.5} for item in scene_claim_ids]
         duration = scene["durationFrames"]
         if not isinstance(duration, int) or isinstance(duration, bool) or not 12 <= duration <= 900:
             raise DirectorError(f"scene {index} duration must be 12 to 900 frames")
@@ -143,7 +178,7 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
         if visual == "shape":
             elements.append({"id": f"accent_{index}", "kind": "shape", "startFrame": start,
                              "endFrameExclusive": end,
-                             "bounds": {"x": inset, "y": round(height * 0.4),
+                             "bounds": {"x": inset, "y": round(height * 0.59),
                                         "width": width - 2 * inset, "height": max(12, round(height * 0.06))},
                              "params": {"shape": "rect", "color": scene["accent"]}, "zIndex": 0})
         for role, value in (("title", scene["title"]), ("subtitle", scene["subtitle"])):
@@ -164,7 +199,7 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
                                       "direction": proposal["direction"], "fontFamily": "DejaVu Sans",
                                       "fontWeight": 700 if title else 400, "align": "center"},
                              "params": {"color": "#FFFFFF", "fontSize": max(20, round(min(width, height) * (0.055 if title else 0.038))), "wrap": True},
-                             "zIndex": 2, "sourceRefs": [ref]})
+                             "zIndex": 2, "sourceRefs": [ref, *claim_refs]})
             if motion == "fade":
                 animations.append({"targetId": element_id, "property": "opacity", "keyframes": [
                     {"frame": start, "value": 0}, {"frame": start + min(10, duration - 1), "value": 1, "easing": "ease_out"}]})
@@ -174,8 +209,8 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
                                     "elementIds": [element["id"] for element in elements],
                                     "onScreen": [{"value": value, "locale": proposal["locale"]}
                                                  for value in (scene["title"], scene["subtitle"]) if value.strip()],
-                                    "sourceRefs": [ref]}],
-                         "animations": animations, "sourceRefs": [ref]
+                                    "sourceRefs": [ref, *claim_refs]}],
+                         "animations": animations, "sourceRefs": [ref, *claim_refs]
                          + ([{**plan_ref, "location": f"/scenes/{index - 1}"}] if plan_ref else [])})
         cursor = end
     if cursor > 10_000:
@@ -183,17 +218,20 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
     spec = {"schemaVersion": "1.0.0",
             "project": {"id": project_id, "title": proposal["title"], "locale": proposal["locale"],
                         "direction": proposal["direction"],
-                        "description": "Model-directed first draft; review visuals, exact text, and source meaning."},
+                        "description": "Desktop-agent-directed first draft; review visuals, exact text, and source meaning."},
             "canvas": {"width": width, "height": height, "frameRate": {"numerator": fps, "denominator": 1},
                        "durationFrames": cursor, "colorSpace": "Rec.709", "background": "#101820",
                        "safeArea": {"top": inset, "right": inset, "bottom": inset, "left": inset}},
             "sources": [{"id": "user_prompt", "uri": prompt_uri, "mediaType": "text/plain",
                          "sha256": file_sha256(prompt), "authority": ["creative brief"]}]
-                       + ([plan_source] if plan_source else []),
+                       + ([plan_source] if plan_source else [])
+                       + ([claim_source] if claim_source else []) + research_sources,
             "assets": asset_list, "datasets": [], "timeline": timeline,
             "deliverables": [{"id": "preview", "target": "video/mp4", "profile": "preview",
                               "required": True, "editable": False}],
-            "policies": {"qa": [], "disclosures": [], "approvals": ["first draft visual review"],
+            "policies": {"qa": ([{"id": "claim_review", "rule": "claim.semantic_review", "severity": "warning"}]
+                                   if claim_source else []),
+                         "disclosures": [], "approvals": ["first draft visual review"],
                          "unsupportedFeature": "error"}}
     errors = validate(spec)
     if errors:

@@ -85,6 +85,7 @@ def main(argv: list[str] | None = None) -> int:
     director.add_argument("--output", required=True)
     director.add_argument("--project-id", required=True)
     director.add_argument("--assets", help="Optional JSON list of available hashed assets")
+    director.add_argument("--claims", help="Source-linked claim ledger for factual scenes")
     director.add_argument("--width", type=int, default=1080)
     director.add_argument("--height", type=int, default=1920)
     director.add_argument("--fps", type=int, default=30)
@@ -97,6 +98,7 @@ def main(argv: list[str] | None = None) -> int:
     first.add_argument("--output-spec", required=True)
     first.add_argument("--output-dir", required=True)
     first.add_argument("--assets", help="Optional JSON list of available hashed assets")
+    first.add_argument("--claims", help="Source-linked claim ledger for factual scenes")
     first.add_argument("--width", type=int, default=1080)
     first.add_argument("--height", type=int, default=1920)
     first.add_argument("--fps", type=int, default=30)
@@ -199,7 +201,8 @@ def main(argv: list[str] | None = None) -> int:
             result = compile_director_plan(args.prompt, args.output, proposal,
                                            project_id=args.project_id, width=args.width,
                                            height=args.height, fps=args.fps,
-                                           assets=asset_list, proposal_path=args.proposal)
+                                           assets=asset_list, proposal_path=args.proposal,
+                                           claim_ledger_path=args.claims)
             _emit(result, args.output)
             return 0
         if args.command == "director-schema":
@@ -224,7 +227,8 @@ def main(argv: list[str] | None = None) -> int:
             spec = compile_director_plan(args.prompt, spec_path, proposal,
                                          project_id=args.project_id, width=args.width,
                                          height=args.height, fps=args.fps,
-                                         assets=asset_list, proposal_path=plan_path)
+                                         assets=asset_list, proposal_path=plan_path,
+                                         claim_ledger_path=args.claims)
             _emit(spec, spec_path)
             revision = freeze_revision(spec, spec_path.parent)
             result = render_preview(spec, render_path, scale=args.scale,

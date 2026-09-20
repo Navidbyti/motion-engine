@@ -1,0 +1,31 @@
+{
+  "title": "The fictional Northbridge flashes",
+  "locale": "en-US",
+  "direction": "ltr",
+  "researchRequired": true,
+  "assetRequests": [],
+  "scenes": [
+    {
+      "durationFrames": 48,
+      "visual": "shape",
+      "assetId": "",
+      "title": "Fictional: 3 flashes",
+      "subtitle": "12 May 2020",
+      "background": "#102027",
+      "accent": "#51D19A",
+      "motion": "fade",
+      "claimIds": ["flashes_recorded"]
+    },
+    {
+      "durationFrames": 48,
+      "visual": "typography",
+      "assetId": "",
+      "title": "No confirmed cause",
+      "subtitle": "Lightning was possible",
+      "background": "#1E1730",
+      "accent": "#E2BD68",
+      "motion": "fade",
+      "claimIds": ["cause_unconfirmed"]
+    }
+  ]
+}
