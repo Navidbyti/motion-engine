@@ -23,6 +23,14 @@ The CLI preview command freezes inputs before rendering and writes `revisionSha2
 }
 ```
 
-`set_text` accepts a text element, replaces matching beat copy, and binds the new words to the revision request instead of retaining stale exact-text citations. `set_color` accepts text, rectangle, and bar/line chart elements. `set_visual_zoom` accepts an image or video element and a list of absolute frame keyframes with finite scale values from 1 to 3; the visual remains clipped to its bounds. The earlier `set_image_zoom` operation remains supported for still images. These are deterministic edit operations for an agent to call after interpreting a prompt. Scene insertions, additional natural-language edit types, and research verification remain open tasks.
+`set_text` accepts a text element, replaces matching beat copy, and binds the new words to the revision request instead of retaining stale exact-text citations. `set_color` accepts text, rectangle, and bar/line chart elements. `set_visual_zoom` accepts an image or video element and a list of absolute frame keyframes with finite scale values from 1 to 3; the visual remains clipped to its bounds. The earlier `set_image_zoom` operation remains supported for still images. These are deterministic edit operations for an agent to call after interpreting a prompt.
+
+`set_asset` replaces one image or video element's source without changing its timing, bounds, title, or other scenes. Its `value` is an existing asset ID or a new MotionSpec asset record. A new record needs a unique ID, `kind` of `image` or `video.frames` matching the element, `status: "available"`, a portable local `uri`, matching `sha256`, nonblank `license`, and `approved: true`. The file must decode as a supported image or exact-frame video plate; a video must have the project's frame rate and cover the element's selected frame range. The request and resulting asset record are linked for provenance. A replacement with missing rights or media fails before the new spec is written. Example operation:
+
+```json
+{"op":"set_asset","elementId":"visual_1","value":{"id":"new_shot","kind":"video.frames","status":"available","uri":"assets/new_shot.zip","sha256":"64 lowercase hexadecimal characters","license":"MIT","approved":true}}
+```
+
+Scene insertions, additional natural-language edit types, and research verification remain open tasks.
 
 The desktop agent interprets the user's scene prompt and writes the typed JSON request. `motion-engine revise-and-render base.motion.json edit.json --output-spec next.motion.json --output-dir next-preview` applies the same checked revision and renders a new MP4. No LLM API key is needed. The agent must inspect the output and report unsupported edit requests; factual-claim review remains an open gate.

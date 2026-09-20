@@ -1,4 +1,4 @@
-"""Scoped, source-bound scene edits proposed by a producer or model.
+"""Scoped, source-bound scene edits proposed by a producer or desktop agent.
 
 This is a typed edit executor. Natural-language interpretation belongs to a
 separate planner, which must show the proposed operations before applying them.
@@ -12,7 +12,10 @@ import re
 from pathlib import Path
 from typing import Any
 
-from .revisions import file_sha256, spec_sha256
+from PIL import Image
+
+from .frame_assets import FrameArchive, FrameAssetError
+from .revisions import RevisionError, file_sha256, resolve_local_file, spec_sha256
 from .preview_contract import PREVIEW_EASING
 from .validation import validate
 
@@ -102,6 +105,63 @@ def revise_scene(spec: dict[str, Any], request: dict[str, Any], *,
                                           if not (a["targetId"] == element["id"] and a["property"] == "scale")]
             target_scene["animations"].append({"targetId": element["id"], "property": "scale", "keyframes": value})
             element.setdefault("sourceRefs", []).append(ref)
+        elif action == "set_asset":
+            if element["kind"] not in ("image", "video"):
+                raise SceneRevisionError(f"operation {index}: set_asset needs an image or video element")
+            if isinstance(value, str):
+                asset = next((item for item in revised["assets"] if item["id"] == value), None)
+                if asset is None:
+                    raise SceneRevisionError(f"operation {index}: unknown asset {value!r}")
+            elif isinstance(value, dict):
+                if (not isinstance(value.get("id"), str)
+                    or not re.fullmatch(r"[A-Za-z][A-Za-z0-9_.-]*", value["id"])):
+                    raise SceneRevisionError(f"operation {index}: new asset needs a valid ID")
+                if any(item["id"] == value["id"] for item in revised["assets"]):
+                    raise SceneRevisionError(f"operation {index}: asset ID already exists; use its ID or choose a new one")
+                asset = copy.deepcopy(value)
+                if not isinstance(asset.get("sourceRefs", []), list):
+                    raise SceneRevisionError(f"operation {index}: asset sourceRefs must be a list")
+                asset.setdefault("sourceRefs", []).append(ref)
+                revised["assets"].append(asset)
+            else:
+                raise SceneRevisionError(f"operation {index}: set_asset needs an existing ID or asset record")
+            expected_kind = "image" if element["kind"] == "image" else "video.frames"
+            if (asset.get("kind") != expected_kind or asset.get("status") != "available"
+                or asset.get("approved") is not True or not isinstance(asset.get("license"), str)
+                or not asset["license"].strip()
+                or not isinstance(asset.get("sha256"), str)
+                or not re.fullmatch(r"[0-9a-f]{64}", asset["sha256"])):
+                raise SceneRevisionError(f"operation {index}: replacement needs an approved, licensed, hashed {expected_kind} asset")
+            try:
+                path = resolve_local_file(asset, output_file.parent, "asset")
+            except RevisionError as exc:
+                raise SceneRevisionError(f"operation {index}: {exc}") from exc
+            if file_sha256(path) != asset["sha256"]:
+                raise SceneRevisionError(f"operation {index}: replacement asset SHA-256 mismatch")
+            if element["kind"] == "image":
+                try:
+                    with Image.open(path) as image:
+                        if image.format not in ("PNG", "JPEG", "WEBP") or image.width * image.height > 50_000_000:
+                            raise SceneRevisionError(f"operation {index}: replacement image format or dimensions are unsupported")
+                        image.verify()
+                except (OSError, ValueError) as exc:
+                    raise SceneRevisionError(f"operation {index}: replacement image cannot be decoded") from exc
+            else:
+                try:
+                    archive = FrameArchive(asset, output_file.parent, spec["canvas"]["frameRate"])
+                except FrameAssetError as exc:
+                    raise SceneRevisionError(f"operation {index}: {exc}") from exc
+                start = element["params"].get("sourceStartFrame", 0)
+                needed = element["endFrameExclusive"] - element["startFrame"]
+                if not isinstance(start, int) or isinstance(start, bool) or start < 0 or start + needed > archive.frame_count:
+                    raise SceneRevisionError(f"operation {index}: replacement video is shorter than the selected scene window")
+                try:
+                    archive.frame(start)
+                    archive.frame(start + needed - 1)
+                except FrameAssetError as exc:
+                    raise SceneRevisionError(f"operation {index}: {exc}") from exc
+            element["assetId"] = asset["id"]
+            element["sourceRefs"] = [ref]
         else:
             raise SceneRevisionError(f"operation {index}: unsupported edit {action!r}")
     errors = validate(revised)
