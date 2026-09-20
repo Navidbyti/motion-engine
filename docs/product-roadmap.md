@@ -56,7 +56,7 @@ This is the ordered work list for a usable, general motion-production engine. A 
 - [ ] Build a Photoshop adapter for layered still assets, text, treatments, and links.
 - [x] Prove an initial static Photoshop PSD subset with editable text and separate rectangle layers on two public fixtures, with native save/close/reopen checks.
 - [ ] Build a Premiere Pro adapter for sequence tracks, cuts, markers, audio, and linked assets.
-- [x] Add a first Final Cut Pro 7 XML interchange exporter from a verified preview run, with contiguous scene cuts, beat markers, and explicit unsupported-audio errors. XML structure and media integrity are tested; native Premiere import remains a separate gate.
+- [x] Add a first Final Cut Pro 7 XML interchange exporter from a verified preview run, with contiguous scene cuts, beat markers, and explicit unsupported-audio errors. The public two-scene fixture passed native Premiere Pro 2026 import, project save/reopen by path, and 120-frame H.264 export on 2026-09-20; post-reopen timeline inspection and broader fixture coverage remain.
 - [ ] Implement per-adapter capability negotiation and explicit fallback records before building.
 - [ ] Verify every native file in its owning application after save and reopen; inspect structure and missing links.
 - [ ] Version and test adapter behavior against supported app releases; document unsupported releases.
