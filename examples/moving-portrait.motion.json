@@ -1,0 +1,154 @@
+{
+  "schemaVersion": "1.0.0",
+  "project": {
+    "id": "moving_portrait",
+    "title": "Une idée en mouvement",
+    "locale": "fr-FR",
+    "direction": "ltr"
+  },
+  "canvas": {
+    "width": 180,
+    "height": 320,
+    "frameRate": {
+      "numerator": 30,
+      "denominator": 1
+    },
+    "durationFrames": 30,
+    "colorSpace": "Rec.709",
+    "background": "#0E1421",
+    "safeArea": {
+      "top": 15,
+      "right": 15,
+      "bottom": 15,
+      "left": 15
+    }
+  },
+  "sources": [
+    {
+      "id": "fixture_source",
+      "uri": "assets/moving-portrait-source.txt",
+      "mediaType": "text/plain",
+      "sha256": "aacb60c050947b270386fe6fed0b60afe08fea40f5cf177947260f5e937fdf17",
+      "authority": [
+        "text",
+        "visual"
+      ],
+      "license": "MIT"
+    }
+  ],
+  "assets": [
+    {
+      "id": "moving_plate",
+      "kind": "video.frames",
+      "status": "available",
+      "uri": "assets/moving-portrait.zip",
+      "sha256": "91703956bdb578045b9e4ec8aef69523241d0f91d32e565a89100d1dabee1d66",
+      "license": "MIT",
+      "approved": true,
+      "sourceRefs": [
+        {
+          "sourceId": "fixture_source",
+          "location": "line 1",
+          "method": "synthetic fixture"
+        }
+      ]
+    }
+  ],
+  "datasets": [],
+  "timeline": [
+    {
+      "id": "scene_1",
+      "startFrame": 0,
+      "endFrameExclusive": 30,
+      "transitionIn": "start",
+      "elements": [
+        {
+          "id": "plate",
+          "kind": "video",
+          "startFrame": 0,
+          "endFrameExclusive": 30,
+          "bounds": {
+            "x": 0,
+            "y": 0,
+            "width": 180,
+            "height": 320
+          },
+          "assetId": "moving_plate",
+          "params": {
+            "fit": "cover",
+            "sourceStartFrame": 0
+          }
+        },
+        {
+          "id": "title",
+          "kind": "text",
+          "startFrame": 0,
+          "endFrameExclusive": 30,
+          "bounds": {
+            "x": 15,
+            "y": 225,
+            "width": 150,
+            "height": 80
+          },
+          "text": {
+            "value": "Une idée en mouvement",
+            "locale": "fr-FR",
+            "fontFamily": "DejaVu Sans",
+            "align": "center"
+          },
+          "params": {
+            "color": "#FFFFFF",
+            "fontSize": 18,
+            "wrap": true
+          },
+          "sourceRefs": [
+            {
+              "sourceId": "fixture_source",
+              "location": "line 1",
+              "method": "synthetic fixture"
+            }
+          ]
+        }
+      ],
+      "beats": [
+        {
+          "id": "beat_1",
+          "startFrame": 0,
+          "endFrameExclusive": 30,
+          "elementIds": [
+            "plate",
+            "title"
+          ],
+          "onScreen": [
+            {
+              "value": "Une idée en mouvement",
+              "locale": "fr-FR"
+            }
+          ]
+        }
+      ],
+      "animations": [],
+      "sourceRefs": [
+        {
+          "sourceId": "fixture_source",
+          "location": "line 1",
+          "method": "synthetic fixture"
+        }
+      ]
+    }
+  ],
+  "deliverables": [
+    {
+      "id": "preview",
+      "target": "video/mp4",
+      "profile": "preview",
+      "required": true,
+      "editable": false
+    }
+  ],
+  "policies": {
+    "qa": [],
+    "disclosures": [],
+    "unsupportedFeature": "error"
+  }
+}

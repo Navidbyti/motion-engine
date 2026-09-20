@@ -1,1 +1,3 @@
 examples/assets/prompt-*.txt text eol=lf
+examples/assets/moving-*-source.txt text eol=lf
+examples/assets/moving-*.zip binary

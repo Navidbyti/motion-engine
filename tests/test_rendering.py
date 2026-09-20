@@ -92,7 +92,7 @@ def test_multiline_rtl_text_uses_raqm_when_available():
 
 def test_unsupported_content_fails_before_frame_writing(tmp_path):
     spec = copy.deepcopy(load_spec(ROOT / "examples/hello.motion.json"))
-    spec["timeline"][0]["elements"][0]["kind"] = "video"
+    spec["timeline"][0]["elements"][0]["kind"] = "shader"
     with pytest.raises(RenderError, match="unsupported preview element"):
         render_preview(spec, tmp_path / "out", scale=0.1)
     assert not (tmp_path / "out").exists()

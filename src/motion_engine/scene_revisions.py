@@ -83,9 +83,10 @@ def revise_scene(spec: dict[str, Any], request: dict[str, Any], *,
                 raise SceneRevisionError(f"operation {index}: color must be #RRGGBB")
             element["params"]["color"] = value
             element.setdefault("sourceRefs", []).append(ref)
-        elif action == "set_image_zoom":
-            if element["kind"] != "image" or not isinstance(value, list) or not 1 <= len(value) <= 20:
-                raise SceneRevisionError(f"operation {index}: set_image_zoom needs an image and 1 to 20 keyframes")
+        elif action in ("set_image_zoom", "set_visual_zoom"):
+            allowed = ("image",) if action == "set_image_zoom" else ("image", "video")
+            if element["kind"] not in allowed or not isinstance(value, list) or not 1 <= len(value) <= 20:
+                raise SceneRevisionError(f"operation {index}: {action} needs a supported visual and 1 to 20 keyframes")
             for key in value:
                 if not isinstance(key, dict) or set(key) - {"frame", "value", "easing"} or "frame" not in key or "value" not in key:
                     raise SceneRevisionError(f"operation {index}: invalid zoom keyframe")

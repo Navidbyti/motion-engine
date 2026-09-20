@@ -24,6 +24,7 @@ from .pdf_assets import extract_pdf_images
 from .review import make_review, verify_review
 from .drafting import draft_text
 from .scene_revisions import SceneRevisionError, revise_scene
+from .video_import import VideoImportError, import_video
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -67,6 +68,13 @@ def main(argv: list[str] | None = None) -> int:
     draft.add_argument("--frames-per-line", type=int, default=60)
     draft.add_argument("--font-family", default="DejaVu Sans")
     draft.add_argument("--max-lines", type=int, default=40)
+    video_import = sub.add_parser("import-video", help="Convert a source video to a hashed, exact-frame PNG plate ZIP")
+    video_import.add_argument("source")
+    video_import.add_argument("--output", required=True)
+    video_import.add_argument("--fps-num", type=int, required=True)
+    video_import.add_argument("--fps-den", type=int, default=1)
+    video_import.add_argument("--frames", type=int, required=True)
+    video_import.add_argument("--start-ms", type=int, default=0)
     revise = sub.add_parser("revise-scene", help="Apply a typed edit to one scene against an exact MotionSpec hash")
     revise.add_argument("spec")
     revise.add_argument("request", help="JSON revision request in the MotionSpec directory")
@@ -134,6 +142,11 @@ def main(argv: list[str] | None = None) -> int:
                                 frames_per_line=args.frames_per_line,
                                 font_family=args.font_family, max_lines=args.max_lines)
             _emit(result, args.output)
+            return 0
+        if args.command == "import-video":
+            print(json.dumps(import_video(args.source, args.output, numerator=args.fps_num,
+                                          denominator=args.fps_den, frame_count=args.frames,
+                                          start_ms=args.start_ms), ensure_ascii=False, indent=2))
             return 0
         if args.command == "revise-scene":
             source_spec = Path(args.spec).resolve()

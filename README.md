@@ -6,7 +6,7 @@ An open-source, implementation-ready design for turning scripts, documents, data
 
 ## Status
 
-This repository is a **build specification and early implementation**, not a finished production engine. It contains a general MotionSpec schema, source extractors, validation and planning commands, a deterministic preview renderer, adapter contracts, synthetic examples, tests, and implementation milestones. A literal text-to-MotionSpec command makes a cited video draft from one plain-text line per scene. Image plates support bounded zoom keyframes, and typed scene edits produce cited, hash-bound revisions. Narrow After Effects, Illustrator, and Photoshop exporters produce editable subsets and passed native-app reopen checks. A limited Premiere XML interchange exporter lays out rendered scenes and beat markers and passed a native Premiere Pro 2026 import, save/reopen, and export test for a silent two-scene fixture. Full Adobe coverage remains a future milestone.
+This repository is a **build specification and early implementation**, not a finished production engine. It contains a general MotionSpec schema, source extractors, validation and planning commands, a deterministic preview renderer, adapter contracts, synthetic examples, tests, and implementation milestones. A literal text-to-MotionSpec command makes a cited video draft from one plain-text line per scene. Still images and moving visual plates support bounded zoom keyframes, and typed scene edits produce cited, hash-bound revisions. A video importer converts supplied MP4/MOV/WebM/MKV files into exact-frame, hashed preview plates. Narrow After Effects, Illustrator, and Photoshop exporters produce editable subsets and passed native-app reopen checks. A limited Premiere XML interchange exporter lays out rendered scenes and beat markers and passed a native Premiere Pro 2026 import, save/reopen, and export test for a silent two-scene fixture. Full Adobe coverage remains a future milestone.
 
 ## What goes in and comes out
 
@@ -54,6 +54,7 @@ motion-engine inspect examples/hello.motion.json
 motion-engine ingest examples/assets/hello-script.md --output evidence.json
 motion-engine draft-text examples/assets/prompt-en.txt --output examples/my-draft.motion.json --project-id my_draft --locale en-US
 motion-engine render examples/my-draft.motion.json --output-dir my-draft-preview --scale 0.25
+motion-engine import-video clip.mp4 --output plate.zip --fps-num 30 --frames 90
 motion-engine make-review evidence.json --requirements examples/review-questions.json --output review.json
 motion-engine import-data examples/assets/weather.csv --project-root examples --dataset-id temperatures --source-id weather_csv --output dataset-fragment.json
 motion-engine plan examples/hello.motion.json --output plan.json

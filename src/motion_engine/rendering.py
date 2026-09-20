@@ -19,6 +19,7 @@ from typing import Any
 
 from PIL import Image, ImageDraw, ImageFont, ImageOps, features
 
+from .frame_assets import FrameArchive, FrameAssetError
 from .preview_contract import PREVIEW_ANIMATIONS_BY_KIND, PREVIEW_EASING, PREVIEW_KINDS, PREVIEW_PARAMS
 from .revisions import RevisionError, resolve_local_file, spec_sha256
 from .runs import frames_tree_sha256, render_key
@@ -97,6 +98,7 @@ class FrameRenderer:
         self.assets = {a["id"]: a for a in spec["assets"]}
         self.asset_root = Path(asset_root or ".").resolve()
         self.image_cache: dict[str, Image.Image] = {}
+        self.video_cache: dict[str, FrameArchive] = {}
         self.audio_clips: list[dict[str, Any]] = []
         self.font_dirs = [Path(p) for p in (font_dirs or [])]
         self.font_dirs += [Path("C:/Windows/Fonts"), Path("/usr/share/fonts"), Path("/Library/Fonts"), Path.home() / ".local/share/fonts"]
@@ -121,6 +123,10 @@ class FrameRenderer:
                     if element["params"].get("fit", "contain") not in ("contain", "cover", "stretch"):
                         raise RenderError(f"image {element['id']} has unsupported fit mode")
                     self._load_image(element)
+                if element["kind"] == "video":
+                    if element["params"].get("fit", "contain") not in ("contain", "cover", "stretch"):
+                        raise RenderError(f"video {element['id']} has unsupported fit mode")
+                    self._load_video(element)
                 if element["kind"] == "audio":
                     self._load_audio(element)
                 if element["kind"] != "audio" and "bounds" not in element:
@@ -140,7 +146,7 @@ class FrameRenderer:
                     or not math.isfinite(keyframe["value"]) or not 1 <= keyframe["value"] <= 3
                     for keyframe in animation["keyframes"]
                 ):
-                    raise RenderError(f"image {animation['targetId']} scale keyframes must be finite numbers from 1 to 3")
+                    raise RenderError(f"visual {animation['targetId']} scale keyframes must be finite numbers from 1 to 3")
                 self.animations.setdefault(animation["targetId"], {})[animation["property"]] = animation["keyframes"]
         if not features.check("raqm") and any(
             e.get("text", {}).get("direction") == "rtl" for s in spec["timeline"] for e in s["elements"]
@@ -210,6 +216,23 @@ class FrameRenderer:
             raise RenderError(f"image asset {asset_id} cannot be decoded: {exc}") from exc
         self.image_cache[asset_id] = image
         return image
+
+    def _load_video(self, element: dict[str, Any]) -> FrameArchive:
+        asset_id = element.get("assetId")
+        if asset_id not in self.video_cache:
+            asset = self.assets.get(asset_id)
+            if not asset:
+                raise RenderError(f"video {element['id']} requires a video.frames asset")
+            try:
+                self.video_cache[asset_id] = FrameArchive(asset, self.asset_root, self.spec["canvas"]["frameRate"])
+            except FrameAssetError as exc:
+                raise RenderError(str(exc)) from exc
+        archive = self.video_cache[asset_id]
+        offset = element["params"].get("sourceStartFrame", 0)
+        needed = element["endFrameExclusive"] - element["startFrame"]
+        if not isinstance(offset, int) or isinstance(offset, bool) or offset < 0 or offset + needed > archive.frame_count:
+            raise RenderError(f"video {element['id']} source frame range exceeds its plate")
+        return archive
 
     def _load_audio(self, element: dict[str, Any]) -> None:
         asset = self.assets.get(element.get("assetId"))
@@ -315,7 +338,19 @@ class FrameRenderer:
         image.paste(overlay, (0, 0), overlay)
 
     def _image(self, image: Image.Image, element: dict[str, Any], frame: int) -> None:
-        source = self._load_image(element)
+        self._raster_layer(image, element, frame, self._load_image(element))
+
+    def _video(self, image: Image.Image, element: dict[str, Any], frame: int) -> None:
+        archive = self._load_video(element)
+        source_frame = element["params"].get("sourceStartFrame", 0) + frame - element["startFrame"]
+        try:
+            source = archive.frame(source_frame)
+        except FrameAssetError as exc:
+            raise RenderError(str(exc)) from exc
+        self._raster_layer(image, element, frame, source)
+
+    def _raster_layer(self, image: Image.Image, element: dict[str, Any], frame: int,
+                      source: Image.Image) -> None:
         x, y, w, h = self._bounds(element["bounds"])
         fit = element["params"].get("fit", "contain")
         if fit == "stretch":
@@ -412,6 +447,8 @@ class FrameRenderer:
                 self._shape(image, element, frame)
             elif kind == "image":
                 self._image(image, element, frame)
+            elif kind == "video":
+                self._video(image, element, frame)
             else:
                 self._chart(image, element, frame)
         for disclosure in self.spec["policies"]["disclosures"]:

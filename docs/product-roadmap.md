@@ -42,6 +42,7 @@ This is the ordered work list for a usable, general motion-production engine. A 
 - [x] Add local raster image assets with hash checks, fit/crop rules, and no silent substitution.
 - [ ] Add vector assets/SVG and licensed font manifests; verify availability and glyph coverage.
 - [ ] Add video plates with trimming, proxies, color conversion, and deterministic frame mapping.
+- [x] Add a hashed PNG-frame video proxy with exact frame mapping, explicit source trim, FFmpeg import, and two public aspect-ratio fixtures. Native media import, broad color management, and performance remain open.
 - [ ] Add tables, cards, counters, scatter charts, icons, masks, and reusable compositions as tested primitives.
 - [ ] Add scene transitions and a complete animation property/easing contract, with exact frame semantics.
 - [x] Add explicit multiline text, opt-in space wrapping, overflow rejection, and libraqm-backed RTL preview.

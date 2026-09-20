@@ -76,6 +76,17 @@ def plan(spec: dict[str, Any], capabilities: dict[str, dict[str, Any]] | None = 
                         preview_feature_gaps.add(f"image_asset:{element['id']}")
                     if element["params"].get("fit", "contain") not in ("contain", "cover", "stretch"):
                         preview_feature_gaps.add(f"image_fit:{element['id']}")
+                if element["kind"] == "video":
+                    asset = assets.get(element.get("assetId"))
+                    if (not asset or asset.get("kind") != "video.frames" or asset.get("status") != "available"
+                        or not asset.get("uri") or not asset.get("sha256")
+                        or not str(asset.get("uri", "")).lower().endswith(".zip")):
+                        preview_feature_gaps.add(f"video_asset:{element['id']}")
+                    if element["params"].get("fit", "contain") not in ("contain", "cover", "stretch"):
+                        preview_feature_gaps.add(f"video_fit:{element['id']}")
+                    offset = element["params"].get("sourceStartFrame", 0)
+                    if not isinstance(offset, int) or isinstance(offset, bool) or offset < 0:
+                        preview_feature_gaps.add(f"video_source_frame:{element['id']}")
                 if element["kind"] == "audio":
                     asset = assets.get(element.get("assetId"))
                     if not asset or asset.get("status") != "available" or not asset.get("uri") or not asset.get("sha256"):

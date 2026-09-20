@@ -29,7 +29,7 @@ This is an orchestration contract, not an assertion that these tools are all imp
 
 ## Acceptance case: rotating object with a slow zoom
 
-Request: “A slowly zooming shot of a Bitcoin coin rotating in the air, with the exact text ‘bitcoin is awesome’.” The first draft should contain one coherent moving shot and a separate text layer with those exact bytes. A flat image spinning in its own plane is not a valid substitute for an object rotating in 3D. The director must request or render a 3D/video plate for the coin, inspect it, and use the motion layer for the slow zoom. Image `scale` keyframes from 1 to 3 are now supported by the raster preview for a still plate; moving video plates and native camera/3D handling remain open work. The text stays editable and can be revised without regenerating the coin.
+Request: “A slowly zooming shot of a Bitcoin coin rotating in the air, with the exact text ‘bitcoin is awesome’.” The first draft should contain one coherent moving shot and a separate text layer with those exact bytes. A flat image spinning in its own plane is not a valid substitute for an object rotating in 3D. The director must request or render a 3D/video plate for the coin, inspect it, and use the motion layer for the slow zoom. Image and frame-addressed video plates now support `scale` keyframes from 1 to 3 in the raster preview; 3D asset generation and native camera/3D handling remain open work. The text stays editable and can be revised without regenerating the coin.
 
 Checks: visible depth change while the coin turns; smooth frame-by-frame zoom; correct title spelling and timing; no clipping; asset provenance; a revised title does not change the shot.
 
@@ -41,8 +41,8 @@ Checks: each substantive claim has a source and evidence span; dates distinguish
 
 ## Build order
 
-1. Add moving video plates with exact frame mapping, audio policy, hash checks, and two public fixtures.
-2. Add stable scene-level typed revisions and immutable revision history.
-3. Add a claim ledger and evidence-bound research/planning interface.
-4. Add model orchestration that selects tools, plans the full project, compiles MotionSpec, and loops on QA failures.
-5. Add native output coverage and clean-machine verification for the resulting scene types.
+1. Add stable scene-level revision history and a prompt-to-typed-edit planner. Typed revisions and hash-bound outputs are in place.
+2. Add a claim ledger and evidence-bound research/planning interface.
+3. Add model orchestration that selects tools, plans the full project, compiles MotionSpec, and loops on QA failures.
+4. Add native output coverage and clean-machine verification for the resulting scene types.
+5. Add efficient proxies, color management, and long-form performance for moving plates.

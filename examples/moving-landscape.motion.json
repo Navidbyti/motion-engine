@@ -1,0 +1,154 @@
+{
+  "schemaVersion": "1.0.0",
+  "project": {
+    "id": "moving_landscape",
+    "title": "A moving idea",
+    "locale": "en-US",
+    "direction": "ltr"
+  },
+  "canvas": {
+    "width": 320,
+    "height": 180,
+    "frameRate": {
+      "numerator": 24,
+      "denominator": 1
+    },
+    "durationFrames": 24,
+    "colorSpace": "Rec.709",
+    "background": "#0E1421",
+    "safeArea": {
+      "top": 15,
+      "right": 15,
+      "bottom": 15,
+      "left": 15
+    }
+  },
+  "sources": [
+    {
+      "id": "fixture_source",
+      "uri": "assets/moving-landscape-source.txt",
+      "mediaType": "text/plain",
+      "sha256": "c764e2143503f073d75354636620dd47fbf1b996f70b1074a009605130cff6d9",
+      "authority": [
+        "text",
+        "visual"
+      ],
+      "license": "MIT"
+    }
+  ],
+  "assets": [
+    {
+      "id": "moving_plate",
+      "kind": "video.frames",
+      "status": "available",
+      "uri": "assets/moving-landscape.zip",
+      "sha256": "52db5b5709fbdcc524f6052c48cc53db2f60995402ec3c5a061bb91aab72f63d",
+      "license": "MIT",
+      "approved": true,
+      "sourceRefs": [
+        {
+          "sourceId": "fixture_source",
+          "location": "line 1",
+          "method": "synthetic fixture"
+        }
+      ]
+    }
+  ],
+  "datasets": [],
+  "timeline": [
+    {
+      "id": "scene_1",
+      "startFrame": 0,
+      "endFrameExclusive": 24,
+      "transitionIn": "start",
+      "elements": [
+        {
+          "id": "plate",
+          "kind": "video",
+          "startFrame": 0,
+          "endFrameExclusive": 24,
+          "bounds": {
+            "x": 0,
+            "y": 0,
+            "width": 320,
+            "height": 180
+          },
+          "assetId": "moving_plate",
+          "params": {
+            "fit": "cover",
+            "sourceStartFrame": 0
+          }
+        },
+        {
+          "id": "title",
+          "kind": "text",
+          "startFrame": 0,
+          "endFrameExclusive": 24,
+          "bounds": {
+            "x": 15,
+            "y": 105,
+            "width": 290,
+            "height": 60
+          },
+          "text": {
+            "value": "A moving idea",
+            "locale": "en-US",
+            "fontFamily": "DejaVu Sans",
+            "align": "center"
+          },
+          "params": {
+            "color": "#FFFFFF",
+            "fontSize": 24,
+            "wrap": true
+          },
+          "sourceRefs": [
+            {
+              "sourceId": "fixture_source",
+              "location": "line 1",
+              "method": "synthetic fixture"
+            }
+          ]
+        }
+      ],
+      "beats": [
+        {
+          "id": "beat_1",
+          "startFrame": 0,
+          "endFrameExclusive": 24,
+          "elementIds": [
+            "plate",
+            "title"
+          ],
+          "onScreen": [
+            {
+              "value": "A moving idea",
+              "locale": "en-US"
+            }
+          ]
+        }
+      ],
+      "animations": [],
+      "sourceRefs": [
+        {
+          "sourceId": "fixture_source",
+          "location": "line 1",
+          "method": "synthetic fixture"
+        }
+      ]
+    }
+  ],
+  "deliverables": [
+    {
+      "id": "preview",
+      "target": "video/mp4",
+      "profile": "preview",
+      "required": true,
+      "editable": false
+    }
+  ],
+  "policies": {
+    "qa": [],
+    "disclosures": [],
+    "unsupportedFeature": "error"
+  }
+}
