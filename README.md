@@ -6,7 +6,7 @@ An open-source, implementation-ready design for turning scripts, documents, data
 
 ## Status
 
-This repository is a **build specification and early implementation**, not a finished production engine. It contains a general MotionSpec schema, source extractors, validation and planning commands, a deterministic preview renderer, adapter contracts, synthetic examples, tests, and implementation milestones. A first [whole-video director workflow](docs/director.md) can turn a model-authored plan into a complete creative preview and use another prompt to revise one scene; the optional model calls require an API key and have only been tested with simulated responses. Still images and moving visual plates support bounded zoom keyframes, and typed scene edits produce cited, hash-bound revisions. A video importer converts supplied MP4/MOV/WebM/MKV files into exact-frame, hashed preview plates. Narrow After Effects, Illustrator, and Photoshop exporters produce editable subsets and passed native-app reopen checks. A limited Premiere XML interchange exporter lays out rendered scenes and beat markers and passed a native Premiere Pro 2026 import, save/reopen, and export test for a silent two-scene fixture. Full Adobe coverage remains a future milestone.
+This repository is a **build specification and early implementation**, not a finished production engine. It contains a general MotionSpec schema, source extractors, validation and planning commands, a deterministic preview renderer, adapter contracts, synthetic examples, tests, and implementation milestones. A [desktop coding agent](docs/desktop-agent-workflow.md) such as Codex or Claude authors a whole-video plan and scene revisions; the local CLI compiles and renders them without an LLM API key. Still images and moving visual plates support bounded zoom keyframes, and typed scene edits produce cited, hash-bound revisions. A video importer converts supplied MP4/MOV/WebM/MKV files into exact-frame, hashed preview plates. Narrow After Effects, Illustrator, and Photoshop exporters produce editable subsets and passed native-app reopen checks. A limited Premiere XML interchange exporter lays out rendered scenes and beat markers and passed a native Premiere Pro 2026 import, save/reopen, and export test for a silent two-scene fixture. Full Adobe coverage remains a future milestone.
 
 ## What goes in and comes out
 
@@ -57,6 +57,8 @@ motion-engine render examples/my-draft.motion.json --output-dir my-draft-preview
 motion-engine import-video clip.mp4 --output plate.zip --fps-num 30 --frames 90
 motion-engine director-schema --output director-schema.json
 motion-engine compile-director examples/assets/director-abstract.txt examples/director-abstract.plan.json --output examples/my-directed.motion.json --project-id my_directed --width 320 --height 180 --fps 24
+motion-engine first-draft project/prompt.txt project/plan.json --project-id my_video --output-spec project/first.motion.json --output-dir project/preview
+motion-engine revise-and-render project/first.motion.json project/edit.json --output-spec project/second.motion.json --output-dir project/second-preview
 motion-engine make-review evidence.json --requirements examples/review-questions.json --output review.json
 motion-engine import-data examples/assets/weather.csv --project-root examples --dataset-id temperatures --source-id weather_csv --output dataset-fragment.json
 motion-engine plan examples/hello.motion.json --output plan.json
@@ -81,9 +83,9 @@ The [literal text drafting workflow](docs/drafting.md) is the first prompt-to-vi
 
 ## Give this repository to a coding agent
 
-Open the repository in your coding agent and use this prompt:
+Open the repository in Codex or Claude Code and use this prompt to create a video:
 
-> Read AGENTS.md, MotionSpec.schema.json, and docs/milestones.md. Implement M2 in small commits. Keep the core independent of the example subject, language, aspect ratio, and provider. Run the tests and add conformance tests for each new adapter. Do not claim native outputs until they open and remain editable in the owning application.
+> Read AGENTS.md and docs/desktop-agent-workflow.md. Act as the director for my video request: inspect my sources, research factual claims, author the full plan and required assets, run the local first-draft command, inspect the rendered MP4, and improve weak scenes. Report actual limitations. For later prompts, revise only the requested scene and render a new version.
 
 `AGENTS.md` is the persistent engineering contract. [Architecture](docs/architecture.md), [service contracts](docs/contracts.md), [verified revisions](docs/revisions.md), [preview runs](docs/runs.md), [QA](docs/qa.md), [extension API](docs/extensions.md), [compatibility](docs/compatibility.md), and [acceptance tests](docs/acceptance-tests.md) give agents the rest of the build instructions.
 

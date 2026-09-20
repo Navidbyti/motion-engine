@@ -8,7 +8,6 @@ from PIL import ImageChops
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 from motion_engine.cli import main
-from motion_engine import cli
 from motion_engine.director import DirectorError, compile_director_plan
 from motion_engine.planning import plan
 from motion_engine.rendering import FrameRenderer
@@ -47,6 +46,12 @@ def test_director_research_and_missing_asset_are_explicit(tmp_path):
         compile_director_plan(prompt, tmp_path / "draft.json", proposal,
                               project_id="draft", width=320, height=180, fps=24)
     proposal["researchRequired"] = False
+    proposal["assetRequests"] = [{"id": "coin", "kind": "3d",
+                                  "description": "A rotating metallic coin in depth", "durationFrames": 90}]
+    with pytest.raises(DirectorError, match="unresolved visual assets"):
+        compile_director_plan(prompt, tmp_path / "draft.json", proposal,
+                              project_id="draft", width=320, height=180, fps=24)
+    proposal["assetRequests"] = []
     proposal["scenes"][0]["visual"] = "asset"
     proposal["scenes"][0]["assetId"] = "coin_plate"
     with pytest.raises(DirectorError, match="unavailable asset"):
@@ -67,17 +72,16 @@ def test_director_cli_compiles_and_refuses_overwrite(tmp_path):
     assert not validate(load_spec(output))
 
 
-def test_first_draft_orchestrates_model_plan_spec_and_video(tmp_path, monkeypatch):
+def test_first_draft_orchestrates_agent_plan_spec_and_video(tmp_path):
     pytest.importorskip("imageio_ffmpeg")
     prompt = tmp_path / "prompt.txt"
     prompt.write_text("Make a colorful two-scene title video.", encoding="utf-8")
-    proposal = json.loads((ROOT / "examples/director-abstract.plan.json").read_text(encoding="utf-8"))
-    monkeypatch.setattr(cli, "suggest_director_plan", lambda text, **kwargs: proposal)
     plan_file = tmp_path / "plan.json"
+    plan_file.write_text((ROOT / "examples/director-abstract.plan.json").read_text(encoding="utf-8"), encoding="utf-8")
     spec_file = tmp_path / "first.motion.json"
     render_dir = tmp_path / "render"
-    args = ["first-draft", str(prompt), "--model", "simulated-model", "--project-id", "first",
-            "--output-plan", str(plan_file), "--output-spec", str(spec_file),
+    args = ["first-draft", str(prompt), str(plan_file), "--project-id", "first",
+            "--output-spec", str(spec_file),
             "--output-dir", str(render_dir), "--width", "320", "--height", "180",
             "--fps", "24", "--scale", "0.5"]
     assert main(args) == 0

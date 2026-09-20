@@ -1,4 +1,4 @@
-"""Compile a model-authored whole-video plan into a validated MotionSpec.
+"""Compile an agent-authored whole-video plan into a validated MotionSpec.
 
 The plan is a proposal, not a source of truth. The compiler checks capabilities
 and refuses ungrounded factual plans or assets that do not exist.
@@ -50,16 +50,21 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
             raise DirectorError("director plan does not match its source file")
         plan_source = {"id": "director_plan", "uri": plan_uri, "mediaType": "application/json",
                        "sha256": file_sha256(plan_file), "authority": ["direction"]}
-        plan_ref = {"sourceId": "director_plan", "location": f"/scenes", "method": "model proposal", "confidence": 0.7}
+        plan_ref = {"sourceId": "director_plan", "location": f"/scenes", "method": "desktop agent proposal", "confidence": 0.7}
     if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_.-]*", project_id):
         raise DirectorError("invalid project ID")
     if width < 180 or height < 180 or fps not in (24, 25, 30, 50, 60):
         raise DirectorError("unsupported canvas or frame rate")
-    required = {"title", "locale", "direction", "researchRequired", "scenes"}
+    required = {"title", "locale", "direction", "researchRequired", "assetRequests", "scenes"}
     if not isinstance(proposal, dict) or set(proposal) != required:
-        raise DirectorError("director plan needs title, locale, direction, researchRequired, and scenes only")
+        raise DirectorError("director plan needs title, locale, direction, researchRequired, assetRequests, and scenes only")
     if proposal["researchRequired"] is not False:
         raise DirectorError("research-required plan needs an evidence-bound research stage before video drafting")
+    if not isinstance(proposal["assetRequests"], list):
+        raise DirectorError("assetRequests must be a list")
+    if proposal["assetRequests"]:
+        requests = [str(item.get("description", item)) for item in proposal["assetRequests"]]
+        raise DirectorError("first draft needs unresolved visual assets: " + "; ".join(requests))
     if (not isinstance(proposal["title"], str) or not proposal["title"].strip()
         or not isinstance(proposal["locale"], str) or len(proposal["locale"]) < 2
         or proposal["direction"] not in ("ltr", "rtl")
@@ -82,7 +87,7 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
         if file_sha256(path) != asset["sha256"]:
             raise DirectorError(f"asset {asset['id']} SHA-256 mismatch")
     inset = max(24, round(min(width, height) * 0.07))
-    ref = {"sourceId": "user_prompt", "location": "entire prompt", "method": "model-directed adaptation", "confidence": 0.7}
+    ref = {"sourceId": "user_prompt", "location": "entire prompt", "method": "desktop agent adaptation", "confidence": 0.7}
     timeline = []
     cursor = 0
     scene_keys = {"durationFrames", "visual", "assetId", "title", "subtitle", "background", "accent", "motion"}

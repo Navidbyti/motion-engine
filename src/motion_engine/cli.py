@@ -26,8 +26,7 @@ from .drafting import draft_text
 from .scene_revisions import SceneRevisionError, revise_scene
 from .video_import import VideoImportError, import_video
 from .director import DirectorError, compile_director_plan
-from .model_director import DIRECTOR_PLAN_SCHEMA, ModelDirectorError, suggest_director_plan
-from .model_revisions import ModelRevisionError, suggest_scene_revision
+from .director_schema import DIRECTOR_PLAN_SCHEMA
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -78,7 +77,7 @@ def main(argv: list[str] | None = None) -> int:
     video_import.add_argument("--fps-den", type=int, default=1)
     video_import.add_argument("--frames", type=int, required=True)
     video_import.add_argument("--start-ms", type=int, default=0)
-    director = sub.add_parser("compile-director", help="Compile a complete model-authored scene plan into MotionSpec")
+    director = sub.add_parser("compile-director", help="Compile a complete agent-authored scene plan into MotionSpec")
     director.add_argument("prompt", help="UTF-8 prompt file inside the MotionSpec output directory")
     director.add_argument("proposal", help="Director plan JSON inside the MotionSpec output directory")
     director.add_argument("--output", required=True)
@@ -87,18 +86,12 @@ def main(argv: list[str] | None = None) -> int:
     director.add_argument("--width", type=int, default=1080)
     director.add_argument("--height", type=int, default=1920)
     director.add_argument("--fps", type=int, default=30)
-    suggest = sub.add_parser("suggest-director", help="Use an optional model to propose a complete director plan")
-    suggest.add_argument("prompt", help="UTF-8 prompt file")
-    suggest.add_argument("--output", required=True, help="New director plan JSON path")
-    suggest.add_argument("--model", required=True, help="Explicit Responses API model ID")
-    suggest.add_argument("--assets", help="Optional JSON list of available hashed assets")
     director_schema = sub.add_parser("director-schema", help="Print the portable whole-video director-plan JSON Schema")
     director_schema.add_argument("--output", help="Write the schema to this file")
-    first = sub.add_parser("first-draft", help="Plan, compile, and render a first draft from a prompt")
+    first = sub.add_parser("first-draft", help="Compile and render an agent-authored plan for a prompt")
     first.add_argument("prompt", help="UTF-8 prompt inside the output MotionSpec directory")
-    first.add_argument("--model", required=True, help="Explicit Responses API model ID")
+    first.add_argument("proposal", help="Agent-authored plan JSON inside the output MotionSpec directory")
     first.add_argument("--project-id", required=True)
-    first.add_argument("--output-plan", required=True)
     first.add_argument("--output-spec", required=True)
     first.add_argument("--output-dir", required=True)
     first.add_argument("--assets", help="Optional JSON list of available hashed assets")
@@ -106,15 +99,12 @@ def main(argv: list[str] | None = None) -> int:
     first.add_argument("--height", type=int, default=1920)
     first.add_argument("--fps", type=int, default=30)
     first.add_argument("--scale", type=float, default=0.5)
-    prompted_revision = sub.add_parser("prompt-revise", help="Use a model to revise one scene and render a new version")
-    prompted_revision.add_argument("spec")
-    prompted_revision.add_argument("--scene-id", required=True)
-    prompted_revision.add_argument("--instruction", required=True)
-    prompted_revision.add_argument("--model", required=True)
-    prompted_revision.add_argument("--output-request", required=True)
-    prompted_revision.add_argument("--output-spec", required=True)
-    prompted_revision.add_argument("--output-dir", required=True)
-    prompted_revision.add_argument("--scale", type=float, default=0.5)
+    revised_render = sub.add_parser("revise-and-render", help="Apply an agent-authored typed scene edit and render")
+    revised_render.add_argument("spec")
+    revised_render.add_argument("request", help="Agent-authored JSON request in the MotionSpec directory")
+    revised_render.add_argument("--output-spec", required=True)
+    revised_render.add_argument("--output-dir", required=True)
+    revised_render.add_argument("--scale", type=float, default=0.5)
     revise = sub.add_parser("revise-scene", help="Apply a typed edit to one scene against an exact MotionSpec hash")
     revise.add_argument("spec")
     revise.add_argument("request", help="JSON revision request in the MotionSpec directory")
@@ -203,35 +193,25 @@ def main(argv: list[str] | None = None) -> int:
                                            assets=asset_list, proposal_path=args.proposal)
             _emit(result, args.output)
             return 0
-        if args.command == "suggest-director":
-            if Path(args.output).exists():
-                raise ModelDirectorError("director plan output already exists")
-            assets = None
-            if args.assets:
-                with Path(args.assets).open("r", encoding="utf-8") as stream:
-                    assets = json.load(stream)
-            result = suggest_director_plan(Path(args.prompt).read_text(encoding="utf-8-sig"),
-                                           model=args.model, asset_catalog=assets)
-            _emit(result, args.output)
-            return 0
         if args.command == "director-schema":
             _emit(DIRECTOR_PLAN_SCHEMA, args.output)
             return 0
         if args.command == "first-draft":
-            plan_path = Path(args.output_plan).resolve()
+            plan_path = Path(args.proposal).resolve()
             spec_path = Path(args.output_spec).resolve()
             render_path = Path(args.output_dir).resolve()
-            if plan_path.parent != spec_path.parent or len({plan_path, spec_path, render_path}) != 3:
-                raise DirectorError("plan and MotionSpec must be distinct files in the same directory")
-            if any(path.exists() for path in (plan_path, spec_path, render_path)):
-                raise DirectorError("first-draft outputs must be new paths")
+            prompt_path = Path(args.prompt).resolve()
+            if (plan_path.parent != spec_path.parent or prompt_path.parent != spec_path.parent
+                    or len({plan_path, spec_path, render_path, prompt_path}) != 4):
+                raise DirectorError("prompt, plan, and MotionSpec must be distinct files in the same directory")
+            if not plan_path.is_file() or not prompt_path.is_file() or spec_path.exists() or render_path.exists():
+                raise DirectorError("prompt and plan must exist; spec and render outputs must be new paths")
             asset_list = None
             if args.assets:
                 with Path(args.assets).open("r", encoding="utf-8") as stream:
                     asset_list = json.load(stream)
-            prompt_text = Path(args.prompt).read_text(encoding="utf-8-sig")
-            proposal = suggest_director_plan(prompt_text, model=args.model, asset_catalog=asset_list)
-            _emit(proposal, plan_path)
+            with plan_path.open("r", encoding="utf-8") as stream:
+                proposal = json.load(stream)
             spec = compile_director_plan(args.prompt, spec_path, proposal,
                                          project_id=args.project_id, width=args.width,
                                          height=args.height, fps=args.fps,
@@ -244,23 +224,25 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps({"plan": str(plan_path), "spec": str(spec_path),
                               "render": str(render_path), "manifest": result}, ensure_ascii=False, indent=2))
             return 0
-        if args.command == "prompt-revise":
+        if args.command == "revise-and-render":
             base_path = Path(args.spec).resolve()
-            request_path = Path(args.output_request).resolve()
+            request_path = Path(args.request).resolve()
             spec_path = Path(args.output_spec).resolve()
             render_path = Path(args.output_dir).resolve()
             if base_path.parent != spec_path.parent or request_path.parent != spec_path.parent:
                 raise SceneRevisionError("base spec, request, and new spec must share a directory")
-            if len({base_path, request_path, spec_path, render_path}) != 4 or any(
-                path.exists() for path in (request_path, spec_path, render_path)
+            if len({base_path, request_path, spec_path, render_path}) != 4 or not request_path.is_file() or any(
+                path.exists() for path in (spec_path, render_path)
             ):
-                raise SceneRevisionError("prompt-revise outputs must be new, distinct paths")
+                raise SceneRevisionError("revision request must exist; spec and render outputs must be new, distinct paths")
             base = load_spec(base_path)
             errors = validate(base)
             if errors:
                 raise SceneRevisionError("base MotionSpec is invalid: " + "; ".join(errors))
-            request = suggest_scene_revision(base, args.scene_id, args.instruction, model=args.model)
-            _emit(request, request_path)
+            with request_path.open("r", encoding="utf-8") as stream:
+                request = json.load(stream)
+            if not isinstance(request, dict):
+                raise SceneRevisionError("revision request must be a JSON object")
             revised = revise_scene(base, request, request_path=request_path, output_path=spec_path)
             _emit(revised, spec_path)
             revision = freeze_revision(revised, spec_path.parent)

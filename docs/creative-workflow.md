@@ -43,6 +43,6 @@ Checks: each substantive claim has a source and evidence span; dates distinguish
 
 1. Add stable scene-level revision history and a prompt-to-typed-edit planner. Typed revisions and hash-bound outputs are in place.
 2. Add a claim ledger and evidence-bound research/planning interface.
-3. Add model orchestration that selects tools, plans the full project, compiles MotionSpec, and loops on QA failures.
+3. Teach the desktop Codex or Claude agent to select tools, plan the full project, compile MotionSpec, and loop on QA failures without an LLM API integration.
 4. Add native output coverage and clean-machine verification for the resulting scene types.
 5. Add efficient proxies, color management, and long-form performance for moving plates.

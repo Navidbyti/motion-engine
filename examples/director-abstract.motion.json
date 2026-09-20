@@ -38,7 +38,7 @@
       "id": "director_plan",
       "uri": "director-abstract.plan.json",
       "mediaType": "application/json",
-      "sha256": "08618271bb1f8194c0487d4da107990101a2515769126630f16c34384907d15c",
+      "sha256": "4c97ecc806e4e37aa0c57abd75a80a27f5c7a3144c84dbf70fe4963a276ab4f0",
       "authority": [
         "direction"
       ]
@@ -99,7 +99,7 @@
             {
               "sourceId": "user_prompt",
               "location": "entire prompt",
-              "method": "model-directed adaptation",
+              "method": "desktop agent adaptation",
               "confidence": 0.7
             }
           ]
@@ -133,7 +133,7 @@
             {
               "sourceId": "user_prompt",
               "location": "entire prompt",
-              "method": "model-directed adaptation",
+              "method": "desktop agent adaptation",
               "confidence": 0.7
             }
           ]
@@ -163,7 +163,7 @@
             {
               "sourceId": "user_prompt",
               "location": "entire prompt",
-              "method": "model-directed adaptation",
+              "method": "desktop agent adaptation",
               "confidence": 0.7
             }
           ]
@@ -205,13 +205,13 @@
         {
           "sourceId": "user_prompt",
           "location": "entire prompt",
-          "method": "model-directed adaptation",
+          "method": "desktop agent adaptation",
           "confidence": 0.7
         },
         {
           "sourceId": "director_plan",
           "location": "/scenes/0",
-          "method": "model proposal",
+          "method": "desktop agent proposal",
           "confidence": 0.7
         }
       ]
@@ -285,7 +285,7 @@
             {
               "sourceId": "user_prompt",
               "location": "entire prompt",
-              "method": "model-directed adaptation",
+              "method": "desktop agent adaptation",
               "confidence": 0.7
             }
           ]
@@ -319,7 +319,7 @@
             {
               "sourceId": "user_prompt",
               "location": "entire prompt",
-              "method": "model-directed adaptation",
+              "method": "desktop agent adaptation",
               "confidence": 0.7
             }
           ]
@@ -350,7 +350,7 @@
             {
               "sourceId": "user_prompt",
               "location": "entire prompt",
-              "method": "model-directed adaptation",
+              "method": "desktop agent adaptation",
               "confidence": 0.7
             }
           ]
@@ -392,13 +392,13 @@
         {
           "sourceId": "user_prompt",
           "location": "entire prompt",
-          "method": "model-directed adaptation",
+          "method": "desktop agent adaptation",
           "confidence": 0.7
         },
         {
           "sourceId": "director_plan",
           "location": "/scenes/1",
-          "method": "model proposal",
+          "method": "desktop agent proposal",
           "confidence": 0.7
         }
       ]

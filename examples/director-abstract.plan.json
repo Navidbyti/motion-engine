@@ -3,6 +3,7 @@
   "locale": "en-US",
   "direction": "ltr",
   "researchRequired": false,
+  "assetRequests": [],
   "scenes": [
     {"durationFrames": 24, "visual": "typography", "assetId": "", "title": "Ideas begin", "subtitle": "With one small spark", "background": "#101820", "accent": "#12B5CB", "motion": "fade"},
     {"durationFrames": 24, "visual": "shape", "assetId": "", "title": "Then they move", "subtitle": "Make the next frame yours", "background": "#17243A", "accent": "#EB6B3C", "motion": "fade"}

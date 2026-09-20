@@ -6,6 +6,12 @@ Build a reusable motion-graphics engine. The owner's private video is one accept
 
 The product must create a complete first video draft from a prompt, then support scoped prompt revisions to individual scenes and elements. Creative requests may need generated or rendered moving assets; factual requests need research that tests the premise and binds claims to evidence. See `docs/creative-workflow.md` for the production loop and two distinct acceptance cases.
 
+## Desktop agent production role
+
+Codex or Claude in the user's desktop session is the creative and research brain. Do not require an LLM API key or call a model API from this repository. For a video request, the agent must read the brief and sources, write a complete plan matching `motion-engine director-schema`, prepare and inspect required assets, run `first-draft`, inspect the actual preview, and iterate. For a scoped edit, inspect the current scene IDs and hash, write a typed revision request, run `revise-and-render`, and verify the result. Follow `docs/desktop-agent-workflow.md`.
+
+Research factual claims using evidence available to the desktop agent. The current compiler blocks research-required plans until a claim verification gate exists; report that limitation accurately. Keep generated shots distinct from verified facts and exact data. Do not substitute a primitive for an unfulfilled asset request or claim a native Adobe file is complete without an application reopen test.
+
 ## Boundaries
 
 - MotionSpec is a versioned, portable intermediate representation. Parse, validate, migrate, and hash it before any build.

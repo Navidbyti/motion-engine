@@ -38,7 +38,7 @@
       "id": "director_plan",
       "uri": "director-plate.plan.json",
       "mediaType": "application/json",
-      "sha256": "8dff963eed7397d93b5d8b33b2bde2d24d5b4d2e60e2292145b73cf35e968322",
+      "sha256": "cb8ad9948469602c321ef49af78d9597517c2d7ba9824020fcc176e6762546db",
       "authority": [
         "direction"
       ]
@@ -144,7 +144,7 @@
             {
               "sourceId": "user_prompt",
               "location": "entire prompt",
-              "method": "model-directed adaptation",
+              "method": "desktop agent adaptation",
               "confidence": 0.7
             }
           ]
@@ -171,7 +171,7 @@
             {
               "sourceId": "user_prompt",
               "location": "entire prompt",
-              "method": "model-directed adaptation",
+              "method": "desktop agent adaptation",
               "confidence": 0.7
             }
           ]
@@ -198,13 +198,13 @@
         {
           "sourceId": "user_prompt",
           "location": "entire prompt",
-          "method": "model-directed adaptation",
+          "method": "desktop agent adaptation",
           "confidence": 0.7
         },
         {
           "sourceId": "director_plan",
           "location": "/scenes/0",
-          "method": "model proposal",
+          "method": "desktop agent proposal",
           "confidence": 0.7
         }
       ]
