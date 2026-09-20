@@ -58,6 +58,7 @@ motion-engine draft-text examples/assets/prompt-en.txt --output examples/my-draf
 motion-engine render examples/my-draft.motion.json --output-dir my-draft-preview --scale 0.25
 motion-engine import-video clip.mp4 --output plate.zip --fps-num 30 --frames 90
 motion-engine director-schema --output director-schema.json
+motion-engine resolve-assets project/plan.json --assets project/assets.json --output project/ready-plan.json --fps 30
 motion-engine compile-director examples/assets/director-abstract.txt examples/director-abstract.plan.json --output examples/my-directed.motion.json --project-id my_directed --width 320 --height 180 --fps 24
 motion-engine first-draft project/prompt.txt project/plan.json --project-id my_video --output-spec project/first.motion.json --output-dir project/preview
 motion-engine revise-and-render project/first.motion.json project/edit.json --output-spec project/second.motion.json --output-dir project/second-preview

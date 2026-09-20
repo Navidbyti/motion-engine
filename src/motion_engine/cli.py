@@ -29,6 +29,7 @@ from .director import DirectorError, compile_director_plan
 from .director_schema import DIRECTOR_PLAN_SCHEMA
 from .contact_sheet import ContactSheetError, make_contact_sheet
 from .claims import verify_claims
+from .asset_requests import AssetRequestError, resolve_asset_requests
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -91,6 +92,11 @@ def main(argv: list[str] | None = None) -> int:
     director.add_argument("--fps", type=int, default=30)
     director_schema = sub.add_parser("director-schema", help="Print the portable whole-video director-plan JSON Schema")
     director_schema.add_argument("--output", help="Write the schema to this file")
+    asset_resolver = sub.add_parser("resolve-assets", help="Match pending shot requests to inspected local assets")
+    asset_resolver.add_argument("proposal")
+    asset_resolver.add_argument("--assets", required=True, help="Catalog of available hashed assets")
+    asset_resolver.add_argument("--output", required=True, help="New director plan with resolved requests")
+    asset_resolver.add_argument("--fps", type=int, default=30)
     first = sub.add_parser("first-draft", help="Compile and render an agent-authored plan for a prompt")
     first.add_argument("prompt", help="UTF-8 prompt inside the output MotionSpec directory")
     first.add_argument("proposal", help="Agent-authored plan JSON inside the output MotionSpec directory")
@@ -207,6 +213,10 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         if args.command == "director-schema":
             _emit(DIRECTOR_PLAN_SCHEMA, args.output)
+            return 0
+        if args.command == "resolve-assets":
+            result = resolve_asset_requests(args.proposal, args.assets, args.output, fps=args.fps)
+            _emit(result, args.output)
             return 0
         if args.command == "first-draft":
             plan_path = Path(args.proposal).resolve()

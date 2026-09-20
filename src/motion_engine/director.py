@@ -104,8 +104,10 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
     if len(asset_ids) != len(asset_list):
         raise DirectorError("duplicate asset ID")
     for asset in asset_list:
-        if asset.get("kind") not in ("image", "video.frames") or asset.get("status") != "available" or not asset.get("sha256"):
-            raise DirectorError("director assets must be available hashed images or frame plates")
+        if (asset.get("kind") not in ("image", "video.frames") or asset.get("status") != "available"
+            or asset.get("approved") is not True or not isinstance(asset.get("license"), str)
+            or not asset["license"].strip() or not asset.get("sha256")):
+            raise DirectorError("director assets must be approved, licensed, available hashed images or frame plates")
         try:
             path = resolve_local_file(asset, output.parent, "asset")
         except ValueError as exc:
@@ -187,8 +189,8 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
             element_id = f"{role}_{index}"
             title = role == "title"
             if visual == "asset":
-                y = round(height * (0.66 if title else 0.82))
-                box_h = round(height * (0.18 if title else 0.10))
+                y = round(height * (0.62 if title else 0.80))
+                box_h = round(height * (0.18 if title else 0.16))
             else:
                 y = round(height * (0.22 if title else 0.68))
                 box_h = round(height * (0.35 if title else 0.18))

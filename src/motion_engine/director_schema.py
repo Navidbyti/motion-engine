@@ -26,10 +26,10 @@ DIRECTOR_PLAN_SCHEMA = {
         "researchRequired": {"type": "boolean"},
         "assetRequests": {"type": "array", "items": {
             "type": "object", "additionalProperties": False,
-            "properties": {"id": {"type": "string"},
+            "properties": {"id": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_.-]*$"},
                            "kind": {"type": "string", "enum": ["image", "video", "3d"]},
-                           "description": {"type": "string"},
-                           "durationFrames": {"type": "integer"}},
+                           "description": {"type": "string", "minLength": 1},
+                           "durationFrames": {"type": "integer", "minimum": 1}},
             "required": ["id", "kind", "description", "durationFrames"],
         }},
         "scenes": {"type": "array", "items": SCENE_SCHEMA},
