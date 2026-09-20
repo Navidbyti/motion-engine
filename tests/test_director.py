@@ -110,11 +110,16 @@ def test_first_draft_orchestrates_agent_plan_spec_and_video(tmp_path):
     plan_file.write_text((ROOT / "examples/director-abstract.plan.json").read_text(encoding="utf-8"), encoding="utf-8")
     spec_file = tmp_path / "first.motion.json"
     render_dir = tmp_path / "render"
+    review_dir = tmp_path / "review"
     args = ["first-draft", str(prompt), str(plan_file), "--project-id", "first",
             "--output-spec", str(spec_file),
-            "--output-dir", str(render_dir), "--width", "320", "--height", "180",
+            "--output-dir", str(render_dir), "--review-dir", str(review_dir),
+            "--width", "320", "--height", "180",
             "--fps", "24", "--scale", "0.5"]
     assert main(args) == 0
     assert (render_dir / "preview.mp4").is_file()
+    assert json.loads((render_dir / "qa.json").read_text(encoding="utf-8"))["status"] == "passed"
+    assert (review_dir / "sheet-001.png").is_file()
+    assert len(json.loads((review_dir / "contact-sheet.json").read_text(encoding="utf-8"))["scenes"]) == 2
     assert freeze_revision(load_spec(spec_file), tmp_path)["revisionSha256"]
     assert main(args) == 2

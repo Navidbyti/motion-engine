@@ -60,7 +60,7 @@ motion-engine import-video clip.mp4 --output plate.zip --fps-num 30 --frames 90
 motion-engine director-schema --output director-schema.json
 motion-engine resolve-assets project/plan.json --assets project/assets.json --output project/ready-plan.json --fps 30
 motion-engine compile-director examples/assets/director-abstract.txt examples/director-abstract.plan.json --output examples/my-directed.motion.json --project-id my_directed --width 320 --height 180 --fps 24
-motion-engine first-draft project/prompt.txt project/plan.json --project-id my_video --output-spec project/first.motion.json --output-dir project/preview
+motion-engine first-draft project/prompt.txt project/plan.json --project-id my_video --output-spec project/first.motion.json --output-dir project/preview --review-dir project/review
 motion-engine revise-and-render project/first.motion.json project/edit.json --output-spec project/second.motion.json --output-dir project/second-preview
 motion-engine make-review evidence.json --requirements examples/review-questions.json --output review.json
 motion-engine verify-claims examples/claims/northbridge.ledger.json --output claims-report.json

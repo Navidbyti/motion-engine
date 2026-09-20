@@ -103,6 +103,7 @@ def main(argv: list[str] | None = None) -> int:
     first.add_argument("--project-id", required=True)
     first.add_argument("--output-spec", required=True)
     first.add_argument("--output-dir", required=True)
+    first.add_argument("--review-dir", help="Create verified scene contact sheets in a new directory")
     first.add_argument("--assets", help="Optional JSON list of available hashed assets")
     first.add_argument("--claims", help="Source-linked claim ledger for factual scenes")
     first.add_argument("--width", type=int, default=1080)
@@ -222,11 +223,13 @@ def main(argv: list[str] | None = None) -> int:
             plan_path = Path(args.proposal).resolve()
             spec_path = Path(args.output_spec).resolve()
             render_path = Path(args.output_dir).resolve()
+            review_path = Path(args.review_dir).resolve() if args.review_dir else None
             prompt_path = Path(args.prompt).resolve()
             if (plan_path.parent != spec_path.parent or prompt_path.parent != spec_path.parent
-                    or len({plan_path, spec_path, render_path, prompt_path}) != 4):
+                    or len({plan_path, spec_path, render_path, prompt_path, review_path} - {None}) != (5 if review_path else 4)):
                 raise DirectorError("prompt, plan, and MotionSpec must be distinct files in the same directory")
-            if not plan_path.is_file() or not prompt_path.is_file() or spec_path.exists() or render_path.exists():
+            if (not plan_path.is_file() or not prompt_path.is_file() or spec_path.exists() or render_path.exists()
+                    or (review_path is not None and review_path.exists())):
                 raise DirectorError("prompt and plan must exist; spec and render outputs must be new paths")
             asset_list = None
             if args.assets:
@@ -244,8 +247,14 @@ def main(argv: list[str] | None = None) -> int:
             result = render_preview(spec, render_path, scale=args.scale,
                                     asset_root=spec_path.parent,
                                     revision_sha256=revision["revisionSha256"])
+            quality = qa_report(spec, spec_path.parent, render_path)
+            _emit(quality, render_path / "qa.json")
+            sheets = make_contact_sheet(spec, spec_path.parent, render_path, review_path) if review_path else None
             print(json.dumps({"plan": str(plan_path), "spec": str(spec_path),
-                              "render": str(render_path), "manifest": result}, ensure_ascii=False, indent=2))
+                              "render": str(render_path), "manifest": result,
+                              "qa": str(render_path / "qa.json"), "qaStatus": quality["status"],
+                              "contactSheet": str(review_path / "contact-sheet.json") if sheets else None},
+                             ensure_ascii=False, indent=2))
             return 0
         if args.command == "revise-and-render":
             base_path = Path(args.spec).resolve()
