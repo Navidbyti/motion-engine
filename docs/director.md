@@ -29,4 +29,10 @@ The plan and original prompt are both hashed sources in MotionSpec. A factual pr
 
 ## How scene revision connects
 
-The generated MotionSpec gives every scene and element a stable ID. Use `motion-engine revise-scene` with a hash-bound typed request to change text, color, or the zoom of an image/video plate without replacing the other scenes. A future prompt-to-edit planner will turn natural language such as “make scene 2 slower” into a reviewable typed request. See [revisions](revisions.md).
+The generated MotionSpec gives every scene and element a stable ID. Use `motion-engine revise-scene` with a hash-bound typed request to change text, color, or the zoom of an image/video plate without replacing the other scenes. With a configured model, `prompt-revise` proposes that typed request from a scene-level instruction, writes it for review, creates a new spec, and renders a new preview:
+
+```powershell
+motion-engine prompt-revise project/first.motion.json --scene-id scene_2 --instruction "Make this title coral" --model YOUR_MODEL_ID --output-request project/edit-2.json --output-spec project/second.motion.json --output-dir project/second-preview
+```
+
+Supported prompt edits currently map to text replacement, color, and image/video zoom only. Requests for new objects, 3D changes, sound, transitions, or factual research return an explicit unsupported explanation. Both the first-draft and prompt-revision model calls use the [Responses API structured-output contract](https://developers.openai.com/api/docs/guides/structured-outputs); model results must still pass local checks. Model calls have been tested with simulated responses, not a live account. See [revisions](revisions.md).

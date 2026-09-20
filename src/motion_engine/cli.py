@@ -27,6 +27,7 @@ from .scene_revisions import SceneRevisionError, revise_scene
 from .video_import import VideoImportError, import_video
 from .director import DirectorError, compile_director_plan
 from .model_director import DIRECTOR_PLAN_SCHEMA, ModelDirectorError, suggest_director_plan
+from .model_revisions import ModelRevisionError, suggest_scene_revision
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -105,6 +106,15 @@ def main(argv: list[str] | None = None) -> int:
     first.add_argument("--height", type=int, default=1920)
     first.add_argument("--fps", type=int, default=30)
     first.add_argument("--scale", type=float, default=0.5)
+    prompted_revision = sub.add_parser("prompt-revise", help="Use a model to revise one scene and render a new version")
+    prompted_revision.add_argument("spec")
+    prompted_revision.add_argument("--scene-id", required=True)
+    prompted_revision.add_argument("--instruction", required=True)
+    prompted_revision.add_argument("--model", required=True)
+    prompted_revision.add_argument("--output-request", required=True)
+    prompted_revision.add_argument("--output-spec", required=True)
+    prompted_revision.add_argument("--output-dir", required=True)
+    prompted_revision.add_argument("--scale", type=float, default=0.5)
     revise = sub.add_parser("revise-scene", help="Apply a typed edit to one scene against an exact MotionSpec hash")
     revise.add_argument("spec")
     revise.add_argument("request", help="JSON revision request in the MotionSpec directory")
@@ -232,6 +242,32 @@ def main(argv: list[str] | None = None) -> int:
                                     asset_root=spec_path.parent,
                                     revision_sha256=revision["revisionSha256"])
             print(json.dumps({"plan": str(plan_path), "spec": str(spec_path),
+                              "render": str(render_path), "manifest": result}, ensure_ascii=False, indent=2))
+            return 0
+        if args.command == "prompt-revise":
+            base_path = Path(args.spec).resolve()
+            request_path = Path(args.output_request).resolve()
+            spec_path = Path(args.output_spec).resolve()
+            render_path = Path(args.output_dir).resolve()
+            if base_path.parent != spec_path.parent or request_path.parent != spec_path.parent:
+                raise SceneRevisionError("base spec, request, and new spec must share a directory")
+            if len({base_path, request_path, spec_path, render_path}) != 4 or any(
+                path.exists() for path in (request_path, spec_path, render_path)
+            ):
+                raise SceneRevisionError("prompt-revise outputs must be new, distinct paths")
+            base = load_spec(base_path)
+            errors = validate(base)
+            if errors:
+                raise SceneRevisionError("base MotionSpec is invalid: " + "; ".join(errors))
+            request = suggest_scene_revision(base, args.scene_id, args.instruction, model=args.model)
+            _emit(request, request_path)
+            revised = revise_scene(base, request, request_path=request_path, output_path=spec_path)
+            _emit(revised, spec_path)
+            revision = freeze_revision(revised, spec_path.parent)
+            result = render_preview(revised, render_path, scale=args.scale,
+                                    asset_root=spec_path.parent,
+                                    revision_sha256=revision["revisionSha256"])
+            print(json.dumps({"request": str(request_path), "spec": str(spec_path),
                               "render": str(render_path), "manifest": result}, ensure_ascii=False, indent=2))
             return 0
         if args.command == "revise-scene":
