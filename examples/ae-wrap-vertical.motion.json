@@ -1,0 +1,211 @@
+{
+  "schemaVersion": "1.0.0",
+  "project": {
+    "id": "ae-wrap-vertical",
+    "title": "Editable vertical paragraph text",
+    "locale": "en-US",
+    "direction": "ltr"
+  },
+  "canvas": {
+    "width": 1080,
+    "height": 1920,
+    "frameRate": {
+      "numerator": 30,
+      "denominator": 1
+    },
+    "durationFrames": 120,
+    "colorSpace": "Rec.709",
+    "background": "#101820",
+    "safeArea": {
+      "top": 80,
+      "right": 80,
+      "bottom": 80,
+      "left": 80
+    }
+  },
+  "sources": [
+    {
+      "id": "script",
+      "uri": "assets/hello-script.md",
+      "mediaType": "text/markdown",
+      "authority": [
+        "text",
+        "timing"
+      ]
+    }
+  ],
+  "assets": [],
+  "datasets": [],
+  "timeline": [
+    {
+      "id": "first",
+      "startFrame": 0,
+      "endFrameExclusive": 60,
+      "transitionIn": "start",
+      "elements": [
+        {
+          "id": "title",
+          "kind": "text",
+          "startFrame": 0,
+          "endFrameExclusive": 60,
+          "bounds": {
+            "x": 80,
+            "y": 620,
+            "width": 920,
+            "height": 150
+          },
+          "text": {
+            "value": "A vertical title with enough words to wrap inside the box",
+            "locale": "en-US",
+            "fontFamily": "Arial",
+            "fontWeight": 700,
+            "align": "center"
+          },
+          "params": {
+            "color": "#FFFFFF",
+            "wrap": true
+          },
+          "sourceRefs": [
+            {
+              "sourceId": "script",
+              "location": "line 1",
+              "method": "manual"
+            }
+          ]
+        }
+      ],
+      "beats": [
+        {
+          "id": "first_beat",
+          "startFrame": 0,
+          "endFrameExclusive": 60,
+          "onScreen": [
+            {
+              "value": "A vertical title with enough words to wrap inside the box",
+              "locale": "en-US"
+            }
+          ],
+          "elementIds": [
+            "title"
+          ]
+        }
+      ],
+      "animations": [
+        {
+          "targetId": "title",
+          "property": "opacity",
+          "keyframes": [
+            {
+              "frame": 0,
+              "value": 0
+            },
+            {
+              "frame": 12,
+              "value": 1,
+              "easing": "linear"
+            }
+          ]
+        }
+      ],
+      "sourceRefs": [
+        {
+          "sourceId": "script",
+          "location": "entire file",
+          "method": "manual"
+        }
+      ]
+    },
+    {
+      "id": "second",
+      "startFrame": 60,
+      "endFrameExclusive": 120,
+      "transitionIn": "cut",
+      "elements": [
+        {
+          "id": "second_title",
+          "kind": "text",
+          "startFrame": 60,
+          "endFrameExclusive": 120,
+          "bounds": {
+            "x": 80,
+            "y": 850,
+            "width": 920,
+            "height": 150
+          },
+          "text": {
+            "value": "After a pause.",
+            "locale": "en-US",
+            "fontFamily": "Arial",
+            "fontWeight": 700,
+            "align": "center"
+          },
+          "params": {
+            "color": "#FFFFFF",
+            "wrap": true
+          },
+          "sourceRefs": [
+            {
+              "sourceId": "script",
+              "location": "line 3",
+              "method": "manual"
+            }
+          ]
+        }
+      ],
+      "beats": [
+        {
+          "id": "second_beat",
+          "startFrame": 60,
+          "endFrameExclusive": 120,
+          "onScreen": [
+            {
+              "value": "After a pause.",
+              "locale": "en-US"
+            }
+          ],
+          "elementIds": [
+            "second_title"
+          ]
+        }
+      ],
+      "animations": [],
+      "sourceRefs": [
+        {
+          "sourceId": "script",
+          "location": "entire file",
+          "method": "manual"
+        }
+      ]
+    }
+  ],
+  "deliverables": [
+    {
+      "id": "preview",
+      "target": "video/mp4",
+      "profile": "preview",
+      "required": true,
+      "editable": false
+    },
+    {
+      "id": "ae",
+      "target": "adobe.after_effects",
+      "profile": "editable",
+      "required": true,
+      "editable": true
+    }
+  ],
+  "policies": {
+    "qa": [
+      {
+        "id": "no_overflow",
+        "rule": "text.within_safe_area",
+        "severity": "error"
+      }
+    ],
+    "disclosures": [],
+    "approvals": [
+      "final visual"
+    ],
+    "unsupportedFeature": "error"
+  }
+}

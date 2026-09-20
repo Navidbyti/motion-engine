@@ -15,7 +15,7 @@ def _paths(tmp_path):
     return (tmp_path / "build.jsx", tmp_path / "result.aep", tmp_path / "report.txt")
 
 
-@pytest.mark.parametrize("fixture", ["ae-card.motion.json", "ae-vertical.motion.json", "ae-shapes.motion.json", "ae-image.motion.json", "ae-card-position.motion.json", "ae-vertical-position.motion.json", "ae-layered-landscape.motion.json", "ae-layered-vertical.motion.json"])
+@pytest.mark.parametrize("fixture", ["ae-card.motion.json", "ae-vertical.motion.json", "ae-shapes.motion.json", "ae-image.motion.json", "ae-card-position.motion.json", "ae-vertical-position.motion.json", "ae-layered-landscape.motion.json", "ae-layered-vertical.motion.json", "ae-wrap-landscape.motion.json", "ae-wrap-vertical.motion.json"])
 def test_ae_script_embeds_text_project_and_reopen_checks(tmp_path, fixture):
     spec = load_spec(ROOT / "examples" / fixture)
     script, aep, report = _paths(tmp_path)
@@ -34,6 +34,9 @@ def test_ae_script_embeds_text_project_and_reopen_checks(tmp_path, fixture):
     if fixture == "ae-image.motion.json":
         assert payload["imageAssets"][0]["id"] == "synthetic_plate"
         assert "reopened image link missing" in content
+    if fixture.startswith("ae-wrap-"):
+        assert "layers.addBoxText" in content
+        assert "reopened text box geometry mismatch" in content
     with pytest.raises(AEExportError, match="already exist"):
         make_ae_script(spec, script, aep, report, asset_root=ROOT / "examples")
 
@@ -50,6 +53,10 @@ def test_ae_script_rejects_unimplemented_features_and_path_collision(tmp_path):
     spec = copy.deepcopy(source)
     spec["timeline"][0]["animations"][0]["keyframes"][1]["easing"] = "ease_out"
     with pytest.raises(AEExportError, match="linear opacity"):
+        make_ae_script(spec, script, aep, report)
+    spec = copy.deepcopy(source)
+    spec["timeline"][0]["elements"][0]["params"]["wrap"] = "yes"
+    with pytest.raises(AEExportError, match="unsupported parameters"):
         make_ae_script(spec, script, aep, report)
 
 

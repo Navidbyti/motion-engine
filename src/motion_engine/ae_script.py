@@ -82,7 +82,7 @@ def make_ae_script(spec: dict[str, Any], script_path: str | Path,
             if element["kind"] == "text":
                 if not element.get("text"):
                     raise AEExportError(f"text {element['id']} needs text")
-                if set(element["params"]) - {"color", "fontSize"}:
+                if set(element["params"]) - {"color", "fontSize", "wrap"} or not isinstance(element["params"].get("wrap", False), bool):
                     raise AEExportError(f"text {element['id']} has unsupported parameters")
                 if element["text"].get("direction", spec["project"].get("direction", "ltr")) == "rtl":
                     raise AEExportError("initial After Effects adapter has not verified RTL text")
@@ -190,9 +190,15 @@ _SCRIPT = r'''
                 var element = scene.elements[job.layerOrder[i][j]];
                 var layer;
                 if (element.kind === "text") {
-                    layer = sceneComp.layers.addText(element.text.value);
+                    var wrapped = element.params.wrap === true;
+                    layer = wrapped ? sceneComp.layers.addBoxText([element.bounds.width, element.bounds.height]) :
+                        sceneComp.layers.addText(element.text.value);
                     var tdProp = layer.property("Source Text");
                     var td = tdProp.value;
+                    if (wrapped) {
+                        td.text = element.text.value;
+                        td.boxTextPos = [-element.bounds.width / 2, -element.bounds.height / 2];
+                    }
                     td.fontSize = element.params.fontSize || Math.max(1, Math.min(element.bounds.height * 0.52, 90));
                     td.fillColor = hexColor(element.params.color || "#FFFFFF");
                     td.applyFill = true;
@@ -307,10 +313,19 @@ _SCRIPT = r'''
                     }
                 }
                 if (expectedElement.kind === "text") {
-                    if (reopenedText.property("Source Text").value.text !== expectedElement.text.value)
+                    var reopenedDocument = reopenedText.property("Source Text").value;
+                    if (reopenedDocument.text !== expectedElement.text.value)
                         throw new Error("reopened text mismatch: " + expectedElement.id);
-                    if (expectedElement.text.fontFamily && reopenedText.property("Source Text").value.fontObject.familyName !== expectedElement.text.fontFamily)
+                    if (expectedElement.text.fontFamily && reopenedDocument.fontObject.familyName !== expectedElement.text.fontFamily)
                         throw new Error("reopened font mismatch: " + expectedElement.id);
+                    if (reopenedDocument.boxText !== (expectedElement.params.wrap === true))
+                        throw new Error("reopened text box type mismatch: " + expectedElement.id);
+                    if (expectedElement.params.wrap === true &&
+                        (Math.abs(reopenedDocument.boxTextSize[0] - expectedElement.bounds.width) > 0.001 ||
+                         Math.abs(reopenedDocument.boxTextSize[1] - expectedElement.bounds.height) > 0.001 ||
+                         Math.abs(reopenedDocument.boxTextPos[0] + expectedElement.bounds.width / 2) > 0.001 ||
+                         Math.abs(reopenedDocument.boxTextPos[1] + expectedElement.bounds.height / 2) > 0.001))
+                        throw new Error("reopened text box geometry mismatch: " + expectedElement.id);
                 } else if (expectedElement.kind === "shape") {
                     var shape = reopenedText.property("ADBE Root Vectors Group").property("ADBE Vector Shape - Rect");
                     if (!shape || Math.abs(shape.property("ADBE Vector Rect Size").value[0] - expectedElement.bounds.width) > 0.001 ||

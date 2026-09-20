@@ -74,6 +74,7 @@ This is the ordered work list for a usable, general motion-production engine. A 
 - [x] Import hashed local PNG/JPEG images as linked After Effects footage, with fit rules and missing-link reopen checks.
 - [x] Preserve linear x/y position keyframes as editable After Effects Position tracks; save/reopen passed on landscape and two-scene vertical public fixtures in After Effects 2024 24.5x52.
 - [x] Preserve stable MotionSpec `zIndex` stacking in After Effects; reordered landscape and vertical public fixtures passed native save/reopen checks.
+- [x] Create editable After Effects paragraph text boxes for `wrap: true`; landscape and vertical fixtures passed native save/reopen geometry checks. Visual text flow review remains open.
 - [ ] Build an Illustrator adapter for editable artboards, vector assets, type, and charts.
 - [x] Prove an initial static Illustrator artboard subset with editable text and rectangles on two public fixtures, with native save/reopen checks.
 - [ ] Build a Photoshop adapter for layered still assets, text, treatments, and links.

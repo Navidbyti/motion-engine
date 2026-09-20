@@ -1,0 +1,194 @@
+{
+  "schemaVersion": "1.0.0",
+  "project": {
+    "id": "ae-wrap-landscape",
+    "title": "Editable landscape paragraph text",
+    "locale": "en-US",
+    "direction": "ltr"
+  },
+  "canvas": {
+    "width": 1920,
+    "height": 1080,
+    "frameRate": {
+      "numerator": 30,
+      "denominator": 1
+    },
+    "durationFrames": 90,
+    "colorSpace": "Rec.709",
+    "background": "#101820",
+    "safeArea": {
+      "top": 80,
+      "right": 80,
+      "bottom": 80,
+      "left": 80
+    }
+  },
+  "sources": [
+    {
+      "id": "script",
+      "uri": "assets/hello-script.md",
+      "mediaType": "text/markdown",
+      "authority": [
+        "text",
+        "timing"
+      ]
+    }
+  ],
+  "assets": [],
+  "datasets": [],
+  "timeline": [
+    {
+      "id": "opening",
+      "startFrame": 0,
+      "endFrameExclusive": 90,
+      "transitionIn": "start",
+      "elements": [
+        {
+          "id": "title",
+          "kind": "text",
+          "startFrame": 0,
+          "endFrameExclusive": 90,
+          "bounds": {
+            "x": 160,
+            "y": 330,
+            "width": 1600,
+            "height": 180
+          },
+          "text": {
+            "value": "A small beginning can become a longer headline that wraps",
+            "locale": "en-US",
+            "fontFamily": "Arial",
+            "fontWeight": 700,
+            "align": "center"
+          },
+          "params": {
+            "color": "#FFFFFF",
+            "wrap": true
+          },
+          "sourceRefs": [
+            {
+              "sourceId": "script",
+              "location": "line 1",
+              "method": "manual"
+            }
+          ]
+        },
+        {
+          "id": "subtitle",
+          "kind": "text",
+          "startFrame": 30,
+          "endFrameExclusive": 90,
+          "bounds": {
+            "x": 300,
+            "y": 590,
+            "width": 1320,
+            "height": 120
+          },
+          "text": {
+            "value": "The next line arrives after a pause.",
+            "locale": "en-US",
+            "fontFamily": "Arial",
+            "fontWeight": 400,
+            "align": "center"
+          },
+          "params": {
+            "color": "#C8D4E0",
+            "wrap": true
+          },
+          "sourceRefs": [
+            {
+              "sourceId": "script",
+              "location": "line 3",
+              "method": "adapted"
+            }
+          ]
+        }
+      ],
+      "beats": [
+        {
+          "id": "beat_title",
+          "startFrame": 0,
+          "endFrameExclusive": 30,
+          "onScreen": [
+            {
+              "value": "A small beginning can become a longer headline that wraps",
+              "locale": "en-US"
+            }
+          ],
+          "elementIds": [
+            "title"
+          ]
+        },
+        {
+          "id": "beat_subtitle",
+          "startFrame": 30,
+          "endFrameExclusive": 90,
+          "onScreen": [
+            {
+              "value": "The next line arrives after a pause.",
+              "locale": "en-US"
+            }
+          ],
+          "elementIds": [
+            "title",
+            "subtitle"
+          ]
+        }
+      ],
+      "animations": [
+        {
+          "targetId": "title",
+          "property": "opacity",
+          "keyframes": [
+            {
+              "frame": 0,
+              "value": 0
+            },
+            {
+              "frame": 12,
+              "value": 1,
+              "easing": "linear"
+            }
+          ]
+        }
+      ],
+      "sourceRefs": [
+        {
+          "sourceId": "script",
+          "location": "entire file",
+          "method": "manual"
+        }
+      ]
+    }
+  ],
+  "deliverables": [
+    {
+      "id": "preview",
+      "target": "video/mp4",
+      "profile": "preview",
+      "required": true,
+      "editable": false
+    },
+    {
+      "id": "ae",
+      "target": "adobe.after_effects",
+      "profile": "editable",
+      "required": true,
+      "editable": true
+    }
+  ],
+  "policies": {
+    "qa": [
+      {
+        "id": "no_overflow",
+        "rule": "text.within_safe_area",
+        "severity": "error"
+      }
+    ],
+    "disclosures": [],
+    "approvals": [
+      "final visual"
+    ],
+    "unsupportedFeature": "error"
+  }
+}
