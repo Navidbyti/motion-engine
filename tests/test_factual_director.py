@@ -11,7 +11,7 @@ from motion_engine.cli import main
 from motion_engine.director import DirectorError, compile_director_plan
 from motion_engine.qa import qa_report
 from motion_engine.revisions import freeze_revision, spec_sha256
-from motion_engine.scene_revisions import revise_scene
+from motion_engine.scene_revisions import SceneRevisionError, revise_scene
 from motion_engine.validation import load_spec
 
 
@@ -79,3 +79,35 @@ def test_factual_text_revision_invalidates_scene_claim_mapping(tmp_path):
     report = qa_report(revised, tmp_path)
     assert report["status"] == "failed"
     assert any(issue["code"] == "claim_link_missing" and issue["targetId"] == "scene_1" for issue in report["issues"])
+
+
+def test_factual_text_can_be_relinked_in_same_scoped_revision(tmp_path):
+    prompt, plan, ledger, proposal = _factual_project(tmp_path)
+    spec = compile_director_plan(prompt, tmp_path / "draft.motion.json", proposal,
+                                 project_id="northbridge", width=320, height=180, fps=24,
+                                 proposal_path=plan, claim_ledger_path=ledger)
+    request = {"baseSpecSha256": spec_sha256(spec), "sceneId": "scene_1",
+               "operations": [
+                   {"op": "set_text", "elementId": "title_1", "value": "Three fictional flashes"},
+                   {"op": "set_claim_ids", "value": ["flashes_recorded"]}]}
+    path = tmp_path / "edit.json"
+    path.write_text(json.dumps(request), encoding="utf-8")
+    revised = revise_scene(spec, request, request_path=path, output_path=tmp_path / "next.motion.json")
+    assert revised["timeline"][1] == spec["timeline"][1]
+    assert any(ref["sourceId"] == "claim_ledger" for ref in revised["timeline"][0]["sourceRefs"])
+    report = qa_report(revised, tmp_path)
+    assert report["status"] == "needs_review"
+    assert not any(issue["code"] == "claim_link_missing" for issue in report["issues"])
+
+
+def test_factual_revision_rejects_invented_claim_id(tmp_path):
+    prompt, plan, ledger, proposal = _factual_project(tmp_path)
+    spec = compile_director_plan(prompt, tmp_path / "draft.motion.json", proposal,
+                                 project_id="northbridge", width=320, height=180, fps=24,
+                                 proposal_path=plan, claim_ledger_path=ledger)
+    request = {"baseSpecSha256": spec_sha256(spec), "sceneId": "scene_1",
+               "operations": [{"op": "set_claim_ids", "value": ["fabricated"]}]}
+    path = tmp_path / "edit.json"
+    path.write_text(json.dumps(request), encoding="utf-8")
+    with pytest.raises(SceneRevisionError, match="unknown claim ID"):
+        revise_scene(spec, request, request_path=path, output_path=tmp_path / "next.motion.json")

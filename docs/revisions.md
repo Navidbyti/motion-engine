@@ -31,6 +31,8 @@ The CLI preview command freezes inputs before rendering and writes `revisionSha2
 {"op":"set_asset","elementId":"visual_1","value":{"id":"new_shot","kind":"video.frames","status":"available","uri":"assets/new_shot.zip","sha256":"64 lowercase hexadecimal characters","license":"MIT","approved":true}}
 ```
 
-Scene insertions, additional natural-language edit types, and research verification remain open tasks.
+Scene insertions, additional natural-language edit types, and semantic research approval remain open tasks.
+
+For a factual scene, `set_text` invalidates that scene's old claim mapping. After checking the changed wording against the ledger, the agent can add `{"op":"set_claim_ids","value":["claim_id"]}` as the final operation in the same request. This operation targets the scene named by `sceneId`, so it has no `elementId`. It rejects unknown IDs and a changed or invalid ledger, then links the selected claims to the scene's text and beat. QA still requires semantic review before factual release.
 
 The desktop agent interprets the user's scene prompt and writes the typed JSON request. `motion-engine revise-and-render base.motion.json edit.json --output-spec next.motion.json --output-dir next-preview` applies the same checked revision and renders a new MP4. No LLM API key is needed. The agent must inspect the output and report unsupported edit requests; factual-claim review remains an open gate.

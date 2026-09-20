@@ -15,6 +15,7 @@ from typing import Any
 from PIL import Image
 
 from .frame_assets import FrameArchive, FrameAssetError
+from .claims import verify_claims
 from .revisions import RevisionError, file_sha256, resolve_local_file, spec_sha256
 from .preview_contract import PREVIEW_EASING
 from .validation import validate
@@ -61,12 +62,45 @@ def revise_scene(spec: dict[str, Any], request: dict[str, Any], *,
     for index, operation in enumerate(operations):
         if not isinstance(operation, dict) or set(operation) - {"op", "elementId", "value"}:
             raise SceneRevisionError(f"operation {index} has unknown fields")
-        element = elements.get(operation.get("elementId"))
-        if element is None:
-            raise SceneRevisionError(f"operation {index}: unknown element {operation.get('elementId')!r} in scene {scene_id}")
         ref = {"sourceId": source_id, "location": f"/operations/{index}/value",
                "method": "user revision request", "confidence": 1.0}
         action, value = operation.get("op"), operation.get("value")
+        if action == "set_claim_ids":
+            if "elementId" in operation:
+                raise SceneRevisionError(f"operation {index}: set_claim_ids targets the selected scene, not an element")
+            if not isinstance(value, list) or not value or any(not isinstance(item, str) for item in value) or len(value) != len(set(value)):
+                raise SceneRevisionError(f"operation {index}: set_claim_ids needs unique claim IDs")
+            ledger_source = next((item for item in spec["sources"] if item["id"] == "claim_ledger"), None)
+            if ledger_source is None:
+                raise SceneRevisionError(f"operation {index}: this project has no claim ledger")
+            try:
+                ledger_file = resolve_local_file(ledger_source, output_file.parent, "claim ledger")
+                if file_sha256(ledger_file) != ledger_source["sha256"]:
+                    raise SceneRevisionError(f"operation {index}: claim ledger SHA-256 mismatch")
+                report = verify_claims(ledger_file)
+                if report["status"] != "source_linked":
+                    raise SceneRevisionError(f"operation {index}: claim ledger source links do not verify")
+                ledger = json.loads(ledger_file.read_text(encoding="utf-8"))
+            except (OSError, ValueError, UnicodeError, RevisionError) as exc:
+                raise SceneRevisionError(f"operation {index}: claim ledger cannot be verified: {exc}") from exc
+            locations = {claim["id"]: f"/claims/{position}" for position, claim in enumerate(ledger["claims"])}
+            if any(item not in locations for item in value):
+                raise SceneRevisionError(f"operation {index}: unknown claim ID")
+            claim_refs = [{"sourceId": "claim_ledger", "location": locations[item],
+                           "method": "agent claim remapping", "confidence": 0.5} for item in value]
+            target_scene["sourceRefs"] = [item for item in target_scene.get("sourceRefs", [])
+                                           if item["sourceId"] != "claim_ledger"] + [ref, *claim_refs]
+            for item in target_scene["elements"]:
+                if item["kind"] == "text":
+                    item["sourceRefs"] = [source for source in item.get("sourceRefs", [])
+                                          if source["sourceId"] != "claim_ledger"] + [*claim_refs]
+            for beat in target_scene["beats"]:
+                beat["sourceRefs"] = [source for source in beat.get("sourceRefs", [])
+                                      if source["sourceId"] != "claim_ledger"] + [*claim_refs]
+            continue
+        element = elements.get(operation.get("elementId"))
+        if element is None:
+            raise SceneRevisionError(f"operation {index}: unknown element {operation.get('elementId')!r} in scene {scene_id}")
         if action == "set_text":
             if element["kind"] != "text" or not isinstance(value, str) or not value.strip():
                 raise SceneRevisionError(f"operation {index}: set_text needs a text element and nonblank string")
