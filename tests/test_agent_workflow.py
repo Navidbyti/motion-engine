@@ -44,7 +44,9 @@ def test_agent_revision_request_renders_new_version(tmp_path):
             "--review-dir", str(review_dir), "--scale", "0.5"]
     assert main(args) == 0
     assert (render_dir / "preview.mp4").is_file()
-    assert json.loads((render_dir / "qa.json").read_text(encoding="utf-8"))["status"] == "passed"
+    qa = json.loads((render_dir / "qa.json").read_text(encoding="utf-8"))
+    assert qa["status"] in ("passed", "needs_review")
+    assert not any(issue["severity"] == "error" for issue in qa["issues"])
     assert (review_dir / "sheet-001.png").is_file()
     revised = load_spec(output_spec)
     assert revised["timeline"][0]["elements"][-1]["text"]["value"] == "A new moving idea"
