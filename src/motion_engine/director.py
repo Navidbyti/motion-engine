@@ -154,7 +154,7 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
         visual, asset_id, motion = scene["visual"], scene["assetId"], scene["motion"]
         if not isinstance(asset_id, str):
             raise DirectorError(f"scene {index} asset ID must be a string")
-        if visual not in ("typography", "shape", "card", "asset") or motion not in ("none", "fade", "zoom", "slide"):
+        if visual not in ("typography", "shape", "card", "asset") or motion not in ("none", "fade", "zoom", "slide", "rise"):
             raise DirectorError(f"scene {index} visual or motion is unsupported")
         if visual == "asset" and asset_id not in asset_ids:
             raise DirectorError(f"scene {index} requests unavailable asset {asset_id!r}; generate or import it first")
@@ -233,6 +233,16 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
                 animations.append({"targetId": element_id, "property": "x", "keyframes": [
                     {"frame": begin, "value": enter_x},
                     {"frame": finish, "value": text_x, "easing": "ease_out"}]})
+            if motion == "rise":
+                begin = start + (0 if title else min(4, duration - 2))
+                finish = start + min(12 if title else 16, duration - 1)
+                enter_y = min(height, y + max(24, round(height * 0.12)))
+                animations.append({"targetId": element_id, "property": "y", "keyframes": [
+                    {"frame": begin, "value": enter_y},
+                    {"frame": finish, "value": y, "easing": "ease_out"}]})
+                animations.append({"targetId": element_id, "property": "opacity", "keyframes": [
+                    {"frame": begin, "value": 0},
+                    {"frame": finish, "value": 1, "easing": "ease_out"}]})
         timeline.append({"id": scene_id, "startFrame": start, "endFrameExclusive": end,
                          "transitionIn": "start" if index == 1 else "cut", "elements": elements,
                          "beats": [{"id": f"beat_{index}", "startFrame": start, "endFrameExclusive": end,

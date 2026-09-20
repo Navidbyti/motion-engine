@@ -33,6 +33,7 @@ This is the ordered work list for a usable, general motion-production engine. A 
 - [x] Add hash-bound bounds and opacity edits for visual elements, including same-scene multi-operation revisions and invalid geometry/keyframe rejection.
 - [x] Add preview x/y position tracks, desktop-agent slide entrances, and scoped position-keyframe edits with frame and canvas bounds checks.
 - [x] Add a reusable contrast-aware card layout to the desktop director, verified on horizontal and vertical public fixtures.
+- [x] Add a staggered rise-and-fade text entrance on frame-based tracks, verified on two public aspect ratios.
 
 - [x] Extract embedded PDF images and detected tables with page coordinates where available; flag ambiguous reading order, unmatched image placements, and scans for OCR review.
 - [x] Extract DOCX headers, footers, embedded image relationships, and tracked-change warnings. Drawing placement and appearance still require visual review.

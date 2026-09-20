@@ -77,6 +77,12 @@ def test_card_layout_public_fixtures_render_with_contrasting_text(tmp_path, name
         luminance = sum(value * weight for value, weight in zip(linear, (0.2126, 0.7152, 0.0722)))
         assert all(((luminance + 0.05) / 0.05 if item["params"]["color"] == "#000000"
                     else 1.05 / (luminance + 0.05)) >= 4.5 for item in texts)
+        if source["motion"] == "rise":
+            title_y = next(animation for animation in scene["animations"]
+                           if animation["targetId"].startswith("title_") and animation["property"] == "y")
+            assert title_y["keyframes"][0]["value"] > title_y["keyframes"][-1]["value"]
+            assert any(animation["property"] == "opacity" and animation["targetId"].startswith("title_")
+                       for animation in scene["animations"])
     renderer = FrameRenderer(spec, asset_root=tmp_path)
     assert ImageChops.difference(renderer.render_frame(12), renderer.render_frame(36)).getbbox()
 
