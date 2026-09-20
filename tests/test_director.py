@@ -46,6 +46,27 @@ def test_shape_accent_sits_between_title_and_subtitle():
     assert accent["y"] + accent["height"] <= subtitle["y"]
 
 
+def test_slide_motion_moves_title_from_offscreen(tmp_path):
+    prompt = tmp_path / "prompt.txt"
+    prompt.write_text("A short title with a slide entrance.", encoding="utf-8")
+    proposal = json.loads((ROOT / "examples/director-abstract.plan.json").read_text(encoding="utf-8"))
+    proposal["scenes"][0]["motion"] = "slide"
+    spec = compile_director_plan(prompt, tmp_path / "slide.motion.json", proposal,
+                                 project_id="slide_title", width=320, height=180, fps=24)
+    title_track = next(animation for animation in spec["timeline"][0]["animations"]
+                       if animation["targetId"] == "title_1" and animation["property"] == "x")
+    assert title_track["keyframes"][0]["value"] < 0
+    assert title_track["keyframes"][-1]["value"] == spec["canvas"]["safeArea"]["left"]
+    renderer = FrameRenderer(spec, asset_root=tmp_path)
+    assert ImageChops.difference(renderer.render_frame(0), renderer.render_frame(20)).getbbox()
+    proposal["direction"] = "rtl"
+    rtl = compile_director_plan(prompt, tmp_path / "rtl.motion.json", proposal,
+                                project_id="slide_rtl", width=320, height=180, fps=24)
+    rtl_track = next(animation for animation in rtl["timeline"][0]["animations"]
+                     if animation["targetId"] == "title_1" and animation["property"] == "x")
+    assert rtl_track["keyframes"][0]["value"] == 320
+
+
 def test_director_research_and_missing_asset_are_explicit(tmp_path):
     prompt = tmp_path / "prompt.txt"
     prompt.write_text("Create a researched explainer about a historical claim.", encoding="utf-8")

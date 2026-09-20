@@ -10,7 +10,7 @@ SCENE_SCHEMA = {
         "subtitle": {"type": "string"},
         "background": {"type": "string"},
         "accent": {"type": "string"},
-        "motion": {"type": "string", "enum": ["none", "fade", "zoom"]},
+        "motion": {"type": "string", "enum": ["none", "fade", "zoom", "slide"]},
         "claimIds": {"type": "array", "uniqueItems": True, "items": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_.-]*$"}},
     },
     "required": ["durationFrames", "visual", "assetId", "title", "subtitle", "background", "accent", "motion"],

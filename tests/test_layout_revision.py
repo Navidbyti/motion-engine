@@ -67,11 +67,28 @@ def test_fade_title_and_move_image_in_one_version(tmp_path):
     assert freeze_revision(revised, tmp_path)["revisionSha256"]
 
 
+def test_position_tracks_move_image_without_changing_other_elements(tmp_path):
+    x_keys = [{"frame": 0, "value": -400}, {"frame": 24, "value": 120, "easing": "ease_out"}]
+    y_keys = [{"frame": 0, "value": 40}, {"frame": 24, "value": 70, "easing": "ease_out"}]
+    spec, _, request, path = _setup(tmp_path, "image-card", "card_scene", "plate",
+                                    [("set_position_x", x_keys), ("set_position_y", y_keys)])
+    revised = revise_scene(spec, request, request_path=path, output_path=tmp_path / "next.motion.json")
+    assert revised["timeline"][0]["elements"][1] == spec["timeline"][0]["elements"][1]
+    tracks = {item["property"]: item["keyframes"] for item in revised["timeline"][0]["animations"]}
+    assert tracks["x"] == x_keys and tracks["y"] == y_keys
+    before = FrameRenderer(spec, asset_root=tmp_path).render_frame(30)
+    after = FrameRenderer(revised, asset_root=tmp_path).render_frame(30)
+    assert ImageChops.difference(before, after).getbbox()
+    assert freeze_revision(revised, tmp_path)["revisionSha256"]
+
+
 @pytest.mark.parametrize("action,value,message", [
     ("set_bounds", {"x": -1, "y": 20, "width": 20, "height": 20}, "fit inside the canvas"),
     ("set_bounds", {"x": 0, "y": 0, "width": True, "height": 20}, "finite numbers"),
     ("set_opacity", [{"frame": 0, "value": 1.5}], "unsupported"),
     ("set_opacity", [{"frame": 0, "value": 0}, {"frame": 0, "value": 1}], "unique and sorted"),
+    ("set_position_x", [{"frame": 0, "value": -1000}], "unsupported"),
+    ("set_position_y", [{"frame": 0, "value": 0}, {"frame": 0, "value": 20}], "unique and sorted"),
 ])
 def test_layout_revision_rejects_invalid_geometry_or_opacity(tmp_path, action, value, message):
     spec, _, request, path = _setup(tmp_path, "image-card", "card_scene", "caption", [(action, value)])

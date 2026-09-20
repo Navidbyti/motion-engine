@@ -153,6 +153,26 @@ def revise_scene(spec: dict[str, Any], request: dict[str, Any], *,
                                           if not (a["targetId"] == element["id"] and a["property"] == "opacity")]
             target_scene["animations"].append({"targetId": element["id"], "property": "opacity", "keyframes": copy.deepcopy(value)})
             element.setdefault("sourceRefs", []).append(ref)
+        elif action in ("set_position_x", "set_position_y"):
+            if element["kind"] not in ("text", "shape", "image", "video") or not isinstance(value, list) or not 1 <= len(value) <= 20:
+                raise SceneRevisionError(f"operation {index}: {action} needs a visual element and 1 to 20 keyframes")
+            axis = "x" if action == "set_position_x" else "y"
+            limit = revised["canvas"]["width" if axis == "x" else "height"]
+            for key in value:
+                if (not isinstance(key, dict) or set(key) - {"frame", "value", "easing"}
+                    or "frame" not in key or "value" not in key
+                    or not isinstance(key["frame"], int) or isinstance(key["frame"], bool)
+                    or not element["startFrame"] <= key["frame"] < element["endFrameExclusive"]
+                    or not isinstance(key["value"], (int, float)) or isinstance(key["value"], bool)
+                    or not math.isfinite(key["value"]) or not -limit <= key["value"] <= limit
+                    or key.get("easing", "linear") not in PREVIEW_EASING):
+                    raise SceneRevisionError(f"operation {index}: position keyframe is unsupported")
+            if [key["frame"] for key in value] != sorted({key["frame"] for key in value}):
+                raise SceneRevisionError(f"operation {index}: position keyframes must be unique and sorted")
+            target_scene["animations"] = [a for a in target_scene["animations"]
+                                          if not (a["targetId"] == element["id"] and a["property"] == axis)]
+            target_scene["animations"].append({"targetId": element["id"], "property": axis, "keyframes": copy.deepcopy(value)})
+            element.setdefault("sourceRefs", []).append(ref)
         elif action in ("set_image_zoom", "set_visual_zoom"):
             allowed = ("image",) if action == "set_image_zoom" else ("image", "video")
             if element["kind"] not in allowed or not isinstance(value, list) or not 1 <= len(value) <= 20:

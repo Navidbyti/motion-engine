@@ -147,6 +147,12 @@ class FrameRenderer:
                     for keyframe in animation["keyframes"]
                 ):
                     raise RenderError(f"visual {animation['targetId']} scale keyframes must be finite numbers from 1 to 3")
+                if animation["property"] in ("x", "y"):
+                    limit = canvas["width"] if animation["property"] == "x" else canvas["height"]
+                    if any(not isinstance(keyframe["value"], (int, float)) or isinstance(keyframe["value"], bool)
+                           or not math.isfinite(keyframe["value"]) or not -limit <= keyframe["value"] <= limit
+                           for keyframe in animation["keyframes"]):
+                        raise RenderError(f"visual {animation['targetId']} position keyframes exceed canvas range")
                 self.animations.setdefault(animation["targetId"], {})[animation["property"]] = animation["keyframes"]
         if not features.check("raqm") and any(
             e.get("text", {}).get("direction") == "rtl" for s in spec["timeline"] for e in s["elements"]
@@ -181,8 +187,11 @@ class FrameRenderer:
                 continue
         raise RenderError(f"font {family!r} unavailable and no preview fallback found")
 
-    def _bounds(self, value: dict[str, float]) -> tuple[int, int, int, int]:
-        x, y = round(value["x"] * self.scale), round(value["y"] * self.scale)
+    def _bounds(self, value: dict[str, float], element_id: str | None = None,
+                frame: int | None = None) -> tuple[int, int, int, int]:
+        x_value = self._property(element_id, "x", frame, value["x"]) if element_id is not None and frame is not None else value["x"]
+        y_value = self._property(element_id, "y", frame, value["y"]) if element_id is not None and frame is not None else value["y"]
+        x, y = round(x_value * self.scale), round(y_value * self.scale)
         w, h = round(value["width"] * self.scale), round(value["height"] * self.scale)
         return x, y, max(1, w), max(1, h)
 
@@ -270,7 +279,7 @@ class FrameRenderer:
     def _text(self, image: Image.Image, element: dict[str, Any], frame: int) -> None:
         text = element["text"]
         value = _localize_digits(text["value"], text.get("digitPolicy"), text.get("locale", self.spec["project"]["locale"]))
-        x, y, w, h = self._bounds(element["bounds"])
+        x, y, w, h = self._bounds(element["bounds"], element["id"], frame)
         font_size = max(1, round(element["params"].get("fontSize", min(90, element["bounds"]["height"] * 0.52)) * self.scale))
         font = self._font(text.get("fontFamily", "DejaVu Sans"), font_size)
         direction = text.get("direction", self.spec["project"].get("direction", "auto"))
@@ -330,7 +339,7 @@ class FrameRenderer:
         image.paste(overlay, (0, 0), overlay)
 
     def _shape(self, image: Image.Image, element: dict[str, Any], frame: int) -> None:
-        x, y, w, h = self._bounds(element["bounds"])
+        x, y, w, h = self._bounds(element["bounds"], element["id"], frame)
         opacity = max(0.0, min(1.0, self._property(element["id"], "opacity", frame, 1.0)))
         overlay = Image.new("RGBA", image.size, (0, 0, 0, 0))
         color = _rgb(element["params"].get("color", "#FFFFFF"))
@@ -351,7 +360,7 @@ class FrameRenderer:
 
     def _raster_layer(self, image: Image.Image, element: dict[str, Any], frame: int,
                       source: Image.Image) -> None:
-        x, y, w, h = self._bounds(element["bounds"])
+        x, y, w, h = self._bounds(element["bounds"], element["id"], frame)
         fit = element["params"].get("fit", "contain")
         if fit == "stretch":
             rendered = source.resize((w, h), Image.Resampling.LANCZOS)

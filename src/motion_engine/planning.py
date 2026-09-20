@@ -121,6 +121,11 @@ def plan(spec: dict[str, Any], capabilities: dict[str, dict[str, Any]] | None = 
                     or not math.isfinite(keyframe["value"]) or not 1 <= keyframe["value"] <= 3
                 ):
                     preview_feature_gaps.add(f"animation_value:scale:{animation['targetId']}")
+                if animation["property"] in ("x", "y"):
+                    limit = spec["canvas"]["width" if animation["property"] == "x" else "height"]
+                    if (not isinstance(keyframe["value"], (int, float)) or isinstance(keyframe["value"], bool)
+                        or not math.isfinite(keyframe["value"]) or not -limit <= keyframe["value"] <= limit):
+                        preview_feature_gaps.add(f"animation_value:{animation['property']}:{animation['targetId']}")
     capabilities_report = []
     issues = []
     for deliverable in spec["deliverables"]:

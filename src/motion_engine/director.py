@@ -146,7 +146,7 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
         visual, asset_id, motion = scene["visual"], scene["assetId"], scene["motion"]
         if not isinstance(asset_id, str):
             raise DirectorError(f"scene {index} asset ID must be a string")
-        if visual not in ("typography", "shape", "asset") or motion not in ("none", "fade", "zoom"):
+        if visual not in ("typography", "shape", "asset") or motion not in ("none", "fade", "zoom", "slide"):
             raise DirectorError(f"scene {index} visual or motion is unsupported")
         if visual == "asset" and asset_id not in asset_ids:
             raise DirectorError(f"scene {index} requests unavailable asset {asset_id!r}; generate or import it first")
@@ -205,6 +205,13 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
             if motion == "fade":
                 animations.append({"targetId": element_id, "property": "opacity", "keyframes": [
                     {"frame": start, "value": 0}, {"frame": start + min(10, duration - 1), "value": 1, "easing": "ease_out"}]})
+            if motion == "slide":
+                begin = start + (0 if title else min(4, duration - 2))
+                finish = start + min(12 if title else 14, duration - 1)
+                enter_x = -round(width - 2 * inset) if proposal["direction"] == "ltr" else width
+                animations.append({"targetId": element_id, "property": "x", "keyframes": [
+                    {"frame": begin, "value": enter_x},
+                    {"frame": finish, "value": inset, "easing": "ease_out"}]})
         timeline.append({"id": scene_id, "startFrame": start, "endFrameExclusive": end,
                          "transitionIn": "start" if index == 1 else "cut", "elements": elements,
                          "beats": [{"id": f"beat_{index}", "startFrame": start, "endFrameExclusive": end,
