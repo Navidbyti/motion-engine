@@ -60,6 +60,7 @@ motion-engine compile-director examples/assets/director-abstract.txt examples/di
 motion-engine first-draft project/prompt.txt project/plan.json --project-id my_video --output-spec project/first.motion.json --output-dir project/preview
 motion-engine revise-and-render project/first.motion.json project/edit.json --output-spec project/second.motion.json --output-dir project/second-preview
 motion-engine make-review evidence.json --requirements examples/review-questions.json --output review.json
+motion-engine verify-claims examples/claims/northbridge.ledger.json --output claims-report.json
 motion-engine import-data examples/assets/weather.csv --project-root examples --dataset-id temperatures --source-id weather_csv --output dataset-fragment.json
 motion-engine plan examples/hello.motion.json --output plan.json
 motion-engine freeze examples/hello.motion.json --output revision.json
@@ -88,7 +89,7 @@ Open the repository in Codex or Claude Code and use this prompt to create a vide
 
 > Read AGENTS.md and docs/desktop-agent-workflow.md. Act as the director for my video request: inspect my sources, research factual claims, author the full plan and required assets, run the local first-draft command, inspect the rendered MP4, and improve weak scenes. Report actual limitations. For later prompts, revise only the requested scene and render a new version.
 
-`AGENTS.md` is the persistent engineering contract. [Architecture](docs/architecture.md), [service contracts](docs/contracts.md), [verified revisions](docs/revisions.md), [preview runs](docs/runs.md), [QA](docs/qa.md), [extension API](docs/extensions.md), [compatibility](docs/compatibility.md), and [acceptance tests](docs/acceptance-tests.md) give agents the rest of the build instructions.
+`AGENTS.md` is the persistent engineering contract. [Architecture](docs/architecture.md), [service contracts](docs/contracts.md), [claim evidence](docs/research.md), [verified revisions](docs/revisions.md), [preview runs](docs/runs.md), [QA](docs/qa.md), [extension API](docs/extensions.md), [compatibility](docs/compatibility.md), and [acceptance tests](docs/acceptance-tests.md) give agents the rest of the build instructions.
 
 The [product completion plan](docs/product-roadmap.md) lists every remaining workstream and the release gates in build order.
 

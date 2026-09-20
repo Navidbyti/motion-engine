@@ -10,7 +10,7 @@ The product must create a complete first video draft from a prompt, then support
 
 Codex or Claude in the user's desktop session is the creative and research brain. Do not require an LLM API key or call a model API from this repository. For a video request, the agent must read the brief and sources, write a complete plan matching `motion-engine director-schema`, prepare and inspect required assets, run `first-draft`, inspect the actual preview, and iterate. For a scoped edit, inspect the current scene IDs and hash, write a typed revision request, run `revise-and-render`, and verify the result. Follow `docs/desktop-agent-workflow.md`.
 
-Research factual claims using evidence available to the desktop agent. The current compiler blocks research-required plans until a claim verification gate exists; report that limitation accurately. Keep generated shots distinct from verified facts and exact data. Do not substitute a primitive for an unfulfilled asset request or claim a native Adobe file is complete without an application reopen test.
+Research factual claims using evidence available to the desktop agent. Write a [claim evidence ledger](docs/research.md) and run `verify-claims` to check local source hashes and exact excerpts. This only proves source linkage; the current compiler blocks research-required plans until scene-to-claim binding and semantic review exist. Report that limitation accurately. Keep generated shots distinct from verified facts and exact data. Do not substitute a primitive for an unfulfilled asset request or claim a native Adobe file is complete without an application reopen test.
 
 ## Boundaries
 

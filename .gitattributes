@@ -4,3 +4,4 @@ examples/assets/moving-*.zip binary
 examples/assets/director-*.txt text eol=lf
 examples/director-*.plan.json text eol=lf
 examples/director-*.assets.json text eol=lf
+examples/claims/*.txt text eol=lf

@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "id": "observatory",
+      "uri": "observatory.txt",
+      "sha256": "359d1e5a28f11512c6833a52ea24ff4764b671a98732d42f35d6dcf9916c488c",
+      "title": "Fictional Observatory report",
+      "publisher": "Northbridge Observatory",
+      "url": null,
+      "publicationDate": "2020-05-13",
+      "retrievedDate": "2026-09-20"
+    },
+    {
+      "id": "weather_office",
+      "uri": "weather-office.txt",
+      "sha256": "6c5ccb381f18d8a9d5a81ceb929223a973ce1f44c8252d02867705a7c7f3084c",
+      "title": "Fictional Weather Office statement",
+      "publisher": "Northbridge Weather Office",
+      "url": null,
+      "publicationDate": "2020-05-14",
+      "retrievedDate": "2026-09-20"
+    }
+  ],
+  "claims": [
+    {
+      "id": "flashes_recorded",
+      "text": "The fictional Northbridge Observatory recorded three green flashes on 12 May 2020.",
+      "eventDate": "2020-05-12",
+      "uncertainty": "Synthetic example, not a real event.",
+      "evidence": [
+        {
+          "sourceId": "observatory",
+          "quote": "On 12 May 2020, the fictional Northbridge Observatory recorded three green flashes.",
+          "relation": "supports",
+          "location": "line 1"
+        }
+      ]
+    },
+    {
+      "id": "cause_unconfirmed",
+      "text": "The cause of the fictional flashes was not confirmed.",
+      "eventDate": "2020-05-12",
+      "uncertainty": "The Weather Office mentioned lightning as a possible explanation.",
+      "evidence": [
+        {
+          "sourceId": "observatory",
+          "quote": "The Observatory report did not identify a cause for the flashes.",
+          "relation": "supports",
+          "location": "line 2"
+        },
+        {
+          "sourceId": "weather_office",
+          "quote": "Its statement said lightning remained a possible explanation, but no cause was confirmed.",
+          "relation": "supports",
+          "location": "line 2"
+        }
+      ]
+    }
+  ]
+}

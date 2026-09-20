@@ -28,6 +28,7 @@ from .video_import import VideoImportError, import_video
 from .director import DirectorError, compile_director_plan
 from .director_schema import DIRECTOR_PLAN_SCHEMA
 from .contact_sheet import ContactSheetError, make_contact_sheet
+from .claims import verify_claims
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -123,6 +124,9 @@ def main(argv: list[str] | None = None) -> int:
     verify.add_argument("review")
     verify.add_argument("evidence", nargs="+")
     verify.add_argument("--requirements")
+    claims = sub.add_parser("verify-claims", help="Check claim excerpts against hashed local source snapshots")
+    claims.add_argument("ledger")
+    claims.add_argument("--output", help="Write the source-link report JSON")
     bundle = sub.add_parser("package-preview")
     bundle.add_argument("spec")
     bundle.add_argument("--render-dir", required=True)
@@ -289,6 +293,12 @@ def main(argv: list[str] | None = None) -> int:
             result = verify_review(args.review, args.evidence, args.requirements)
             print(json.dumps(result, ensure_ascii=False, indent=2))
             return 0 if result["status"] == "passed" else 1
+        if args.command == "verify-claims":
+            if args.output and Path(args.output).exists():
+                raise ValueError("claim report output already exists; choose a new path")
+            result = verify_claims(args.ledger)
+            _emit(result, args.output)
+            return 0 if result["status"] == "source_linked" else 1
         if args.command == "package-preview":
             print(json.dumps(package_preview(args.spec, args.render_dir, args.output_dir), ensure_ascii=False, indent=2))
             return 0

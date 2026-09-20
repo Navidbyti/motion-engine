@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "motion-engine-spec"
-version = "0.33.0"
+version = "0.34.0"
 description = "MotionSpec validation, ingestion, planning, and deterministic previews"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -18,7 +18,7 @@ dev = ["pytest>=8,<9", "reportlab>=4,<5", "imageio-ffmpeg>=0.5,<1"]
 motion-engine = "motion_engine.cli:main"
 
 [tool.setuptools.package-data]
-motion_engine = ["MotionSpec.schema.json"]
+motion_engine = ["MotionSpec.schema.json", "ClaimLedger.schema.json"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
