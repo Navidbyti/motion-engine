@@ -25,6 +25,8 @@ from .review import make_review, verify_review
 from .drafting import draft_text
 from .scene_revisions import SceneRevisionError, revise_scene
 from .video_import import VideoImportError, import_video
+from .director import DirectorError, compile_director_plan
+from .model_director import DIRECTOR_PLAN_SCHEMA, ModelDirectorError, suggest_director_plan
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -75,6 +77,34 @@ def main(argv: list[str] | None = None) -> int:
     video_import.add_argument("--fps-den", type=int, default=1)
     video_import.add_argument("--frames", type=int, required=True)
     video_import.add_argument("--start-ms", type=int, default=0)
+    director = sub.add_parser("compile-director", help="Compile a complete model-authored scene plan into MotionSpec")
+    director.add_argument("prompt", help="UTF-8 prompt file inside the MotionSpec output directory")
+    director.add_argument("proposal", help="Director plan JSON inside the MotionSpec output directory")
+    director.add_argument("--output", required=True)
+    director.add_argument("--project-id", required=True)
+    director.add_argument("--assets", help="Optional JSON list of available hashed assets")
+    director.add_argument("--width", type=int, default=1080)
+    director.add_argument("--height", type=int, default=1920)
+    director.add_argument("--fps", type=int, default=30)
+    suggest = sub.add_parser("suggest-director", help="Use an optional model to propose a complete director plan")
+    suggest.add_argument("prompt", help="UTF-8 prompt file")
+    suggest.add_argument("--output", required=True, help="New director plan JSON path")
+    suggest.add_argument("--model", required=True, help="Explicit Responses API model ID")
+    suggest.add_argument("--assets", help="Optional JSON list of available hashed assets")
+    director_schema = sub.add_parser("director-schema", help="Print the portable whole-video director-plan JSON Schema")
+    director_schema.add_argument("--output", help="Write the schema to this file")
+    first = sub.add_parser("first-draft", help="Plan, compile, and render a first draft from a prompt")
+    first.add_argument("prompt", help="UTF-8 prompt inside the output MotionSpec directory")
+    first.add_argument("--model", required=True, help="Explicit Responses API model ID")
+    first.add_argument("--project-id", required=True)
+    first.add_argument("--output-plan", required=True)
+    first.add_argument("--output-spec", required=True)
+    first.add_argument("--output-dir", required=True)
+    first.add_argument("--assets", help="Optional JSON list of available hashed assets")
+    first.add_argument("--width", type=int, default=1080)
+    first.add_argument("--height", type=int, default=1920)
+    first.add_argument("--fps", type=int, default=30)
+    first.add_argument("--scale", type=float, default=0.5)
     revise = sub.add_parser("revise-scene", help="Apply a typed edit to one scene against an exact MotionSpec hash")
     revise.add_argument("spec")
     revise.add_argument("request", help="JSON revision request in the MotionSpec directory")
@@ -147,6 +177,62 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(import_video(args.source, args.output, numerator=args.fps_num,
                                           denominator=args.fps_den, frame_count=args.frames,
                                           start_ms=args.start_ms), ensure_ascii=False, indent=2))
+            return 0
+        if args.command == "compile-director":
+            if Path(args.output).exists():
+                raise DirectorError("director output already exists; choose a new MotionSpec path")
+            with Path(args.proposal).open("r", encoding="utf-8") as stream:
+                proposal = json.load(stream)
+            asset_list = None
+            if args.assets:
+                with Path(args.assets).open("r", encoding="utf-8") as stream:
+                    asset_list = json.load(stream)
+            result = compile_director_plan(args.prompt, args.output, proposal,
+                                           project_id=args.project_id, width=args.width,
+                                           height=args.height, fps=args.fps,
+                                           assets=asset_list, proposal_path=args.proposal)
+            _emit(result, args.output)
+            return 0
+        if args.command == "suggest-director":
+            if Path(args.output).exists():
+                raise ModelDirectorError("director plan output already exists")
+            assets = None
+            if args.assets:
+                with Path(args.assets).open("r", encoding="utf-8") as stream:
+                    assets = json.load(stream)
+            result = suggest_director_plan(Path(args.prompt).read_text(encoding="utf-8-sig"),
+                                           model=args.model, asset_catalog=assets)
+            _emit(result, args.output)
+            return 0
+        if args.command == "director-schema":
+            _emit(DIRECTOR_PLAN_SCHEMA, args.output)
+            return 0
+        if args.command == "first-draft":
+            plan_path = Path(args.output_plan).resolve()
+            spec_path = Path(args.output_spec).resolve()
+            render_path = Path(args.output_dir).resolve()
+            if plan_path.parent != spec_path.parent or len({plan_path, spec_path, render_path}) != 3:
+                raise DirectorError("plan and MotionSpec must be distinct files in the same directory")
+            if any(path.exists() for path in (plan_path, spec_path, render_path)):
+                raise DirectorError("first-draft outputs must be new paths")
+            asset_list = None
+            if args.assets:
+                with Path(args.assets).open("r", encoding="utf-8") as stream:
+                    asset_list = json.load(stream)
+            prompt_text = Path(args.prompt).read_text(encoding="utf-8-sig")
+            proposal = suggest_director_plan(prompt_text, model=args.model, asset_catalog=asset_list)
+            _emit(proposal, plan_path)
+            spec = compile_director_plan(args.prompt, spec_path, proposal,
+                                         project_id=args.project_id, width=args.width,
+                                         height=args.height, fps=args.fps,
+                                         assets=asset_list, proposal_path=plan_path)
+            _emit(spec, spec_path)
+            revision = freeze_revision(spec, spec_path.parent)
+            result = render_preview(spec, render_path, scale=args.scale,
+                                    asset_root=spec_path.parent,
+                                    revision_sha256=revision["revisionSha256"])
+            print(json.dumps({"plan": str(plan_path), "spec": str(spec_path),
+                              "render": str(render_path), "manifest": result}, ensure_ascii=False, indent=2))
             return 0
         if args.command == "revise-scene":
             source_spec = Path(args.spec).resolve()

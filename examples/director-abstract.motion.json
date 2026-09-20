@@ -1,0 +1,424 @@
+{
+  "schemaVersion": "1.0.0",
+  "project": {
+    "id": "director_abstract",
+    "title": "Ideas in motion",
+    "locale": "en-US",
+    "direction": "ltr",
+    "description": "Model-directed first draft; review visuals, exact text, and source meaning."
+  },
+  "canvas": {
+    "width": 320,
+    "height": 180,
+    "frameRate": {
+      "numerator": 24,
+      "denominator": 1
+    },
+    "durationFrames": 48,
+    "colorSpace": "Rec.709",
+    "background": "#101820",
+    "safeArea": {
+      "top": 24,
+      "right": 24,
+      "bottom": 24,
+      "left": 24
+    }
+  },
+  "sources": [
+    {
+      "id": "user_prompt",
+      "uri": "assets/director-abstract.txt",
+      "mediaType": "text/plain",
+      "sha256": "97a82de8e3417593bf0527fa39e2b19728ac282f01188a9966aca8bbeb823eb9",
+      "authority": [
+        "creative brief"
+      ]
+    },
+    {
+      "id": "director_plan",
+      "uri": "director-abstract.plan.json",
+      "mediaType": "application/json",
+      "sha256": "08618271bb1f8194c0487d4da107990101a2515769126630f16c34384907d15c",
+      "authority": [
+        "direction"
+      ]
+    }
+  ],
+  "assets": [],
+  "datasets": [],
+  "timeline": [
+    {
+      "id": "scene_1",
+      "startFrame": 0,
+      "endFrameExclusive": 24,
+      "transitionIn": "start",
+      "elements": [
+        {
+          "id": "background_1",
+          "kind": "shape",
+          "startFrame": 0,
+          "endFrameExclusive": 24,
+          "bounds": {
+            "x": 0,
+            "y": 0,
+            "width": 320,
+            "height": 180
+          },
+          "params": {
+            "shape": "rect",
+            "color": "#101820"
+          },
+          "zIndex": -1
+        },
+        {
+          "id": "title_1",
+          "kind": "text",
+          "startFrame": 0,
+          "endFrameExclusive": 24,
+          "bounds": {
+            "x": 24,
+            "y": 40,
+            "width": 272,
+            "height": 63
+          },
+          "text": {
+            "value": "Ideas begin",
+            "locale": "en-US",
+            "direction": "ltr",
+            "fontFamily": "DejaVu Sans",
+            "fontWeight": 700,
+            "align": "center"
+          },
+          "params": {
+            "color": "#FFFFFF",
+            "fontSize": 20,
+            "wrap": true
+          },
+          "zIndex": 2,
+          "sourceRefs": [
+            {
+              "sourceId": "user_prompt",
+              "location": "entire prompt",
+              "method": "model-directed adaptation",
+              "confidence": 0.7
+            }
+          ]
+        },
+        {
+          "id": "subtitle_1",
+          "kind": "text",
+          "startFrame": 0,
+          "endFrameExclusive": 24,
+          "bounds": {
+            "x": 24,
+            "y": 122,
+            "width": 272,
+            "height": 32
+          },
+          "text": {
+            "value": "With one small spark",
+            "locale": "en-US",
+            "direction": "ltr",
+            "fontFamily": "DejaVu Sans",
+            "fontWeight": 400,
+            "align": "center"
+          },
+          "params": {
+            "color": "#FFFFFF",
+            "fontSize": 20,
+            "wrap": true
+          },
+          "zIndex": 2,
+          "sourceRefs": [
+            {
+              "sourceId": "user_prompt",
+              "location": "entire prompt",
+              "method": "model-directed adaptation",
+              "confidence": 0.7
+            }
+          ]
+        }
+      ],
+      "beats": [
+        {
+          "id": "beat_1",
+          "startFrame": 0,
+          "endFrameExclusive": 24,
+          "elementIds": [
+            "background_1",
+            "title_1",
+            "subtitle_1"
+          ],
+          "onScreen": [
+            {
+              "value": "Ideas begin",
+              "locale": "en-US"
+            },
+            {
+              "value": "With one small spark",
+              "locale": "en-US"
+            }
+          ],
+          "sourceRefs": [
+            {
+              "sourceId": "user_prompt",
+              "location": "entire prompt",
+              "method": "model-directed adaptation",
+              "confidence": 0.7
+            }
+          ]
+        }
+      ],
+      "animations": [
+        {
+          "targetId": "title_1",
+          "property": "opacity",
+          "keyframes": [
+            {
+              "frame": 0,
+              "value": 0
+            },
+            {
+              "frame": 10,
+              "value": 1,
+              "easing": "ease_out"
+            }
+          ]
+        },
+        {
+          "targetId": "subtitle_1",
+          "property": "opacity",
+          "keyframes": [
+            {
+              "frame": 0,
+              "value": 0
+            },
+            {
+              "frame": 10,
+              "value": 1,
+              "easing": "ease_out"
+            }
+          ]
+        }
+      ],
+      "sourceRefs": [
+        {
+          "sourceId": "user_prompt",
+          "location": "entire prompt",
+          "method": "model-directed adaptation",
+          "confidence": 0.7
+        },
+        {
+          "sourceId": "director_plan",
+          "location": "/scenes/0",
+          "method": "model proposal",
+          "confidence": 0.7
+        }
+      ]
+    },
+    {
+      "id": "scene_2",
+      "startFrame": 24,
+      "endFrameExclusive": 48,
+      "transitionIn": "cut",
+      "elements": [
+        {
+          "id": "background_2",
+          "kind": "shape",
+          "startFrame": 24,
+          "endFrameExclusive": 48,
+          "bounds": {
+            "x": 0,
+            "y": 0,
+            "width": 320,
+            "height": 180
+          },
+          "params": {
+            "shape": "rect",
+            "color": "#17243A"
+          },
+          "zIndex": -1
+        },
+        {
+          "id": "accent_2",
+          "kind": "shape",
+          "startFrame": 24,
+          "endFrameExclusive": 48,
+          "bounds": {
+            "x": 24,
+            "y": 72,
+            "width": 272,
+            "height": 12
+          },
+          "params": {
+            "shape": "rect",
+            "color": "#EB6B3C"
+          },
+          "zIndex": 0
+        },
+        {
+          "id": "title_2",
+          "kind": "text",
+          "startFrame": 24,
+          "endFrameExclusive": 48,
+          "bounds": {
+            "x": 24,
+            "y": 40,
+            "width": 272,
+            "height": 63
+          },
+          "text": {
+            "value": "Then they move",
+            "locale": "en-US",
+            "direction": "ltr",
+            "fontFamily": "DejaVu Sans",
+            "fontWeight": 700,
+            "align": "center"
+          },
+          "params": {
+            "color": "#FFFFFF",
+            "fontSize": 20,
+            "wrap": true
+          },
+          "zIndex": 2,
+          "sourceRefs": [
+            {
+              "sourceId": "user_prompt",
+              "location": "entire prompt",
+              "method": "model-directed adaptation",
+              "confidence": 0.7
+            }
+          ]
+        },
+        {
+          "id": "subtitle_2",
+          "kind": "text",
+          "startFrame": 24,
+          "endFrameExclusive": 48,
+          "bounds": {
+            "x": 24,
+            "y": 122,
+            "width": 272,
+            "height": 32
+          },
+          "text": {
+            "value": "Make the next frame yours",
+            "locale": "en-US",
+            "direction": "ltr",
+            "fontFamily": "DejaVu Sans",
+            "fontWeight": 400,
+            "align": "center"
+          },
+          "params": {
+            "color": "#FFFFFF",
+            "fontSize": 20,
+            "wrap": true
+          },
+          "zIndex": 2,
+          "sourceRefs": [
+            {
+              "sourceId": "user_prompt",
+              "location": "entire prompt",
+              "method": "model-directed adaptation",
+              "confidence": 0.7
+            }
+          ]
+        }
+      ],
+      "beats": [
+        {
+          "id": "beat_2",
+          "startFrame": 24,
+          "endFrameExclusive": 48,
+          "elementIds": [
+            "background_2",
+            "accent_2",
+            "title_2",
+            "subtitle_2"
+          ],
+          "onScreen": [
+            {
+              "value": "Then they move",
+              "locale": "en-US"
+            },
+            {
+              "value": "Make the next frame yours",
+              "locale": "en-US"
+            }
+          ],
+          "sourceRefs": [
+            {
+              "sourceId": "user_prompt",
+              "location": "entire prompt",
+              "method": "model-directed adaptation",
+              "confidence": 0.7
+            }
+          ]
+        }
+      ],
+      "animations": [
+        {
+          "targetId": "title_2",
+          "property": "opacity",
+          "keyframes": [
+            {
+              "frame": 24,
+              "value": 0
+            },
+            {
+              "frame": 34,
+              "value": 1,
+              "easing": "ease_out"
+            }
+          ]
+        },
+        {
+          "targetId": "subtitle_2",
+          "property": "opacity",
+          "keyframes": [
+            {
+              "frame": 24,
+              "value": 0
+            },
+            {
+              "frame": 34,
+              "value": 1,
+              "easing": "ease_out"
+            }
+          ]
+        }
+      ],
+      "sourceRefs": [
+        {
+          "sourceId": "user_prompt",
+          "location": "entire prompt",
+          "method": "model-directed adaptation",
+          "confidence": 0.7
+        },
+        {
+          "sourceId": "director_plan",
+          "location": "/scenes/1",
+          "method": "model proposal",
+          "confidence": 0.7
+        }
+      ]
+    }
+  ],
+  "deliverables": [
+    {
+      "id": "preview",
+      "target": "video/mp4",
+      "profile": "preview",
+      "required": true,
+      "editable": false
+    }
+  ],
+  "policies": {
+    "qa": [],
+    "disclosures": [],
+    "approvals": [
+      "first draft visual review"
+    ],
+    "unsupportedFeature": "error"
+  }
+}

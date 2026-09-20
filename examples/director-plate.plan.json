@@ -1,0 +1,9 @@
+{
+  "title": "Une idée en mouvement",
+  "locale": "fr-FR",
+  "direction": "ltr",
+  "researchRequired": false,
+  "scenes": [
+    {"durationFrames": 24, "visual": "asset", "assetId": "moving_plate", "title": "Une idée en mouvement", "subtitle": "", "background": "#0E1421", "accent": "#13C4D9", "motion": "zoom"}
+  ]
+}

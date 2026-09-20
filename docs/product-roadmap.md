@@ -21,6 +21,7 @@ This is the ordered work list for a usable, general motion-production engine. A 
 ## 1. Source understanding and authoring
 
 - [ ] Build the complete prompt-to-first-draft production loop in [creative-workflow.md](creative-workflow.md): understand, research, direct, execute, inspect, and revise by scene ID.
+- [x] Add a first whole-video director slice: a constrained model proposal, capability-checked MotionSpec compilation, and one-command preview rendering for creative text/shape/supplied-asset briefs. Live API execution and factual research remain unverified.
 - [ ] Verify researched claims against stored evidence spans and dates, including checks that challenge a prompt's premise before narration is written.
 - [x] Add hash-bound typed scene revisions for text, color, and image zoom; preserve unrelated scenes and cite the revision request. Natural-language edit planning remains open.
 

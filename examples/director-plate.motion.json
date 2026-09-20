@@ -1,0 +1,230 @@
+{
+  "schemaVersion": "1.0.0",
+  "project": {
+    "id": "director_plate",
+    "title": "Une idée en mouvement",
+    "locale": "fr-FR",
+    "direction": "ltr",
+    "description": "Model-directed first draft; review visuals, exact text, and source meaning."
+  },
+  "canvas": {
+    "width": 320,
+    "height": 180,
+    "frameRate": {
+      "numerator": 24,
+      "denominator": 1
+    },
+    "durationFrames": 24,
+    "colorSpace": "Rec.709",
+    "background": "#101820",
+    "safeArea": {
+      "top": 24,
+      "right": 24,
+      "bottom": 24,
+      "left": 24
+    }
+  },
+  "sources": [
+    {
+      "id": "user_prompt",
+      "uri": "assets/director-plate.txt",
+      "mediaType": "text/plain",
+      "sha256": "aa2520a9139559ad9fa834eec25d2c74f0ad47c65968f3e6956fb04d8fc08236",
+      "authority": [
+        "creative brief"
+      ]
+    },
+    {
+      "id": "director_plan",
+      "uri": "director-plate.plan.json",
+      "mediaType": "application/json",
+      "sha256": "8dff963eed7397d93b5d8b33b2bde2d24d5b4d2e60e2292145b73cf35e968322",
+      "authority": [
+        "direction"
+      ]
+    }
+  ],
+  "assets": [
+    {
+      "id": "moving_plate",
+      "kind": "video.frames",
+      "status": "available",
+      "uri": "assets/moving-landscape.zip",
+      "sha256": "52db5b5709fbdcc524f6052c48cc53db2f60995402ec3c5a061bb91aab72f63d",
+      "license": "MIT",
+      "approved": true
+    }
+  ],
+  "datasets": [],
+  "timeline": [
+    {
+      "id": "scene_1",
+      "startFrame": 0,
+      "endFrameExclusive": 24,
+      "transitionIn": "start",
+      "elements": [
+        {
+          "id": "background_1",
+          "kind": "shape",
+          "startFrame": 0,
+          "endFrameExclusive": 24,
+          "bounds": {
+            "x": 0,
+            "y": 0,
+            "width": 320,
+            "height": 180
+          },
+          "params": {
+            "shape": "rect",
+            "color": "#0E1421"
+          },
+          "zIndex": -1
+        },
+        {
+          "id": "visual_1",
+          "kind": "video",
+          "startFrame": 0,
+          "endFrameExclusive": 24,
+          "bounds": {
+            "x": 0,
+            "y": 0,
+            "width": 320,
+            "height": 180
+          },
+          "assetId": "moving_plate",
+          "params": {
+            "fit": "cover"
+          },
+          "zIndex": 0,
+          "sourceRefs": []
+        },
+        {
+          "id": "lower_third_1",
+          "kind": "shape",
+          "startFrame": 0,
+          "endFrameExclusive": 24,
+          "bounds": {
+            "x": 0,
+            "y": 112,
+            "width": 320,
+            "height": 68
+          },
+          "params": {
+            "shape": "rect",
+            "color": "#0E1421"
+          },
+          "zIndex": 1
+        },
+        {
+          "id": "title_1",
+          "kind": "text",
+          "startFrame": 0,
+          "endFrameExclusive": 24,
+          "bounds": {
+            "x": 24,
+            "y": 119,
+            "width": 272,
+            "height": 32
+          },
+          "text": {
+            "value": "Une idée en mouvement",
+            "locale": "fr-FR",
+            "direction": "ltr",
+            "fontFamily": "DejaVu Sans",
+            "fontWeight": 700,
+            "align": "center"
+          },
+          "params": {
+            "color": "#FFFFFF",
+            "fontSize": 20,
+            "wrap": true
+          },
+          "zIndex": 2,
+          "sourceRefs": [
+            {
+              "sourceId": "user_prompt",
+              "location": "entire prompt",
+              "method": "model-directed adaptation",
+              "confidence": 0.7
+            }
+          ]
+        }
+      ],
+      "beats": [
+        {
+          "id": "beat_1",
+          "startFrame": 0,
+          "endFrameExclusive": 24,
+          "elementIds": [
+            "background_1",
+            "visual_1",
+            "lower_third_1",
+            "title_1"
+          ],
+          "onScreen": [
+            {
+              "value": "Une idée en mouvement",
+              "locale": "fr-FR"
+            }
+          ],
+          "sourceRefs": [
+            {
+              "sourceId": "user_prompt",
+              "location": "entire prompt",
+              "method": "model-directed adaptation",
+              "confidence": 0.7
+            }
+          ]
+        }
+      ],
+      "animations": [
+        {
+          "targetId": "visual_1",
+          "property": "scale",
+          "keyframes": [
+            {
+              "frame": 0,
+              "value": 1
+            },
+            {
+              "frame": 23,
+              "value": 1.15,
+              "easing": "ease_in_out"
+            }
+          ]
+        }
+      ],
+      "sourceRefs": [
+        {
+          "sourceId": "user_prompt",
+          "location": "entire prompt",
+          "method": "model-directed adaptation",
+          "confidence": 0.7
+        },
+        {
+          "sourceId": "director_plan",
+          "location": "/scenes/0",
+          "method": "model proposal",
+          "confidence": 0.7
+        }
+      ]
+    }
+  ],
+  "deliverables": [
+    {
+      "id": "preview",
+      "target": "video/mp4",
+      "profile": "preview",
+      "required": true,
+      "editable": false
+    }
+  ],
+  "policies": {
+    "qa": [],
+    "disclosures": [],
+    "approvals": [
+      "first draft visual review"
+    ],
+    "unsupportedFeature": "error"
+  }
+}
