@@ -97,6 +97,7 @@ This is the ordered work list for a usable, general motion-production engine. A 
 - [ ] Build rendered QA for frame drops, blank frames, clipping, text overflow, and chart geometry beyond hash and frame-count checks.
 - [x] Add paginated, revision-bound scene contact sheets with first/middle/final frames for agent and producer review.
 - [ ] Build audio QA for duration, sync, silence, clipping, and loudness.
+- [x] Check rendered mono WAV mix format and frame-derived duration; flag silence and near-clipping. Loudness and narration sync remain open.
 - [ ] Create contact sheets, review notes, and a gate that blocks unapproved critical findings.
 - [ ] Package original hashes, MotionSpec, approvals, licenses, editable projects, final renders, and QA reports with relative links.
 - [ ] Reopen the package on a clean machine and run dependency/link checks.

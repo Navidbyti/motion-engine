@@ -1,8 +1,11 @@
 """Initial source, policy, and preview integrity gates."""
 from __future__ import annotations
 
+from array import array
 from pathlib import Path
+import sys
 from typing import Any
+import wave
 
 from .revisions import RevisionError, freeze_revision, resolve_local_file, spec_sha256
 from .runs import RunError, verify_render_run
@@ -32,6 +35,37 @@ def _safe_area_issues(spec: dict[str, Any], severity: str) -> list[dict[str, str
         elif (bounds["x"] < left or bounds["y"] < top or
               bounds["x"] + bounds["width"] > right or bounds["y"] + bounds["height"] > bottom):
             issues.append(_issue("text_outside_safe_area", severity, "Text bounds extend outside the canvas safe area", item["id"]))
+    return issues
+
+
+def _audio_mix_issues(spec: dict[str, Any], render: dict[str, Any], render_dir: str | Path) -> list[dict[str, str]]:
+    has_audio = any(element["kind"] == "audio" for scene in spec["timeline"] for element in scene["elements"])
+    output = next((item for item in render["outputs"] if item["kind"] == "audio/wav"), None)
+    if has_audio and output is None:
+        return [_issue("audio_mix_missing", "error", "Render has audio elements but no WAV mix")]
+    if output is None:
+        return []
+    issues = []
+    rate = spec["canvas"]["frameRate"]
+    numerator = spec["canvas"]["durationFrames"] * 48_000 * rate["denominator"]
+    expected_samples = (2 * numerator + rate["numerator"]) // (2 * rate["numerator"])
+    try:
+        with wave.open(str(Path(render_dir).resolve() / output["path"]), "rb") as stream:
+            if (stream.getnchannels(), stream.getsampwidth(), stream.getframerate(), stream.getnframes()) != (1, 2, 48_000, expected_samples):
+                return [_issue("audio_mix_format", "error", "WAV mix format or duration differs from the project")]
+            peak = 0
+            while data := stream.readframes(8192):
+                samples = array("h")
+                samples.frombytes(data)
+                if sys.byteorder != "little":
+                    samples.byteswap()
+                peak = max(peak, max((abs(value) for value in samples), default=0))
+    except (OSError, EOFError, wave.Error, ValueError) as exc:
+        return [_issue("audio_mix_invalid", "error", f"WAV mix cannot be decoded: {exc}")]
+    if peak < 64:
+        issues.append(_issue("audio_mix_silent", "warning", "WAV mix is silent or nearly silent; review the audio"))
+    if peak >= 32_112:
+        issues.append(_issue("audio_mix_near_clipping", "warning", "WAV mix peak is within 0.2 dB of clipping"))
     return issues
 
 
@@ -103,6 +137,7 @@ def qa_report(spec: dict[str, Any], spec_dir: str | Path, render_dir: str | Path
                 issues.append(_issue("render_frame_count", "error", "Render frame count differs from MotionSpec"))
             for render_issue in render.get("issues", []):
                 issues.append(_issue(render_issue["code"], "warning", render_issue["message"]))
+            issues.extend(_audio_mix_issues(spec, render, render_dir))
         except (OSError, RunError, KeyError, TypeError) as exc:
             issues.append(_issue("render_integrity", "error", str(exc)))
 

@@ -1,5 +1,6 @@
 import copy
 import hashlib
+import shutil
 import struct
 import subprocess
 import sys
@@ -11,17 +12,19 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 from motion_engine.planning import plan
+from motion_engine.qa import qa_report
 from motion_engine.rendering import FrameRenderer, RenderError, _ffmpeg_executable, render_preview
+from motion_engine.revisions import freeze_revision
 from motion_engine.runs import verify_render_run
 from motion_engine.validation import load_spec, validate
 
 
-def _tone(path: Path, samples: int, channels: int = 1):
+def _tone(path: Path, samples: int, channels: int = 1, amplitude: int = 3000):
     with wave.open(str(path), "wb") as stream:
         stream.setnchannels(channels)
         stream.setsampwidth(2)
         stream.setframerate(48_000)
-        stream.writeframes(struct.pack("<" + "h" * samples * channels, *([3000] * samples * channels)))
+        stream.writeframes(struct.pack("<" + "h" * samples * channels, *([amplitude] * samples * channels)))
 
 
 def _with_audio(tmp_path: Path, samples: int = 48_000, channels: int = 1):
@@ -83,3 +86,23 @@ def test_overlapping_audio_tracks_fail_on_clipping(tmp_path):
     with pytest.raises(RenderError, match="mix clips"):
         render_preview(spec, tmp_path / "bad", asset_root=tmp_path, scale=0.1, mp4=False)
     assert not (tmp_path / "bad").exists()
+
+
+@pytest.mark.parametrize("amplitude,expected_issue", [
+    (3000, None),
+    (0, "audio_mix_silent"),
+    (32600, "audio_mix_near_clipping"),
+])
+def test_render_audio_qa_flags_silence_and_near_clipping(tmp_path, amplitude, expected_issue):
+    spec, path = _with_audio(tmp_path)
+    _tone(path, 48_000, amplitude=amplitude)
+    spec["assets"][0]["sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+    source = tmp_path / "assets/hello-script.md"
+    source.parent.mkdir()
+    shutil.copyfile(ROOT / "examples/assets/hello-script.md", source)
+    revision = freeze_revision(spec, tmp_path)
+    render_preview(spec, tmp_path / "render", asset_root=tmp_path, scale=0.1, mp4=False,
+                   revision_sha256=revision["revisionSha256"])
+    report = qa_report(spec, tmp_path, tmp_path / "render")
+    audio_issues = [issue["code"] for issue in report["issues"] if issue["code"].startswith("audio_")]
+    assert audio_issues == ([expected_issue] if expected_issue else [])
