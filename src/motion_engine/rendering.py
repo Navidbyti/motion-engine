@@ -135,6 +135,12 @@ class FrameRenderer:
                     raise RenderError(f"unsupported preview animation {animation['property']!r} on {animation['targetId']}")
                 if any(keyframe.get("easing", "linear") not in PREVIEW_EASING for keyframe in animation["keyframes"]):
                     raise RenderError(f"unsupported preview easing on {animation['targetId']}")
+                if animation["property"] == "scale" and any(
+                    not isinstance(keyframe["value"], (int, float)) or isinstance(keyframe["value"], bool)
+                    or not math.isfinite(keyframe["value"]) or not 1 <= keyframe["value"] <= 3
+                    for keyframe in animation["keyframes"]
+                ):
+                    raise RenderError(f"image {animation['targetId']} scale keyframes must be finite numbers from 1 to 3")
                 self.animations.setdefault(animation["targetId"], {})[animation["property"]] = animation["keyframes"]
         if not features.check("raqm") and any(
             e.get("text", {}).get("direction") == "rtl" for s in spec["timeline"] for e in s["elements"]
@@ -318,6 +324,13 @@ class FrameRenderer:
             ratio = min(w / source.width, h / source.height) if fit == "contain" else max(w / source.width, h / source.height)
             scaled = source.resize((max(1, round(source.width * ratio)), max(1, round(source.height * ratio))), Image.Resampling.LANCZOS)
             rendered = scaled if fit == "contain" else scaled.crop(((scaled.width - w) // 2, (scaled.height - h) // 2, (scaled.width - w) // 2 + w, (scaled.height - h) // 2 + h))
+        zoom = self._property(element["id"], "scale", frame, 1.0)
+        if zoom != 1:
+            rendered = rendered.resize((max(1, round(rendered.width * zoom)),
+                                        max(1, round(rendered.height * zoom))), Image.Resampling.LANCZOS)
+            viewport = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+            viewport.paste(rendered, ((w - rendered.width) // 2, (h - rendered.height) // 2))
+            rendered = viewport
         opacity = max(0.0, min(1.0, self._property(element["id"], "opacity", frame, 1.0)))
         if opacity < 1:
             rendered = rendered.copy()

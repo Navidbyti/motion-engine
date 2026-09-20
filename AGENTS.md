@@ -4,6 +4,8 @@
 
 Build a reusable motion-graphics engine. The owner's private video is one acceptance fixture, never a hardcoded production path. Do not add subject-specific types, one-language rules, fixed canvas defaults, or provider dependencies to the core.
 
+The product must create a complete first video draft from a prompt, then support scoped prompt revisions to individual scenes and elements. Creative requests may need generated or rendered moving assets; factual requests need research that tests the premise and binds claims to evidence. See `docs/creative-workflow.md` for the production loop and two distinct acceptance cases.
+
 ## Boundaries
 
 - MotionSpec is a versioned, portable intermediate representation. Parse, validate, migrate, and hash it before any build.

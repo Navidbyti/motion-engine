@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 from typing import Any
 
@@ -104,6 +105,11 @@ def plan(spec: dict[str, Any], capabilities: dict[str, dict[str, Any]] | None = 
             for keyframe in animation["keyframes"]:
                 if keyframe.get("easing", "linear") not in PREVIEW_EASING:
                     preview_feature_gaps.add(f"easing:{keyframe['easing']}")
+                if animation["property"] == "scale" and (
+                    not isinstance(keyframe["value"], (int, float)) or isinstance(keyframe["value"], bool)
+                    or not math.isfinite(keyframe["value"]) or not 1 <= keyframe["value"] <= 3
+                ):
+                    preview_feature_gaps.add(f"animation_value:scale:{animation['targetId']}")
     capabilities_report = []
     issues = []
     for deliverable in spec["deliverables"]:

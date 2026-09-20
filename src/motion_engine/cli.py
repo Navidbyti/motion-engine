@@ -23,6 +23,7 @@ from .premiere_xml import PremiereXMLExportError, make_premiere_xml
 from .pdf_assets import extract_pdf_images
 from .review import make_review, verify_review
 from .drafting import draft_text
+from .scene_revisions import SceneRevisionError, revise_scene
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -66,6 +67,10 @@ def main(argv: list[str] | None = None) -> int:
     draft.add_argument("--frames-per-line", type=int, default=60)
     draft.add_argument("--font-family", default="DejaVu Sans")
     draft.add_argument("--max-lines", type=int, default=40)
+    revise = sub.add_parser("revise-scene", help="Apply a typed edit to one scene against an exact MotionSpec hash")
+    revise.add_argument("spec")
+    revise.add_argument("request", help="JSON revision request in the MotionSpec directory")
+    revise.add_argument("--output", required=True, help="New MotionSpec JSON in the same directory as the base spec")
     pdf_images = sub.add_parser("extract-pdf-images")
     pdf_images.add_argument("source")
     pdf_images.add_argument("--output-dir", required=True)
@@ -129,6 +134,24 @@ def main(argv: list[str] | None = None) -> int:
                                 frames_per_line=args.frames_per_line,
                                 font_family=args.font_family, max_lines=args.max_lines)
             _emit(result, args.output)
+            return 0
+        if args.command == "revise-scene":
+            source_spec = Path(args.spec).resolve()
+            output_spec = Path(args.output).resolve()
+            if output_spec.parent != source_spec.parent:
+                raise SceneRevisionError("new MotionSpec must be beside the base spec so source links remain portable")
+            if output_spec.exists():
+                raise SceneRevisionError("revised MotionSpec already exists; choose a new output path")
+            spec = load_spec(source_spec)
+            errors = validate(spec)
+            if errors:
+                raise SceneRevisionError("base MotionSpec is invalid: " + "; ".join(errors))
+            with Path(args.request).open("r", encoding="utf-8") as stream:
+                request = json.load(stream)
+            if not isinstance(request, dict):
+                raise SceneRevisionError("revision request must be a JSON object")
+            result = revise_scene(spec, request, request_path=args.request, output_path=output_spec)
+            _emit(result, output_spec)
             return 0
         if args.command == "extract-pdf-images":
             print(json.dumps(extract_pdf_images(args.source, args.output_dir,

@@ -180,6 +180,36 @@ def test_hashed_image_asset_renders_in_different_projects(tmp_path, example, fit
         assert frame.getpixel((60, 1)) == (255, 0, 0)
 
 
+@pytest.mark.parametrize("example", ["hello.motion.json", "image-card.motion.json"])
+def test_image_zoom_is_frame_exact_and_clipped_to_its_bounds(tmp_path, example):
+    plate = Image.new("RGB", (100, 100), (0, 0, 255))
+    Image.Image.paste(plate, (255, 0, 0), (25, 25, 75, 75))
+    plate.save(tmp_path / "zoom.png")
+    spec = copy.deepcopy(load_spec(ROOT / "examples" / example))
+    scene = spec["timeline"][0]
+    end = scene["endFrameExclusive"]
+    spec["assets"].append({"id": "zoom_asset", "kind": "image", "status": "available",
+                           "uri": "zoom.png", "sha256": hashlib.sha256((tmp_path / "zoom.png").read_bytes()).hexdigest()})
+    scene["elements"] = [{"id": "zoom_plate", "kind": "image", "startFrame": 0,
+                              "endFrameExclusive": end, "bounds": {"x": 80, "y": 80, "width": 100, "height": 100},
+                              "assetId": "zoom_asset", "params": {"fit": "contain"}, "zIndex": -1}]
+    for beat in scene["beats"]:
+        beat["elementIds"] = ["zoom_plate"]
+    scene["animations"] = [{"targetId": "zoom_plate", "property": "scale",
+                                "keyframes": [{"frame": 0, "value": 1},
+                                              {"frame": end - 1, "value": 2, "easing": "linear"}]}]
+    assert plan(spec)["capabilities"][0]["buildable"]
+    renderer = FrameRenderer(spec, asset_root=tmp_path)
+    assert renderer.render_frame(0).getpixel((90, 90)) == (0, 0, 255)
+    assert renderer.render_frame(end - 1).getpixel((90, 90)) == (255, 0, 0)
+    assert renderer.render_frame(end - 1).getpixel((79, 90)) == (16, 24, 32)
+
+    scene["animations"][-1]["keyframes"][-1]["value"] = 0.5
+    assert "animation_value:scale:zoom_plate" in plan(spec)["capabilities"][0]["unsupportedFeatures"]
+    with pytest.raises(RenderError, match="scale keyframes"):
+        FrameRenderer(spec, asset_root=tmp_path)
+
+
 def test_image_asset_hash_mismatch_stops_before_output(tmp_path):
     Image.new("RGB", (4, 4), (255, 0, 0)).save(tmp_path / "plate.png")
     spec = copy.deepcopy(load_spec(ROOT / "examples/hello.motion.json"))

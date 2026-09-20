@@ -9,11 +9,11 @@ PREVIEW_PARAMS = {
     "chart.line": {"minimum", "maximum", "color", "baselineColor", "labelFontFamily"},
 }
 PREVIEW_KINDS = set(PREVIEW_PARAMS)
-PREVIEW_ANIMATIONS = {"opacity", "reveal"}
+PREVIEW_ANIMATIONS = {"opacity", "reveal", "scale"}
 PREVIEW_ANIMATIONS_BY_KIND = {
     "text": {"opacity"},
     "shape": {"opacity"},
-    "image": {"opacity"},
+    "image": {"opacity", "scale"},
     "audio": set(),
     "chart.bar": {"reveal"},
     "chart.line": {"reveal"},
