@@ -88,6 +88,7 @@ This is the ordered work list for a usable, general motion-production engine. A 
 - [x] Verify explicit decimal arithmetic and rounding for derived/rebased chart values.
 - [ ] Add broader transformation operators and check every claim citation.
 - [ ] Build rendered QA for frame drops, blank frames, clipping, text overflow, and chart geometry beyond hash and frame-count checks.
+- [x] Add paginated, revision-bound scene contact sheets with first/middle/final frames for agent and producer review.
 - [ ] Build audio QA for duration, sync, silence, clipping, and loudness.
 - [ ] Create contact sheets, review notes, and a gate that blocks unapproved critical findings.
 - [ ] Package original hashes, MotionSpec, approvals, licenses, editable projects, final renders, and QA reports with relative links.

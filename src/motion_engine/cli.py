@@ -27,6 +27,7 @@ from .scene_revisions import SceneRevisionError, revise_scene
 from .video_import import VideoImportError, import_video
 from .director import DirectorError, compile_director_plan
 from .director_schema import DIRECTOR_PLAN_SCHEMA
+from .contact_sheet import ContactSheetError, make_contact_sheet
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -126,6 +127,10 @@ def main(argv: list[str] | None = None) -> int:
     bundle.add_argument("spec")
     bundle.add_argument("--render-dir", required=True)
     bundle.add_argument("--output-dir", required=True)
+    contact = sub.add_parser("contact-sheet", help="Create scene overview sheets from a verified preview")
+    contact.add_argument("spec")
+    contact.add_argument("--render-dir", required=True)
+    contact.add_argument("--output-dir", required=True)
     verify_bundle = sub.add_parser("verify-package")
     verify_bundle.add_argument("directory")
     ae = sub.add_parser("make-ae-script")
@@ -379,6 +384,14 @@ def main(argv: list[str] | None = None) -> int:
         _emit(result, args.output)
         if result["status"] != "passed":
             return 1
+    elif args.command == "contact-sheet":
+        try:
+            result = make_contact_sheet(spec, Path(args.spec).resolve().parent,
+                                        args.render_dir, args.output_dir)
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+        except (OSError, ValueError, RunError, ContactSheetError) as exc:
+            print(json.dumps({"ok": False, "errors": [str(exc)]}, ensure_ascii=False), file=sys.stderr)
+            return 2
     else:
         try:
             encode_mp4 = True if args.mp4 else False if args.frames_only else None

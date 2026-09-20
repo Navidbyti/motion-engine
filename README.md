@@ -64,6 +64,7 @@ motion-engine import-data examples/assets/weather.csv --project-root examples --
 motion-engine plan examples/hello.motion.json --output plan.json
 motion-engine freeze examples/hello.motion.json --output revision.json
 motion-engine render examples/hello.motion.json --output-dir hello-preview
+motion-engine contact-sheet examples/hello.motion.json --render-dir hello-preview --output-dir hello-review
 motion-engine render examples/hello.motion.json --output-dir hello-preview --resume
 motion-engine qa examples/hello.motion.json --output hello-qa.json
 motion-engine package-preview examples/hello.motion.json --render-dir hello-preview --output-dir hello-bundle

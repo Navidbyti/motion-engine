@@ -1,5 +1,7 @@
 # Initial QA gate
 
+After a verified preview render, run `motion-engine contact-sheet SPEC --render-dir DIR --output-dir REVIEW`. It checks the exact MotionSpec and input revision against the render manifest, verifies every rendered artifact hash, and creates paginated PNG sheets with the first, middle, and final frame of each scene. `contact-sheet.json` maps scene IDs to frame numbers and includes sheet hashes. This is a visual review aid; the agent or producer must still inspect motion, audio, text, and claims in the actual video. The command refuses an existing output directory or a stale render.
+
 Run `motion-engine qa SPEC --output qa.json` for source and policy checks. Add `--render-dir DIR` to verify an existing preview's revision, frame sequence, MP4 hash, frame count, and renderer warnings. The command returns a report with `passed`, `needs_review`, or `failed` status. Only `passed` exits successfully.
 
 Implemented checks include source and available-asset hashes, referenced asset availability, dataset source references, exact direct-copy chart values from CSV/XLSX, text-element bounds against the declared safe area, and full-duration disclosure timing when requested by policy. A rendered preview is checked against the current MotionSpec and source revision. Font substitution appears as a review issue.
