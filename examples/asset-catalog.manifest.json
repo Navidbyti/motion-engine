@@ -1,0 +1,4 @@
+[
+  {"id": "still_plate", "kind": "image", "uri": "assets/synthetic-plate.png", "license": "MIT", "approved": true},
+  {"id": "moving_plate", "kind": "video.frames", "uri": "assets/moving-landscape.zip", "license": "MIT", "approved": true}
+]

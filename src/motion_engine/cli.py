@@ -30,6 +30,7 @@ from .director_schema import DIRECTOR_PLAN_SCHEMA
 from .contact_sheet import ContactSheetError, make_contact_sheet
 from .claims import verify_claims
 from .asset_requests import AssetRequestError, resolve_asset_requests
+from .asset_catalog import AssetCatalogError, build_asset_catalog
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -97,6 +98,10 @@ def main(argv: list[str] | None = None) -> int:
     asset_resolver.add_argument("--assets", required=True, help="Catalog of available hashed assets")
     asset_resolver.add_argument("--output", required=True, help="New director plan with resolved requests")
     asset_resolver.add_argument("--fps", type=int, default=30)
+    catalog = sub.add_parser("catalog-assets", help="Hash and inspect approved local media into a new asset catalog")
+    catalog.add_argument("manifest", help="JSON list of local media records")
+    catalog.add_argument("--output", required=True, help="New asset catalog JSON path beside the manifest")
+    catalog.add_argument("--fps", type=int, default=30, help="Project frame rate for frame plates")
     first = sub.add_parser("first-draft", help="Compile and render an agent-authored plan for a prompt")
     first.add_argument("prompt", help="UTF-8 prompt inside the output MotionSpec directory")
     first.add_argument("proposal", help="Agent-authored plan JSON inside the output MotionSpec directory")
@@ -218,6 +223,10 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         if args.command == "resolve-assets":
             result = resolve_asset_requests(args.proposal, args.assets, args.output, fps=args.fps)
+            _emit(result, args.output)
+            return 0
+        if args.command == "catalog-assets":
+            result = build_asset_catalog(args.manifest, args.output, fps=args.fps)
             _emit(result, args.output)
             return 0
         if args.command == "first-draft":

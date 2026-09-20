@@ -24,6 +24,7 @@ This is the ordered work list for a usable, general motion-production engine. A 
 - [x] Add a first whole-video director slice: a desktop-agent-authored plan, capability-checked MotionSpec compilation, and one-command preview rendering for creative text/shape/supplied-asset briefs. Factual research remains unverified.
 - [x] Make the director declare unmet visual asset requests and stop compilation until the required shot exists; do not silently substitute an unrelated primitive.
 - [x] Resolve image, moving-video, and declared 3D shot requests against approved, licensed, hashed local assets before compilation; visual suitability still needs inspection.
+- [x] Build portable image and frame-plate catalogs from agent-reviewed local manifests, with automatic hashes and media checks.
 - [ ] Verify researched claims against stored evidence spans and dates, including checks that challenge a prompt's premise before narration is written.
 - [x] Add a local claim ledger with source hashes, exact excerpt checks, event/publication/retrieval dates, scene-to-claim mapping, and an explicit semantic-review warning. Truth assessment and reviewed factual release remain open.
 - [x] Invalidate stale claim mappings after factual text edits and support hash-checked scene claim remapping in a scoped revision.
