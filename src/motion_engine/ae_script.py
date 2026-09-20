@@ -69,15 +69,16 @@ def make_ae_script(spec: dict[str, Any], script_path: str | Path,
     if len(beat_starts) != len(set(beat_starts)):
         raise AEExportError("After Effects beat markers need unique start frames")
     position_tracks = {}
+    layer_order = []
     for scene in spec["timeline"]:
+        layer_order.append(sorted(range(len(scene["elements"])),
+                                  key=lambda index: scene["elements"][index].get("zIndex", 0)))
         scene_elements = {element["id"]: element for element in scene["elements"]}
         for element in scene["elements"]:
             if element["kind"] not in ("text", "shape", "image"):
                 raise AEExportError(f"initial After Effects adapter does not support {element['kind']}")
             if not element.get("bounds"):
                 raise AEExportError(f"element {element['id']} needs bounds")
-            if element.get("zIndex", 0):
-                raise AEExportError("initial After Effects adapter uses array order, not zIndex")
             if element["kind"] == "text":
                 if not element.get("text"):
                     raise AEExportError(f"text {element['id']} needs text")
@@ -128,7 +129,7 @@ def make_ae_script(spec: dict[str, Any], script_path: str | Path,
     for path in (output, report, script):
         path.parent.mkdir(parents=True, exist_ok=True)
     job = {"spec": spec, "aep": output.as_posix(), "report": report.as_posix(),
-           "imageAssets": images, "positionTracks": position_tracks}
+           "imageAssets": images, "positionTracks": position_tracks, "layerOrder": layer_order}
     payload = json.dumps(job, ensure_ascii=True, separators=(",", ":"))
     source = "var job = " + payload + ";\n" + _SCRIPT
     script.write_text(source, encoding="utf-8")
@@ -186,7 +187,7 @@ _SCRIPT = r'''
                     duration: marker.duration});
             }
             for (var j = 0; j < scene.elements.length; j++) {
-                var element = scene.elements[j];
+                var element = scene.elements[job.layerOrder[i][j]];
                 var layer;
                 if (element.kind === "text") {
                     layer = sceneComp.layers.addText(element.text.value);
@@ -285,45 +286,46 @@ _SCRIPT = r'''
             var original = spec.timeline[b].elements;
             for (var c = 0; c < original.length; c++) {
                 var reopenedText = sceneLayer.source.layer(original.length - c);
-                if (!reopenedText || reopenedText.name !== original[c].id)
-                    throw new Error("reopened element mismatch: " + original[c].id);
-                if (Math.abs(reopenedText.inPoint - (original[c].startFrame - spec.timeline[b].startFrame) / rate) > 0.0001 ||
-                    Math.abs(reopenedText.outPoint - (original[c].endFrameExclusive - spec.timeline[b].startFrame) / rate) > 0.0001)
-                    throw new Error("reopened element timing mismatch: " + original[c].id);
-                var positionTrack = job.positionTracks[spec.timeline[b].id + "/" + original[c].id];
+                var expectedElement = original[job.layerOrder[b][c]];
+                if (!reopenedText || reopenedText.name !== expectedElement.id)
+                    throw new Error("reopened element or layer order mismatch: " + expectedElement.id);
+                if (Math.abs(reopenedText.inPoint - (expectedElement.startFrame - spec.timeline[b].startFrame) / rate) > 0.0001 ||
+                    Math.abs(reopenedText.outPoint - (expectedElement.endFrameExclusive - spec.timeline[b].startFrame) / rate) > 0.0001)
+                    throw new Error("reopened element timing mismatch: " + expectedElement.id);
+                var positionTrack = job.positionTracks[spec.timeline[b].id + "/" + expectedElement.id];
                 if (positionTrack) {
                     var reopenedPosition = reopenedText.property("Transform").property("Position");
                     if (reopenedPosition.numKeys !== positionTrack.length)
-                        throw new Error("reopened position key count mismatch: " + original[c].id);
+                        throw new Error("reopened position key count mismatch: " + expectedElement.id);
                     for (var p = 0; p < positionTrack.length; p++) {
                         var positionValue = reopenedPosition.keyValue(p + 1);
                         if (Math.abs(reopenedPosition.keyTime(p + 1) -
                                      (positionTrack[p].frame - spec.timeline[b].startFrame) / rate) > 0.0001 ||
                             Math.abs(positionValue[0] - positionTrack[p].value[0]) > 0.001 ||
                             Math.abs(positionValue[1] - positionTrack[p].value[1]) > 0.001)
-                            throw new Error("reopened position key mismatch: " + original[c].id);
+                            throw new Error("reopened position key mismatch: " + expectedElement.id);
                     }
                 }
-                if (original[c].kind === "text") {
-                    if (reopenedText.property("Source Text").value.text !== original[c].text.value)
-                        throw new Error("reopened text mismatch: " + original[c].id);
-                    if (original[c].text.fontFamily && reopenedText.property("Source Text").value.fontObject.familyName !== original[c].text.fontFamily)
-                        throw new Error("reopened font mismatch: " + original[c].id);
-                } else if (original[c].kind === "shape") {
+                if (expectedElement.kind === "text") {
+                    if (reopenedText.property("Source Text").value.text !== expectedElement.text.value)
+                        throw new Error("reopened text mismatch: " + expectedElement.id);
+                    if (expectedElement.text.fontFamily && reopenedText.property("Source Text").value.fontObject.familyName !== expectedElement.text.fontFamily)
+                        throw new Error("reopened font mismatch: " + expectedElement.id);
+                } else if (expectedElement.kind === "shape") {
                     var shape = reopenedText.property("ADBE Root Vectors Group").property("ADBE Vector Shape - Rect");
-                    if (!shape || Math.abs(shape.property("ADBE Vector Rect Size").value[0] - original[c].bounds.width) > 0.001 ||
-                        Math.abs(shape.property("ADBE Vector Rect Size").value[1] - original[c].bounds.height) > 0.001)
-                        throw new Error("reopened rectangle mismatch: " + original[c].id);
+                    if (!shape || Math.abs(shape.property("ADBE Vector Rect Size").value[0] - expectedElement.bounds.width) > 0.001 ||
+                        Math.abs(shape.property("ADBE Vector Rect Size").value[1] - expectedElement.bounds.height) > 0.001)
+                        throw new Error("reopened rectangle mismatch: " + expectedElement.id);
                 } else {
                     var linked = reopenedText.source;
                     if (!(linked instanceof FootageItem) || linked.footageMissing ||
                         !linked.mainSource.file || !linked.mainSource.file.exists)
-                        throw new Error("reopened image link missing: " + original[c].id);
+                        throw new Error("reopened image link missing: " + expectedElement.id);
                     var assetInfo = null;
                     for (var z = 0; z < job.imageAssets.length; z++)
-                        if (job.imageAssets[z].id === original[c].assetId) assetInfo = job.imageAssets[z];
+                        if (job.imageAssets[z].id === expectedElement.assetId) assetInfo = job.imageAssets[z];
                     if (!assetInfo || linked.width !== assetInfo.width || linked.height !== assetInfo.height)
-                        throw new Error("reopened image dimensions mismatch: " + original[c].id);
+                        throw new Error("reopened image dimensions mismatch: " + expectedElement.id);
                 }
             }
         }
