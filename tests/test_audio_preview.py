@@ -1,5 +1,6 @@
 import copy
 import hashlib
+import json
 import shutil
 import struct
 import subprocess
@@ -15,7 +16,9 @@ from motion_engine.planning import plan
 from motion_engine.qa import qa_report
 from motion_engine.rendering import FrameRenderer, RenderError, _ffmpeg_executable, render_preview
 from motion_engine.revisions import freeze_revision
+from motion_engine.revisions import spec_sha256
 from motion_engine.runs import verify_render_run
+from motion_engine.scene_revisions import SceneRevisionError, revise_scene
 from motion_engine.validation import load_spec, validate
 
 
@@ -106,3 +109,38 @@ def test_render_audio_qa_flags_silence_and_near_clipping(tmp_path, amplitude, ex
     report = qa_report(spec, tmp_path, tmp_path / "render")
     audio_issues = [issue["code"] for issue in report["issues"] if issue["code"].startswith("audio_")]
     assert audio_issues == ([expected_issue] if expected_issue else [])
+
+
+def test_scoped_audio_gain_edit_changes_mix_and_keeps_timing(tmp_path):
+    spec, _ = _with_audio(tmp_path)
+    request = {"baseSpecSha256": spec_sha256(spec), "sceneId": "opening",
+               "userPrompt": "Lower only the voice by six decibels",
+               "operations": [{"op": "set_audio_gain", "elementId": "voice_track", "value": -6}]}
+    request_path = tmp_path / "gain.json"
+    request_path.write_text(json.dumps(request), encoding="utf-8")
+    revised = revise_scene(spec, request, request_path=request_path, output_path=tmp_path / "next.motion.json")
+    voice_before = spec["timeline"][0]["elements"][-1]
+    voice_after = revised["timeline"][0]["elements"][-1]
+    assert voice_after["params"]["gainDb"] == -6
+    assert voice_after["startFrame"] == voice_before["startFrame"]
+    assert voice_after["endFrameExclusive"] == voice_before["endFrameExclusive"]
+    assert voice_after["assetId"] == voice_before["assetId"]
+    render_preview(spec, tmp_path / "before", asset_root=tmp_path, scale=0.1, mp4=False)
+    render_preview(revised, tmp_path / "after", asset_root=tmp_path, scale=0.1, mp4=False)
+    with wave.open(str(tmp_path / "before/mix.wav"), "rb") as stream:
+        before = struct.unpack("<h", stream.readframes(1 + 48_000)[-2:])[0]
+    with wave.open(str(tmp_path / "after/mix.wav"), "rb") as stream:
+        after = struct.unpack("<h", stream.readframes(1 + 48_000)[-2:])[0]
+    assert before == 3000
+    assert 1450 <= after <= 1550
+
+
+@pytest.mark.parametrize("value", [True, -61, 13, "-6"])
+def test_audio_gain_edit_rejects_invalid_values(tmp_path, value):
+    spec, _ = _with_audio(tmp_path)
+    request = {"baseSpecSha256": spec_sha256(spec), "sceneId": "opening",
+               "operations": [{"op": "set_audio_gain", "elementId": "voice_track", "value": value}]}
+    request_path = tmp_path / "invalid-gain.json"
+    request_path.write_text(json.dumps(request), encoding="utf-8")
+    with pytest.raises(SceneRevisionError, match="-60 to 12 dB"):
+        revise_scene(spec, request, request_path=request_path, output_path=tmp_path / "next.motion.json")

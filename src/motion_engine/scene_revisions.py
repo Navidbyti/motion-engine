@@ -192,6 +192,12 @@ def revise_scene(spec: dict[str, Any], request: dict[str, Any], *,
                                           if not (a["targetId"] == element["id"] and a["property"] == "scale")]
             target_scene["animations"].append({"targetId": element["id"], "property": "scale", "keyframes": value})
             element.setdefault("sourceRefs", []).append(ref)
+        elif action == "set_audio_gain":
+            if (element["kind"] != "audio" or not isinstance(value, (int, float))
+                or isinstance(value, bool) or not math.isfinite(value) or not -60 <= value <= 12):
+                raise SceneRevisionError(f"operation {index}: set_audio_gain needs an audio element and -60 to 12 dB")
+            element["params"]["gainDb"] = value
+            element.setdefault("sourceRefs", []).append(ref)
         elif action == "set_asset":
             if element["kind"] not in ("image", "video"):
                 raise SceneRevisionError(f"operation {index}: set_asset needs an image or video element")

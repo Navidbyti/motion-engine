@@ -31,6 +31,7 @@ This is the ordered work list for a usable, general motion-production engine. A 
 - [x] Add a desktop-agent-authored typed-revision route for scene text, color, and visual zoom, followed by a version-bound render. Broader edit types remain open.
 - [x] Add scoped image/video shot replacement with approved local assets, hash and frame checks, provenance, and a version-bound render. Scene insertion and asset generation remain open.
 - [x] Add hash-bound bounds and opacity edits for visual elements, including same-scene multi-operation revisions and invalid geometry/keyframe rejection.
+- [x] Add scoped audio gain edits with exact revision provenance and rendered sample comparison.
 - [x] Add preview x/y position tracks, desktop-agent slide entrances, and scoped position-keyframe edits with frame and canvas bounds checks.
 - [x] Add a reusable contrast-aware card layout to the desktop director, verified on horizontal and vertical public fixtures.
 - [x] Add a staggered rise-and-fade text entrance on frame-based tracks, verified on two public aspect ratios.
