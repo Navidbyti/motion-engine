@@ -115,6 +115,7 @@ def main(argv: list[str] | None = None) -> int:
     revised_render.add_argument("request", help="Agent-authored JSON request in the MotionSpec directory")
     revised_render.add_argument("--output-spec", required=True)
     revised_render.add_argument("--output-dir", required=True)
+    revised_render.add_argument("--review-dir", help="Create verified scene contact sheets in a new directory")
     revised_render.add_argument("--scale", type=float, default=0.5)
     revise = sub.add_parser("revise-scene", help="Apply a typed edit to one scene against an exact MotionSpec hash")
     revise.add_argument("spec")
@@ -261,10 +262,11 @@ def main(argv: list[str] | None = None) -> int:
             request_path = Path(args.request).resolve()
             spec_path = Path(args.output_spec).resolve()
             render_path = Path(args.output_dir).resolve()
+            review_path = Path(args.review_dir).resolve() if args.review_dir else None
             if base_path.parent != spec_path.parent or request_path.parent != spec_path.parent:
                 raise SceneRevisionError("base spec, request, and new spec must share a directory")
-            if len({base_path, request_path, spec_path, render_path}) != 4 or not request_path.is_file() or any(
-                path.exists() for path in (spec_path, render_path)
+            if len({base_path, request_path, spec_path, render_path, review_path} - {None}) != (5 if review_path else 4) or not request_path.is_file() or any(
+                path.exists() for path in (spec_path, render_path) + ((review_path,) if review_path else ())
             ):
                 raise SceneRevisionError("revision request must exist; spec and render outputs must be new, distinct paths")
             base = load_spec(base_path)
@@ -281,8 +283,14 @@ def main(argv: list[str] | None = None) -> int:
             result = render_preview(revised, render_path, scale=args.scale,
                                     asset_root=spec_path.parent,
                                     revision_sha256=revision["revisionSha256"])
+            quality = qa_report(revised, spec_path.parent, render_path)
+            _emit(quality, render_path / "qa.json")
+            sheets = make_contact_sheet(revised, spec_path.parent, render_path, review_path) if review_path else None
             print(json.dumps({"request": str(request_path), "spec": str(spec_path),
-                              "render": str(render_path), "manifest": result}, ensure_ascii=False, indent=2))
+                              "render": str(render_path), "manifest": result,
+                              "qa": str(render_path / "qa.json"), "qaStatus": quality["status"],
+                              "contactSheet": str(review_path / "contact-sheet.json") if sheets else None},
+                             ensure_ascii=False, indent=2))
             return 0
         if args.command == "revise-scene":
             source_spec = Path(args.spec).resolve()

@@ -16,10 +16,10 @@ Open this repository in Codex or Claude Code. The desktop agent is responsible f
 Read the current MotionSpec and resolve the target scene and element IDs. The agent interprets the user's change and writes a JSON request with `baseSpecSha256`, `sceneId`, `userPrompt`, and one or more typed `operations`. Compute the canonical hash with `motion_engine.revisions.spec_sha256` or use the `specSha256` field from `motion-engine freeze`. Supported operations today are `set_text`, `set_color`, `set_bounds`, `set_opacity`, `set_position_x`, `set_position_y`, `set_visual_zoom`, `set_asset` for an approved image or video plate, and `set_claim_ids` after researching a factual text edit. Keep the request beside the spec and use a new output filename:
 
 ```powershell
-motion-engine revise-and-render project/first.motion.json project/edit.json --output-spec project/second.motion.json --output-dir project/second-preview
+motion-engine revise-and-render project/first.motion.json project/edit.json --output-spec project/second.motion.json --output-dir project/second-preview --review-dir project/second-review
 ```
 
-The request is hashed into the new spec. A stale base hash fails. Inspect the new preview and confirm unaffected scenes remain intact. For unsupported changes, expand the engine or create a new versioned plan; never pretend the edit happened.
+The request is hashed into the new spec. A stale base hash fails. Inspect the new preview, `second-preview/qa.json`, and the contact sheets, then confirm unaffected scenes remain intact. For unsupported changes, expand the engine or create a new versioned plan; never pretend the edit happened.
 
 ## What is still missing
 
