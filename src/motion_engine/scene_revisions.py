@@ -86,6 +86,36 @@ def revise_scene(spec: dict[str, Any], request: dict[str, Any], *,
                 raise SceneRevisionError(f"operation {index}: color must be #RRGGBB")
             element["params"]["color"] = value
             element.setdefault("sourceRefs", []).append(ref)
+        elif action == "set_bounds":
+            if "bounds" not in element or not isinstance(value, dict) or set(value) != {"x", "y", "width", "height"}:
+                raise SceneRevisionError(f"operation {index}: set_bounds needs x, y, width, and height for a visual element")
+            if any(not isinstance(number, (int, float)) or isinstance(number, bool) or not math.isfinite(number)
+                   for number in value.values()):
+                raise SceneRevisionError(f"operation {index}: bounds must contain finite numbers")
+            x, y, width, height = (value[key] for key in ("x", "y", "width", "height"))
+            canvas = revised["canvas"]
+            if x < 0 or y < 0 or width <= 0 or height <= 0 or x + width > canvas["width"] or y + height > canvas["height"]:
+                raise SceneRevisionError(f"operation {index}: bounds must fit inside the canvas")
+            element["bounds"] = copy.deepcopy(value)
+            element.setdefault("sourceRefs", []).append(ref)
+        elif action == "set_opacity":
+            if element["kind"] not in ("text", "shape", "image", "video") or not isinstance(value, list) or not 1 <= len(value) <= 20:
+                raise SceneRevisionError(f"operation {index}: set_opacity needs a visual element and 1 to 20 keyframes")
+            for key in value:
+                if (not isinstance(key, dict) or set(key) - {"frame", "value", "easing"}
+                    or "frame" not in key or "value" not in key
+                    or not isinstance(key["frame"], int) or isinstance(key["frame"], bool)
+                    or not element["startFrame"] <= key["frame"] < element["endFrameExclusive"]
+                    or not isinstance(key["value"], (int, float)) or isinstance(key["value"], bool)
+                    or not math.isfinite(key["value"]) or not 0 <= key["value"] <= 1
+                    or key.get("easing", "linear") not in PREVIEW_EASING):
+                    raise SceneRevisionError(f"operation {index}: opacity keyframe is unsupported")
+            if [key["frame"] for key in value] != sorted({key["frame"] for key in value}):
+                raise SceneRevisionError(f"operation {index}: opacity keyframes must be unique and sorted")
+            target_scene["animations"] = [a for a in target_scene["animations"]
+                                          if not (a["targetId"] == element["id"] and a["property"] == "opacity")]
+            target_scene["animations"].append({"targetId": element["id"], "property": "opacity", "keyframes": copy.deepcopy(value)})
+            element.setdefault("sourceRefs", []).append(ref)
         elif action in ("set_image_zoom", "set_visual_zoom"):
             allowed = ("image",) if action == "set_image_zoom" else ("image", "video")
             if element["kind"] not in allowed or not isinstance(value, list) or not 1 <= len(value) <= 20:

@@ -13,7 +13,7 @@ Open this repository in Codex or Claude Code. The desktop agent is responsible f
 
 ## Edit a scene by prompt
 
-Read the current MotionSpec and resolve the target scene and element IDs. The agent interprets the user's change and writes a JSON request with `baseSpecSha256`, `sceneId`, `userPrompt`, and one or more typed `operations`. Compute the canonical hash with `motion_engine.revisions.spec_sha256` or use the `specSha256` field from `motion-engine freeze`. Supported operations today are `set_text`, `set_color`, `set_visual_zoom`, and `set_asset` for a new approved image or video plate. Keep the request beside the spec and use a new output filename:
+Read the current MotionSpec and resolve the target scene and element IDs. The agent interprets the user's change and writes a JSON request with `baseSpecSha256`, `sceneId`, `userPrompt`, and one or more typed `operations`. Compute the canonical hash with `motion_engine.revisions.spec_sha256` or use the `specSha256` field from `motion-engine freeze`. Supported operations today are `set_text`, `set_color`, `set_bounds`, `set_opacity`, `set_visual_zoom`, and `set_asset` for a new approved image or video plate. Keep the request beside the spec and use a new output filename:
 
 ```powershell
 motion-engine revise-and-render project/first.motion.json project/edit.json --output-spec project/second.motion.json --output-dir project/second-preview
