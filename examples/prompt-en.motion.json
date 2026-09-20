@@ -1,0 +1,247 @@
+{
+  "schemaVersion": "1.0.0",
+  "project": {
+    "id": "prompt_en",
+    "title": "A quiet idea appears.",
+    "locale": "en-US",
+    "direction": "ltr",
+    "description": "Literal line-by-line draft; review timing, design, and source meaning."
+  },
+  "canvas": {
+    "width": 1080,
+    "height": 1920,
+    "frameRate": {
+      "numerator": 30,
+      "denominator": 1
+    },
+    "durationFrames": 120,
+    "colorSpace": "Rec.709",
+    "background": "#101820",
+    "safeArea": {
+      "top": 76,
+      "right": 76,
+      "bottom": 76,
+      "left": 76
+    }
+  },
+  "sources": [
+    {
+      "id": "prompt-en",
+      "uri": "assets/prompt-en.txt",
+      "mediaType": "text/plain",
+      "sha256": "21b36cb1776055208fbd907ffd7c844b8cdc8f165ed4a39fc5da535aaed91f7a",
+      "authority": [
+        "text"
+      ]
+    }
+  ],
+  "assets": [],
+  "datasets": [],
+  "timeline": [
+    {
+      "id": "scene_1",
+      "startFrame": 0,
+      "endFrameExclusive": 60,
+      "transitionIn": "start",
+      "elements": [
+        {
+          "id": "text_1",
+          "kind": "text",
+          "startFrame": 0,
+          "endFrameExclusive": 60,
+          "bounds": {
+            "x": 76,
+            "y": 588,
+            "width": 928,
+            "height": 743
+          },
+          "text": {
+            "value": "A quiet idea appears.",
+            "locale": "en-US",
+            "direction": "ltr",
+            "fontFamily": "DejaVu Sans",
+            "fontWeight": 700,
+            "align": "center"
+          },
+          "params": {
+            "color": "#FFFFFF",
+            "fontSize": 59,
+            "wrap": true
+          },
+          "sourceRefs": [
+            {
+              "sourceId": "prompt-en",
+              "location": "line:1",
+              "method": "utf-8 text",
+              "confidence": 1.0
+            }
+          ]
+        }
+      ],
+      "beats": [
+        {
+          "id": "beat_1",
+          "startFrame": 0,
+          "endFrameExclusive": 60,
+          "onScreen": [
+            {
+              "value": "A quiet idea appears.",
+              "locale": "en-US",
+              "direction": "ltr"
+            }
+          ],
+          "elementIds": [
+            "text_1"
+          ],
+          "sourceRefs": [
+            {
+              "sourceId": "prompt-en",
+              "location": "line:1",
+              "method": "utf-8 text",
+              "confidence": 1.0
+            }
+          ]
+        }
+      ],
+      "animations": [
+        {
+          "targetId": "text_1",
+          "property": "opacity",
+          "keyframes": [
+            {
+              "frame": 0,
+              "value": 0
+            },
+            {
+              "frame": 8,
+              "value": 1,
+              "easing": "ease_out"
+            }
+          ]
+        }
+      ],
+      "sourceRefs": [
+        {
+          "sourceId": "prompt-en",
+          "location": "line:1",
+          "method": "utf-8 text",
+          "confidence": 1.0
+        }
+      ]
+    },
+    {
+      "id": "scene_2",
+      "startFrame": 60,
+      "endFrameExclusive": 120,
+      "transitionIn": "cut",
+      "elements": [
+        {
+          "id": "text_2",
+          "kind": "text",
+          "startFrame": 60,
+          "endFrameExclusive": 120,
+          "bounds": {
+            "x": 76,
+            "y": 588,
+            "width": 928,
+            "height": 743
+          },
+          "text": {
+            "value": "Three shapes become one story.",
+            "locale": "en-US",
+            "direction": "ltr",
+            "fontFamily": "DejaVu Sans",
+            "fontWeight": 700,
+            "align": "center"
+          },
+          "params": {
+            "color": "#FFFFFF",
+            "fontSize": 59,
+            "wrap": true
+          },
+          "sourceRefs": [
+            {
+              "sourceId": "prompt-en",
+              "location": "line:2",
+              "method": "utf-8 text",
+              "confidence": 1.0
+            }
+          ]
+        }
+      ],
+      "beats": [
+        {
+          "id": "beat_2",
+          "startFrame": 60,
+          "endFrameExclusive": 120,
+          "onScreen": [
+            {
+              "value": "Three shapes become one story.",
+              "locale": "en-US",
+              "direction": "ltr"
+            }
+          ],
+          "elementIds": [
+            "text_2"
+          ],
+          "sourceRefs": [
+            {
+              "sourceId": "prompt-en",
+              "location": "line:2",
+              "method": "utf-8 text",
+              "confidence": 1.0
+            }
+          ]
+        }
+      ],
+      "animations": [
+        {
+          "targetId": "text_2",
+          "property": "opacity",
+          "keyframes": [
+            {
+              "frame": 60,
+              "value": 0
+            },
+            {
+              "frame": 68,
+              "value": 1,
+              "easing": "ease_out"
+            }
+          ]
+        }
+      ],
+      "sourceRefs": [
+        {
+          "sourceId": "prompt-en",
+          "location": "line:2",
+          "method": "utf-8 text",
+          "confidence": 1.0
+        }
+      ]
+    }
+  ],
+  "deliverables": [
+    {
+      "id": "preview",
+      "target": "video/mp4",
+      "profile": "preview",
+      "required": true,
+      "editable": false
+    }
+  ],
+  "policies": {
+    "qa": [
+      {
+        "id": "text_safe_area",
+        "rule": "text.within_safe_area",
+        "severity": "error"
+      }
+    ],
+    "disclosures": [],
+    "approvals": [
+      "visual and source review"
+    ],
+    "unsupportedFeature": "error"
+  }
+}

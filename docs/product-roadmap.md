@@ -26,6 +26,7 @@ This is the ordered work list for a usable, general motion-production engine. A 
 - [ ] Add full color-space and timecode interpretation, plus deep media validation beyond header metadata.
 - [ ] Add OCR and language detection as optional providers with confidence and original-page evidence.
 - [ ] Add a source-to-MotionSpec drafting workflow that requires citations for exact text, numbers, and claims.
+- [x] Prove a literal text drafting subset: each UTF-8 line becomes a cited MotionSpec scene, validates, and renders to MP4 on two public language/aspect fixtures. This does not interpret briefs, tables, or creative intent.
 - [x] Add a structured source review file for ambiguities, missing inputs, permissions, and approvals, with source-bound IDs and explicit resolutions. Human identity and rights remain producer checks.
 - [x] Add deterministic CSV/XLSX-to-dataset mapping with source ranges, formula-cache checks, and conservative numeric types.
 - [ ] Add explicit unit interpretation and mappings for nonrectangular tables and decimal values beyond JSON number precision.

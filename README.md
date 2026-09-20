@@ -4,7 +4,7 @@ An open-source, implementation-ready design for turning scripts, documents, data
 
 ## Status
 
-This repository is a **build specification and early implementation**, not a finished production engine. It contains a general MotionSpec schema, source extractors, validation and planning commands, a deterministic preview renderer, adapter contracts, synthetic examples, tests, and implementation milestones. Narrow After Effects, Illustrator, and Photoshop exporters produce editable subsets and passed native-app reopen checks. A limited Premiere XML interchange exporter lays out rendered scenes and beat markers and passed a native Premiere Pro 2026 import, save/reopen, and export test for a silent two-scene fixture. Full Adobe coverage remains a future milestone.
+This repository is a **build specification and early implementation**, not a finished production engine. It contains a general MotionSpec schema, source extractors, validation and planning commands, a deterministic preview renderer, adapter contracts, synthetic examples, tests, and implementation milestones. A literal text-to-MotionSpec command makes a cited video draft from one plain-text line per scene. Narrow After Effects, Illustrator, and Photoshop exporters produce editable subsets and passed native-app reopen checks. A limited Premiere XML interchange exporter lays out rendered scenes and beat markers and passed a native Premiere Pro 2026 import, save/reopen, and export test for a silent two-scene fixture. Full Adobe coverage remains a future milestone.
 
 ## What goes in and comes out
 
@@ -50,6 +50,8 @@ python -m pip install -e ".[dev]" -c requirements-dev.lock
 motion-engine validate examples/hello.motion.json
 motion-engine inspect examples/hello.motion.json
 motion-engine ingest examples/assets/hello-script.md --output evidence.json
+motion-engine draft-text examples/assets/prompt-en.txt --output examples/my-draft.motion.json --project-id my_draft --locale en-US
+motion-engine render examples/my-draft.motion.json --output-dir my-draft-preview --scale 0.25
 motion-engine make-review evidence.json --requirements examples/review-questions.json --output review.json
 motion-engine import-data examples/assets/weather.csv --project-root examples --dataset-id temperatures --source-id weather_csv --output dataset-fragment.json
 motion-engine plan examples/hello.motion.json --output plan.json
@@ -70,6 +72,7 @@ python -m pytest
 The CLI validates and inspects MotionSpec, [imports tabular data](docs/data-import.md), checks typed dataset cells and chart ranges, compares chart values with CSV/XLSX source cells and declared decimal formulas, extracts evidence from documents, spreadsheets, images, and media headers, exports embedded PDF images with source hashes and page placements, and produces a frame plan with target capability status. It can render MP4 previews for text, rectangles, local raster images, bar charts, line charts, and explicitly placed PCM WAV audio, then create a [verifiable preview bundle](docs/preview-bundles.md). Unsupported features and unlinked voice text fail explicitly. Narrow [Adobe exporters](docs/adobe-adapters.md) are available as manual script workflows. Broad Adobe output adapters remain planned. See [ingestion](docs/ingestion.md), [planning](docs/planning.md), [preview rendering](docs/rendering.md), and [milestones](docs/milestones.md).
 
 Review extracted ambiguities and project-specific questions with the [source review workflow](docs/reviews.md).
+The [literal text drafting workflow](docs/drafting.md) is the first prompt-to-video slice; semantic drafting from arbitrary documents remains planned.
 
 ## Give this repository to a coding agent
 

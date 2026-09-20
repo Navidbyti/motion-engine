@@ -22,6 +22,7 @@ from .ps_script import PSExportError, make_ps_script
 from .premiere_xml import PremiereXMLExportError, make_premiere_xml
 from .pdf_assets import extract_pdf_images
 from .review import make_review, verify_review
+from .drafting import draft_text
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -53,6 +54,18 @@ def main(argv: list[str] | None = None) -> int:
     ingestion.add_argument("--source-id")
     ingestion.add_argument("--limit", type=int, default=100_000)
     ingestion.add_argument("--output", help="Write evidence JSON to this file")
+    draft = sub.add_parser("draft-text", help="Draft a cited MotionSpec with one scene per plain-text line")
+    draft.add_argument("source", help="UTF-8 .txt source inside the output MotionSpec directory")
+    draft.add_argument("--output", required=True, help="New MotionSpec JSON path")
+    draft.add_argument("--project-id", required=True)
+    draft.add_argument("--locale", required=True)
+    draft.add_argument("--direction", choices=("ltr", "rtl"), default="ltr")
+    draft.add_argument("--width", type=int, default=1080)
+    draft.add_argument("--height", type=int, default=1920)
+    draft.add_argument("--fps", type=int, default=30)
+    draft.add_argument("--frames-per-line", type=int, default=60)
+    draft.add_argument("--font-family", default="DejaVu Sans")
+    draft.add_argument("--max-lines", type=int, default=40)
     pdf_images = sub.add_parser("extract-pdf-images")
     pdf_images.add_argument("source")
     pdf_images.add_argument("--output-dir", required=True)
@@ -107,6 +120,16 @@ def main(argv: list[str] | None = None) -> int:
             result = ingest(args.source, args.source_id, args.limit)
             _emit(result, args.output)
             return 0
+        if args.command == "draft-text":
+            if Path(args.output).exists():
+                raise ValueError("draft output already exists; choose a new path")
+            result = draft_text(args.source, args.output, project_id=args.project_id,
+                                locale=args.locale, direction=args.direction,
+                                width=args.width, height=args.height, frame_rate=args.fps,
+                                frames_per_line=args.frames_per_line,
+                                font_family=args.font_family, max_lines=args.max_lines)
+            _emit(result, args.output)
+            return 0
         if args.command == "extract-pdf-images":
             print(json.dumps(extract_pdf_images(args.source, args.output_dir,
                                                 args.max_images, args.max_total_bytes),
@@ -142,7 +165,7 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         spec = load_spec(args.spec)
         errors = validate(spec)
-    except (OSError, ValueError, RuntimeError) as exc:
+    except (OSError, ValueError, RuntimeError, UnicodeError) as exc:
         print(json.dumps({"ok": False, "errors": [str(exc)]}, ensure_ascii=False), file=sys.stderr)
         return 2
     if errors:

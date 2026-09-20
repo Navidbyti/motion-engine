@@ -1,0 +1,247 @@
+{
+  "schemaVersion": "1.0.0",
+  "project": {
+    "id": "prompt_fr",
+    "title": "Une idée prend forme.",
+    "locale": "fr-FR",
+    "direction": "ltr",
+    "description": "Literal line-by-line draft; review timing, design, and source meaning."
+  },
+  "canvas": {
+    "width": 1280,
+    "height": 720,
+    "frameRate": {
+      "numerator": 24,
+      "denominator": 1
+    },
+    "durationFrames": 96,
+    "colorSpace": "Rec.709",
+    "background": "#101820",
+    "safeArea": {
+      "top": 50,
+      "right": 50,
+      "bottom": 50,
+      "left": 50
+    }
+  },
+  "sources": [
+    {
+      "id": "prompt-fr",
+      "uri": "assets/prompt-fr.txt",
+      "mediaType": "text/plain",
+      "sha256": "8eeba9d64c3be1d0c113d66a42cb7df7468d0a0398e95c7302ac894b97b7bf10",
+      "authority": [
+        "text"
+      ]
+    }
+  ],
+  "assets": [],
+  "datasets": [],
+  "timeline": [
+    {
+      "id": "scene_1",
+      "startFrame": 0,
+      "endFrameExclusive": 48,
+      "transitionIn": "start",
+      "elements": [
+        {
+          "id": "text_1",
+          "kind": "text",
+          "startFrame": 0,
+          "endFrameExclusive": 48,
+          "bounds": {
+            "x": 50,
+            "y": 230,
+            "width": 1180,
+            "height": 260
+          },
+          "text": {
+            "value": "Une idée prend forme.",
+            "locale": "fr-FR",
+            "direction": "ltr",
+            "fontFamily": "DejaVu Sans",
+            "fontWeight": 700,
+            "align": "center"
+          },
+          "params": {
+            "color": "#FFFFFF",
+            "fontSize": 40,
+            "wrap": true
+          },
+          "sourceRefs": [
+            {
+              "sourceId": "prompt-fr",
+              "location": "line:1",
+              "method": "utf-8 text",
+              "confidence": 1.0
+            }
+          ]
+        }
+      ],
+      "beats": [
+        {
+          "id": "beat_1",
+          "startFrame": 0,
+          "endFrameExclusive": 48,
+          "onScreen": [
+            {
+              "value": "Une idée prend forme.",
+              "locale": "fr-FR",
+              "direction": "ltr"
+            }
+          ],
+          "elementIds": [
+            "text_1"
+          ],
+          "sourceRefs": [
+            {
+              "sourceId": "prompt-fr",
+              "location": "line:1",
+              "method": "utf-8 text",
+              "confidence": 1.0
+            }
+          ]
+        }
+      ],
+      "animations": [
+        {
+          "targetId": "text_1",
+          "property": "opacity",
+          "keyframes": [
+            {
+              "frame": 0,
+              "value": 0
+            },
+            {
+              "frame": 8,
+              "value": 1,
+              "easing": "ease_out"
+            }
+          ]
+        }
+      ],
+      "sourceRefs": [
+        {
+          "sourceId": "prompt-fr",
+          "location": "line:1",
+          "method": "utf-8 text",
+          "confidence": 1.0
+        }
+      ]
+    },
+    {
+      "id": "scene_2",
+      "startFrame": 48,
+      "endFrameExclusive": 96,
+      "transitionIn": "cut",
+      "elements": [
+        {
+          "id": "text_2",
+          "kind": "text",
+          "startFrame": 48,
+          "endFrameExclusive": 96,
+          "bounds": {
+            "x": 50,
+            "y": 230,
+            "width": 1180,
+            "height": 260
+          },
+          "text": {
+            "value": "Le mouvement donne du sens.",
+            "locale": "fr-FR",
+            "direction": "ltr",
+            "fontFamily": "DejaVu Sans",
+            "fontWeight": 700,
+            "align": "center"
+          },
+          "params": {
+            "color": "#FFFFFF",
+            "fontSize": 40,
+            "wrap": true
+          },
+          "sourceRefs": [
+            {
+              "sourceId": "prompt-fr",
+              "location": "line:2",
+              "method": "utf-8 text",
+              "confidence": 1.0
+            }
+          ]
+        }
+      ],
+      "beats": [
+        {
+          "id": "beat_2",
+          "startFrame": 48,
+          "endFrameExclusive": 96,
+          "onScreen": [
+            {
+              "value": "Le mouvement donne du sens.",
+              "locale": "fr-FR",
+              "direction": "ltr"
+            }
+          ],
+          "elementIds": [
+            "text_2"
+          ],
+          "sourceRefs": [
+            {
+              "sourceId": "prompt-fr",
+              "location": "line:2",
+              "method": "utf-8 text",
+              "confidence": 1.0
+            }
+          ]
+        }
+      ],
+      "animations": [
+        {
+          "targetId": "text_2",
+          "property": "opacity",
+          "keyframes": [
+            {
+              "frame": 48,
+              "value": 0
+            },
+            {
+              "frame": 56,
+              "value": 1,
+              "easing": "ease_out"
+            }
+          ]
+        }
+      ],
+      "sourceRefs": [
+        {
+          "sourceId": "prompt-fr",
+          "location": "line:2",
+          "method": "utf-8 text",
+          "confidence": 1.0
+        }
+      ]
+    }
+  ],
+  "deliverables": [
+    {
+      "id": "preview",
+      "target": "video/mp4",
+      "profile": "preview",
+      "required": true,
+      "editable": false
+    }
+  ],
+  "policies": {
+    "qa": [
+      {
+        "id": "text_safe_area",
+        "rule": "text.within_safe_area",
+        "severity": "error"
+      }
+    ],
+    "disclosures": [],
+    "approvals": [
+      "visual and source review"
+    ],
+    "unsupportedFeature": "error"
+  }
+}
