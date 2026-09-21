@@ -1,5 +1,13 @@
 # Motion Engine
 
+## Use it with Codex, Claude, or Antigravity
+
+You do not need to create an outputs folder, write JSON, or operate the command line. Give the repository link and your video request to a desktop coding agent. The agent should clone and configure the project, create its ignored `runs/<project-name>/` workspace, run the production workflow, inspect the rendered video, and show you the draft.
+
+**Repository:** https://github.com/Navidbyti/motion-engine
+
+Copy the ready-made agent prompt from **[START_HERE.md](START_HERE.md)**.
+
 The target producer workflow is a [complete first draft from a prompt, followed by scoped scene revisions](docs/creative-workflow.md). The current command line implements a narrower subset; see [product roadmap](docs/product-roadmap.md) for feature status.
 
 An open-source, implementation-ready design for turning scripts, documents, data, audio, and assets into editable motion projects and rendered videos. The architecture is **input-agnostic**: a complex private reel is one acceptance case, not the product model.
@@ -45,7 +53,7 @@ The core makes no assumption about language, script direction, subject matter, a
 
 Do not commit API keys, licensed fonts, model weights, customer inputs, or Adobe binaries. This repository does not distribute Adobe products or third-party services.
 
-## Start here
+## Developer command reference
 
 ```bash
 git clone https://github.com/Navidbyti/motion-engine.git
