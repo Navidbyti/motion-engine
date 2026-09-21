@@ -111,3 +111,32 @@ def test_ae_script_samples_eased_position_and_opacity_at_integer_frames(tmp_path
     assert position[10]["value"][0] == pytest.approx(790.0)
     assert len(opacity) == 13 and opacity[6]["value"] == pytest.approx(12.5)
     assert "reopened opacity key mismatch" in content
+
+
+@pytest.mark.parametrize("fit,base", [("contain", [100.0, 100.0]), ("stretch", [125.0, 100.0])])
+def test_ae_script_preserves_editable_image_scale_keyframes(tmp_path, fit, base):
+    spec = load_spec(ROOT / "examples/ae-image.motion.json")
+    spec["timeline"][0]["elements"][0]["bounds"]["height"] = 180
+    spec["timeline"][0]["elements"][0]["params"]["fit"] = fit
+    spec["timeline"][0]["animations"].append({
+        "targetId": "plate", "property": "scale", "keyframes": [
+            {"frame": 0, "value": 1}, {"frame": 24, "value": 1.5, "easing": "ease_out"}]})
+    script, aep, report = _paths(tmp_path)
+    make_ae_script(spec, script, aep, report, asset_root=ROOT / "examples")
+    content = script.read_text(encoding="utf-8")
+    payload = json.loads(content.removeprefix("var job = ").split(";\n", 1)[0])
+    track = payload["scaleTracks"]["card_scene/plate"]
+    assert len(track) == 25
+    assert track[0] == {"frame": 0, "value": base}
+    assert track[-1]["value"] == pytest.approx([value * 1.5 for value in base])
+    assert track[12]["value"] == pytest.approx([value * 1.4375 for value in base])
+    assert "reopened scale key mismatch" in content
+
+
+def test_ae_script_rejects_scale_animation_on_non_image_layer(tmp_path):
+    spec = load_spec(ROOT / "examples/ae-card.motion.json")
+    spec["timeline"][0]["animations"].append({
+        "targetId": "title", "property": "scale", "keyframes": [
+            {"frame": 0, "value": 1}, {"frame": 12, "value": 1.2}]})
+    with pytest.raises(AEExportError, match="require an image"):
+        make_ae_script(spec, *_paths(tmp_path))

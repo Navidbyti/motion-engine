@@ -8,6 +8,8 @@ You do not need to create an outputs folder, write JSON, or operate the command 
 
 Copy the ready-made agent prompt from **[START_HERE.md](START_HERE.md)**.
 
+See **[what remains editable](docs/editability.md)** for the difference between MotionSpec, After Effects, Premiere, and flat preview outputs.
+
 The target producer workflow is a [complete first draft from a prompt, followed by scoped scene revisions](docs/creative-workflow.md). The current command line implements a narrower subset; see [product roadmap](docs/product-roadmap.md) for feature status.
 
 An open-source, implementation-ready design for turning scripts, documents, data, audio, and assets into editable motion projects and rendered videos. The architecture is **input-agnostic**: a complex private reel is one acceptance case, not the product model.

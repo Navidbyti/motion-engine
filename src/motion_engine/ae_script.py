@@ -86,6 +86,7 @@ def make_ae_script(spec: dict[str, Any], script_path: str | Path,
             raise AEExportError(f"asset {asset['id']} image cannot be decoded") from exc
         images.append({"id": asset["id"], "path": path.as_posix(), "width": width, "height": height})
     image_ids = {item["id"] for item in images}
+    images_by_id = {item["id"]: item for item in images}
     if any(beat.get("voice", {}).get("value", "").strip()
            for scene in spec["timeline"] for beat in scene["beats"]):
         raise AEExportError("initial After Effects adapter does not support voice audio")
@@ -94,6 +95,7 @@ def make_ae_script(spec: dict[str, Any], script_path: str | Path,
         raise AEExportError("After Effects beat markers need unique start frames")
     position_tracks = {}
     opacity_tracks = {}
+    scale_tracks = {}
     layer_order = []
     for scene in spec["timeline"]:
         layer_order.append(sorted(range(len(scene["elements"])),
@@ -123,16 +125,21 @@ def make_ae_script(spec: dict[str, Any], script_path: str | Path,
             prop = animation["property"]
             element = scene_elements.get(animation["targetId"])
             keys = animation["keyframes"]
-            limit = 1 if prop == "opacity" else spec["canvas"]["width" if prop == "x" else "height"] if prop in ("x", "y") else None
+            limit = (1 if prop == "opacity" else 3 if prop == "scale" else
+                     spec["canvas"]["width" if prop == "x" else "height"] if prop in ("x", "y") else None)
             if (element is None or limit is None or not keys
                 or any(key.get("easing", "linear") not in _AE_EASING
                        or not isinstance(key["value"], (int, float)) or isinstance(key["value"], bool)
                        or not math.isfinite(key["value"])
-                       or not ((0 <= key["value"] <= 1) if prop == "opacity" else (-limit <= key["value"] <= limit))
+                       or not ((0 <= key["value"] <= 1) if prop == "opacity" else
+                               (1 <= key["value"] <= 3) if prop == "scale" else
+                               (-limit <= key["value"] <= limit))
                        or not element["startFrame"] <= key["frame"] < element["endFrameExclusive"]
                        for key in keys)
                 or [key["frame"] for key in keys] != sorted({key["frame"] for key in keys})):
-                raise AEExportError("initial After Effects adapter supports opacity or x/y keyframes with known easing within the element window")
+                raise AEExportError("initial After Effects adapter supports opacity, image scale, or x/y keyframes with known easing within the element window")
+            if prop == "scale" and element["kind"] != "image":
+                raise AEExportError("initial After Effects scale keyframes require an image element")
         for element in scene["elements"]:
             axes = {animation["property"]: animation["keyframes"] for animation in scene["animations"]
                     if animation["targetId"] == element["id"] and animation["property"] in ("x", "y")}
@@ -149,6 +156,19 @@ def make_ae_script(spec: dict[str, Any], script_path: str | Path,
                 opacity_tracks[scene["id"] + "/" + element["id"]] = [
                     {"frame": frame, "value": _animation_value(opacity, frame) * 100}
                     for frame in _track_frames(opacity)]
+            scale = next((animation["keyframes"] for animation in scene["animations"]
+                          if animation["targetId"] == element["id"] and animation["property"] == "scale"), None)
+            if scale:
+                asset = images_by_id[element["assetId"]]
+                base_x = element["bounds"]["width"] / asset["width"] * 100
+                base_y = element["bounds"]["height"] / asset["height"] * 100
+                if element["params"].get("fit", "contain") == "contain":
+                    base_x = base_y = min(base_x, base_y)
+                scale_tracks[scene["id"] + "/" + element["id"]] = [
+                    {"frame": frame,
+                     "value": [base_x * _animation_value(scale, frame),
+                               base_y * _animation_value(scale, frame)]}
+                    for frame in _track_frames(scale)]
     output = Path(aep_path).resolve()
     report = Path(report_path).resolve()
     script = Path(script_path).resolve()
@@ -160,7 +180,8 @@ def make_ae_script(spec: dict[str, Any], script_path: str | Path,
         path.parent.mkdir(parents=True, exist_ok=True)
     job = {"spec": spec, "aep": output.as_posix(), "report": report.as_posix(),
            "imageAssets": images, "positionTracks": position_tracks,
-           "opacityTracks": opacity_tracks, "layerOrder": layer_order}
+           "opacityTracks": opacity_tracks, "scaleTracks": scale_tracks,
+           "layerOrder": layer_order}
     payload = json.dumps(job, ensure_ascii=True, separators=(",", ":"))
     source = "var job = " + payload + ";\n" + _SCRIPT
     script.write_text(source, encoding="utf-8")
@@ -288,6 +309,16 @@ _SCRIPT = r'''
                         opacity.setInterpolationTypeAtKey(n, KeyframeInterpolationType.LINEAR,
                             KeyframeInterpolationType.LINEAR);
                 }
+                var scaleTrack = job.scaleTracks[scene.id + "/" + element.id];
+                if (scaleTrack) {
+                    var scale = layer.property("Transform").property("Scale");
+                    for (var s = 0; s < scaleTrack.length; s++)
+                        scale.setValueAtTime((scaleTrack[s].frame - scene.startFrame) / rate,
+                            scaleTrack[s].value);
+                    for (var s = 1; s <= scale.numKeys; s++)
+                        scale.setInterpolationTypeAtKey(s, KeyframeInterpolationType.LINEAR,
+                            KeyframeInterpolationType.LINEAR);
+                }
             }
         }
         app.project.save(outputFile);
@@ -351,6 +382,20 @@ _SCRIPT = r'''
                                      (opacityTrack[o].frame - spec.timeline[b].startFrame) / rate) > 0.0001 ||
                             Math.abs(reopenedOpacity.keyValue(o + 1) - opacityTrack[o].value) > 0.001)
                             throw new Error("reopened opacity key mismatch: " + expectedElement.id);
+                }
+                var scaleTrack = job.scaleTracks[spec.timeline[b].id + "/" + expectedElement.id];
+                if (scaleTrack) {
+                    var reopenedScale = reopenedText.property("Transform").property("Scale");
+                    if (reopenedScale.numKeys !== scaleTrack.length)
+                        throw new Error("reopened scale key count mismatch: " + expectedElement.id);
+                    for (var s = 0; s < scaleTrack.length; s++) {
+                        var scaleValue = reopenedScale.keyValue(s + 1);
+                        if (Math.abs(reopenedScale.keyTime(s + 1) -
+                                     (scaleTrack[s].frame - spec.timeline[b].startFrame) / rate) > 0.0001 ||
+                            Math.abs(scaleValue[0] - scaleTrack[s].value[0]) > 0.001 ||
+                            Math.abs(scaleValue[1] - scaleTrack[s].value[1]) > 0.001)
+                            throw new Error("reopened scale key mismatch: " + expectedElement.id);
+                    }
                 }
                 if (expectedElement.kind === "text") {
                     var reopenedDocument = reopenedText.property("Source Text").value;
