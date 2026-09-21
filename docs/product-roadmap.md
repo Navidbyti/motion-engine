@@ -112,6 +112,7 @@ This is the ordered work list for a usable, general motion-production engine. A 
 
 ## 6. Productization and release
 
+- [x] Add a repository-owned desktop-agent production skill that routes Codex or Claude through research, complete planning, asset approval, first-draft rendering, scoped revisions, QA, and supported native exports without an LLM API key.
 - [ ] Offer a documented local CLI workflow from inputs through final package, with resumable runs.
 - [ ] Add the REST/job service and worker queue only after local stages have stable contracts.
 - [ ] Add credential isolation, project access control, audit history, quotas, and storage retention for multi-user use.

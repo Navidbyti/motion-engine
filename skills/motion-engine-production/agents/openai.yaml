@@ -1,0 +1,4 @@
+interface:
+  display_name: "Motion Engine Production"
+  short_description: "Build and revise local motion graphics drafts"
+  default_prompt: "Create or revise a motion graphics project with the local Motion Engine workflow."

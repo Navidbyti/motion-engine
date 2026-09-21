@@ -92,6 +92,8 @@ Open the repository in Codex or Claude Code and use this prompt to create a vide
 
 > Read AGENTS.md and docs/desktop-agent-workflow.md. Act as the director for my video request: inspect my sources, research factual claims, author the full plan and required assets, run the local first-draft command, inspect the rendered MP4, and improve weak scenes. Report actual limitations. For later prompts, revise only the requested scene and render a new version.
 
+The repository also includes the reusable [`motion-engine-production`](skills/motion-engine-production/SKILL.md) skill. A compatible coding agent can read it directly from the clone. To make it globally discoverable in Codex, copy the `skills/motion-engine-production` folder into your Codex skills directory, then restart Codex. The skill supplies the production decisions and routes to the maintained repository documentation; it does not add an API dependency or grant permission to publish, purchase assets, or use external services.
+
 `AGENTS.md` is the persistent engineering contract. [Architecture](docs/architecture.md), [service contracts](docs/contracts.md), [claim evidence](docs/research.md), [verified revisions](docs/revisions.md), [preview runs](docs/runs.md), [QA](docs/qa.md), [extension API](docs/extensions.md), [compatibility](docs/compatibility.md), and [acceptance tests](docs/acceptance-tests.md) give agents the rest of the build instructions.
 
 The [product completion plan](docs/product-roadmap.md) lists every remaining workstream and the release gates in build order.
