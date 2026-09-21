@@ -74,6 +74,22 @@ def test_director_rejects_invalid_font_family(tmp_path):
                               project_id="editable_card", width=640, height=360)
 
 
+@pytest.mark.parametrize("orientation,size", [("horizontal", (640, 360)), ("vertical", (360, 640))])
+def test_director_eased_card_motion_compiles_to_ae_frame_samples(tmp_path, orientation, size):
+    proposal = json.loads((ROOT / "examples" / f"director-ae-motion-{orientation}.plan.json").read_text(encoding="utf-8"))
+    prompt = tmp_path / "prompt.txt"
+    prompt.write_text("Make two animated editable cards.", encoding="utf-8")
+    spec = compile_director_plan(prompt, tmp_path / "card.motion.json", proposal,
+                                 project_id="animated_card", width=size[0], height=size[1], fps=30)
+    script = tmp_path / "build.jsx"
+    make_ae_script(spec, script, tmp_path / "result.aep", tmp_path / "report.txt")
+    payload = json.loads(script.read_text(encoding="utf-8").removeprefix("var job = ").split(";\n", 1)[0])
+    assert len(payload["positionTracks"]["scene_1/title_1"]) == 13
+    assert len(payload["positionTracks"]["scene_2/title_2"]) == 13
+    rise = 1 if proposal["scenes"][0]["motion"] == "rise" else 2
+    assert len(payload["opacityTracks"][f"scene_{rise}/subtitle_{rise}"]) == 13
+
+
 @pytest.mark.parametrize("name,size", [
     ("card-horizontal", (640, 360)),
     ("card-vertical", (360, 640)),

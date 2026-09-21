@@ -51,8 +51,8 @@ def test_ae_script_rejects_unimplemented_features_and_path_collision(tmp_path):
     with pytest.raises(AEExportError, match="does not support chart.bar"):
         make_ae_script(spec, script, aep, report)
     spec = copy.deepcopy(source)
-    spec["timeline"][0]["animations"][0]["keyframes"][1]["easing"] = "ease_out"
-    with pytest.raises(AEExportError, match="linear opacity"):
+    spec["timeline"][0]["animations"][0]["keyframes"][1]["easing"] = "spring"
+    with pytest.raises(AEExportError, match="known easing"):
         make_ae_script(spec, script, aep, report)
     spec = copy.deepcopy(source)
     spec["timeline"][0]["elements"][0]["params"]["wrap"] = "yes"
@@ -96,9 +96,18 @@ def test_ae_script_builds_editable_linear_position_tracks(tmp_path):
     assert "reopened position key mismatch" in content
 
 
-def test_ae_script_rejects_position_easing_until_native_verified(tmp_path):
+def test_ae_script_samples_eased_position_and_opacity_at_integer_frames(tmp_path):
     spec = load_spec(ROOT / "examples/ae-card.motion.json")
     spec["timeline"][0]["animations"].append({"targetId": "title", "property": "x", "keyframes": [
         {"frame": 0, "value": -1200}, {"frame": 20, "value": 160, "easing": "ease_out"}]})
-    with pytest.raises(AEExportError, match="linear opacity or x/y"):
-        make_ae_script(spec, *_paths(tmp_path))
+    spec["timeline"][0]["animations"][0]["keyframes"][1]["easing"] = "ease_in"
+    script, aep, report = _paths(tmp_path)
+    make_ae_script(spec, script, aep, report)
+    content = script.read_text(encoding="utf-8")
+    payload = json.loads(content.removeprefix("var job = ").split(";\n", 1)[0])
+    position = payload["positionTracks"]["opening/title"]
+    opacity = payload["opacityTracks"]["opening/title"]
+    assert len(position) == 21 and position[10]["frame"] == 10
+    assert position[10]["value"][0] == pytest.approx(790.0)
+    assert len(opacity) == 13 and opacity[6]["value"] == pytest.approx(12.5)
+    assert "reopened opacity key mismatch" in content
