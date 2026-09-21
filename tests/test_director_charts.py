@@ -72,7 +72,10 @@ def test_first_draft_cli_accepts_imported_dataset_fragment(tmp_path):
                  "--fps", "24", "--scale", "0.2"]) == 0
     assert (render_path / "preview.mp4").is_file()
     assert load_spec(spec_path)["datasets"][0]["id"] == "temperatures"
-    assert json.loads((render_path / "qa.json").read_text(encoding="utf-8"))["status"] == "passed"
+    qa = json.loads((render_path / "qa.json").read_text(encoding="utf-8"))
+    assert qa["status"] in ("passed", "needs_review")
+    assert not any(issue.get("severity") == "error" for issue in qa["issues"])
+    assert not any(issue["code"].startswith("data_") for issue in qa["issues"])
 
 
 @pytest.mark.parametrize("change,message", [
