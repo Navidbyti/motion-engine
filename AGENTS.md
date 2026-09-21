@@ -16,6 +16,12 @@ Research factual claims using evidence available to the desktop agent. Write a [
 
 Treat pacing, content density, and sound design as first-draft requirements. The script and editor choose scene count and duration; do not impose arbitrary short-scene quotas. A paced plan gives every scene a narrative purpose, energy level, and explicit `entryFrames`, `holdFrames`, and `exitFrames` whose sum equals the scene duration. Use those windows to control animation speed and reading time. Plan frame-placed sound effects and, when appropriate, an approved project-length soundtrack with fades and narration ducking. Use conservative gains, inspect the mixed audio, and avoid stretching thin copy across the requested duration.
 
+## Update check
+
+Follow `docs/update-policy.md`. When a repository already has an `origin`, check `origin/main` once when starting a new coding-agent session and again only after 24 hours or immediately before a new production run that starts after that interval. Do not interrupt an active render or revision to check. If the local commit is behind, summarize the available update and ask whether to update now unless the user already requested the latest build. Never pull over uncommitted work, never stash or reset user changes automatically, and use fast-forward-only pulls. An up-to-date result is silent after the first session report.
+
+After an update, report `motion-engine version`, reread `AGENTS.md`, `START_HERE.md`, and `docs/desktop-agent-workflow.md`, and continue the same conversation unless `docs/update-policy.md` says a new code session is required. Repeated checks and pulls must be idempotent and must not create new project versions, duplicate messages, or discard the current run state.
+
 ## Boundaries
 
 - MotionSpec is a versioned, portable intermediate representation. Parse, validate, migrate, and hash it before any build.

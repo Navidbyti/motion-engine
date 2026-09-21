@@ -6,6 +6,7 @@ import json
 import sys
 from pathlib import Path
 
+from . import __version__
 from .validation import load_spec, validate
 from .ingest import ingest
 from .planning import load_capabilities, plan
@@ -36,6 +37,7 @@ from .asset_catalog import AssetCatalogError, build_asset_catalog
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="motion-engine")
     sub = parser.add_subparsers(dest="command", required=True)
+    sub.add_parser("version", help="Print the installed Motion Engine build version")
     for name in ("validate", "inspect", "plan", "render", "freeze", "qa"):
         command = sub.add_parser(name)
         command.add_argument("spec")
@@ -188,6 +190,9 @@ def main(argv: list[str] | None = None) -> int:
     data.add_argument("--output")
     args = parser.parse_args(argv)
     try:
+        if args.command == "version":
+            print(__version__)
+            return 0
         if args.command == "ingest":
             result = ingest(args.source, args.source_id, args.limit)
             _emit(result, args.output)

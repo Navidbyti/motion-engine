@@ -1,5 +1,7 @@
 # Motion Engine
 
+**Current build: v0.63.0** · Run `motion-engine version` to check the installed build.
+
 ## Use it with Codex, Claude, or Antigravity
 
 You do not need to create an outputs folder, write JSON, or operate the command line. Give the repository link and your video request to a desktop coding agent. The agent should clone and configure the project, create its ignored `runs/<project-name>/` workspace, run the production workflow, inspect the rendered video, and show you the draft.
@@ -7,6 +9,8 @@ You do not need to create an outputs folder, write JSON, or operate the command 
 **Repository:** https://github.com/Navidbyti/motion-engine
 
 Copy the ready-made agent prompt from **[START_HERE.md](START_HERE.md)**.
+
+Agents should follow the [safe update policy](docs/update-policy.md): check once per coding session, use a fast-forward-only pull, preserve active work, and tell the user only when an update is available or a new code session is genuinely required.
 
 See **[what remains editable](docs/editability.md)** for the difference between MotionSpec, After Effects, Premiere, and flat preview outputs.
 
@@ -62,6 +66,7 @@ git clone https://github.com/Navidbyti/motion-engine.git
 cd motion-engine
 python -m pip install -e ".[dev]" -c requirements-dev.lock
 motion-engine validate examples/hello.motion.json
+motion-engine version
 motion-engine inspect examples/hello.motion.json
 motion-engine ingest examples/assets/hello-script.md --output evidence.json
 motion-engine draft-text examples/assets/prompt-en.txt --output examples/my-draft.motion.json --project-id my_draft --locale en-US

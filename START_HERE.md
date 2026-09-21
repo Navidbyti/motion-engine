@@ -2,11 +2,13 @@
 
 Motion Engine is designed to be operated by a desktop coding agent such as Codex, Claude Code, or Antigravity. You describe the video; the agent handles repository setup, research, planning files, command line tools, rendering, inspection, and revisions.
 
+**Current build: v0.63.0.** Existing clones should follow [the update policy](docs/update-policy.md). A normal fast-forward update does not require a new chat.
+
 ## Give this to your coding agent
 
 Copy and paste this prompt into a new coding-agent task:
 
-> Clone https://github.com/Navidbyti/motion-engine.git and open the repository. Read AGENTS.md and docs/desktop-agent-workflow.md. Install the documented local dependencies and run the tests. Then act as the motion director for this request: **[describe the video here]**. Create a new private workspace under `runs/<project-name>/`; do not assume an output or project folder already exists. Inspect any files I attach, research factual claims when needed, write the complete director plan, prepare or request required assets, render the first MP4 draft, inspect the actual video and QA report, and improve weak scenes before showing me the result. Keep exact text and data in deterministic layers. Do not ask me to create folders, write JSON, copy files, or run repository commands. Ask me only when you genuinely need an external choice, licensed asset, account access, or manual Adobe action.
+> Clone https://github.com/Navidbyti/motion-engine.git, or safely update the existing clone using docs/update-policy.md. Open the repository and read AGENTS.md and docs/desktop-agent-workflow.md. Report `motion-engine version`, install the documented local dependencies, and run the tests. Then act as the motion director for this request: **[describe the video here]**. Create a new private workspace under `runs/<project-name>/`; do not assume an output or project folder already exists. Inspect any files I attach, research factual claims when needed, write the complete director plan, prepare or request required assets, render the first MP4 draft, inspect the actual video and QA report, and improve weak scenes before showing me the result. Keep exact text and data in deterministic layers. Do not ask me to create folders, write JSON, copy files, or run repository commands. Ask me only when you genuinely need an external choice, licensed asset, account access, or manual Adobe action.
 
 Attach your script, PDF, spreadsheet, images, audio, brand files, or reference video to that task. Replace the bold placeholder with your request.
 
@@ -35,6 +37,8 @@ The coding agent should:
 The local Motion Engine performs deterministic compilation, rendering, provenance, and QA. The desktop coding agent supplies creative judgment. No model API key is required by the repository.
 
 For manual finishing, read [what remains editable](docs/editability.md). The After Effects subset preserves supported text, shapes, linked still images, and their opacity, position, still-image scale, and still-image 2D rotation keys. Premiere receives rendered scene clips and markers, so graphics inside those clips are flat.
+
+To test the complete update, prompt, prompt-edit, and manual-edit loop, use the step-by-step [end-to-end user test](docs/end-to-end-user-test.md).
 
 For a full social reel, tell the agent the desired length and ask it to use the `reel` pacing profile, purposeful scene progression, script-led entry/hold/exit timing, sound effects, an optional ducked music bed, and an inspected final audio mix. The agent should choose scene count and reading time from the content. Use the `shot` profile for one compact visual idea.
 
