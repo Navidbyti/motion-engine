@@ -2,15 +2,17 @@
 
 Motion Engine is designed to be operated by a desktop coding agent such as Codex, Claude Code, or Antigravity. You describe the video; the agent handles repository setup, research, planning files, command line tools, rendering, inspection, and revisions.
 
-**Current build: v0.63.0.** Existing clones should follow [the update policy](docs/update-policy.md). A normal fast-forward update does not require a new chat.
+**Current build: v0.63.1.** Existing clones should follow [the update policy](docs/update-policy.md). A normal fast-forward update does not require a new chat.
 
 ## Give this to your coding agent
 
 Copy and paste this prompt into a new coding-agent task:
 
-> Clone https://github.com/Navidbyti/motion-engine.git, or safely update the existing clone using docs/update-policy.md. Open the repository and read AGENTS.md and docs/desktop-agent-workflow.md. Report `motion-engine version`, install the documented local dependencies, and run the tests. Then act as the motion director for this request: **[describe the video here]**. Create a new private workspace under `runs/<project-name>/`; do not assume an output or project folder already exists. Inspect any files I attach, research factual claims when needed, write the complete director plan, prepare or request required assets, render the first MP4 draft, inspect the actual video and QA report, and improve weak scenes before showing me the result. Keep exact text and data in deterministic layers. Do not ask me to create folders, write JSON, copy files, or run repository commands. Ask me only when you genuinely need an external choice, licensed asset, account access, or manual Adobe action.
+> Clone https://github.com/Navidbyti/motion-engine.git into a fresh local directory and open it. Read AGENTS.md and docs/desktop-agent-workflow.md. Report `motion-engine version`, install the documented local dependencies, and run the tests. Then act as the motion director for this request: **[describe the video here]**. Create a new private workspace under `runs/<project-name>/`; do not assume an output or project folder already exists. Inspect any files I attach, research factual claims when needed, write the complete director plan, prepare or request required assets, render the first MP4 draft, inspect the actual video and QA report, and improve weak scenes before showing me the result. Keep exact text and data in deterministic layers. Do not ask me to create folders, write JSON, copy files, or run repository commands. Ask me only when you genuinely need an external choice, licensed asset, account access, or manual Adobe action.
 
 Attach your script, PDF, spreadsheet, images, audio, brand files, or reference video to that task. Replace the bold placeholder with your request.
+
+If the repository is already cloned, tell the agent to open that clone and follow `docs/update-policy.md` instead of cloning another copy. This is an existing-user maintenance path, separate from the fresh-user workflow above.
 
 Examples:
 

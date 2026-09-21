@@ -1,6 +1,6 @@
 # Motion Engine
 
-**Current build: v0.63.0** · Run `motion-engine version` to check the installed build.
+**Current build: v0.63.1** · Run `motion-engine version` to check the installed build.
 
 ## Use it with Codex, Claude, or Antigravity
 
@@ -10,7 +10,7 @@ You do not need to create an outputs folder, write JSON, or operate the command 
 
 Copy the ready-made agent prompt from **[START_HERE.md](START_HERE.md)**.
 
-Agents should follow the [safe update policy](docs/update-policy.md): check once per coding session, use a fast-forward-only pull, preserve active work, and tell the user only when an update is available or a new code session is genuinely required.
+An agent using the project for the first time should clone it into a fresh directory and follow `START_HERE.md`. The [safe update policy](docs/update-policy.md) applies only when the agent opens an existing clone.
 
 See **[what remains editable](docs/editability.md)** for the difference between MotionSpec, After Effects, Premiere, and flat preview outputs.
 

@@ -1,22 +1,23 @@
 # End-to-end user test
 
-This test exercises the intended user experience: update the engine, create a first draft from a prompt, revise it with another prompt, and finish supported layers manually in After Effects.
+This test exercises the intended first-time user experience: start with only the public repository link, create a first draft from a prompt, revise it with another prompt, and finish supported layers manually in After Effects.
 
 ## Recommended test: editable Bitcoin poster reel
 
 Attach one rights-cleared Bitcoin PNG or JPG to the coding-agent task. A transparent PNG is ideal. This test uses a linked still image so Scale, Position, and 2D Rotation remain editable in the generated After Effects project. It tests flat rotation around the image plane; a coin turning in 3D requires a generated or rendered video plate and its internal 3D motion remains baked.
 
-### 1. Update and prepare
+### 1. Start like a new user
 
-Send this to Codex, Claude Code, or Antigravity:
+Start a new coding-agent task in an empty or projectless workspace. This new task is intentional because the goal is to test discovery with no prior Motion Engine conversation or clone. Attach the Bitcoin image and send:
 
-> Open my existing motion-engine clone. Follow `docs/update-policy.md`, update to the latest `origin/main` build if the working tree is safe, and report `motion-engine version`. Read `AGENTS.md`, `START_HERE.md`, and `docs/desktop-agent-workflow.md`. Do not restart or discard my current chat state. Create a fresh ignored project at `runs/bitcoin-editability-test/` and run the repository tests before production.
+> Clone https://github.com/Navidbyti/motion-engine.git into a fresh local directory and open it. Follow the repository's own instructions without relying on prior chat context. Set up its documented local environment, report `motion-engine version`, and run its tests. Then create a fresh ignored project at `runs/bitcoin-editability-test/`. Do not ask me to create folders, write JSON, or run repository commands.
 
 Expected result:
 
-- The agent reports build `0.63.0` or newer.
-- Repeating the same update request says the clone is current and does not create duplicate project versions.
-- Existing `runs/` projects remain untouched.
+- The agent clones the repository itself and discovers `AGENTS.md` and `START_HERE.md`.
+- The agent reports build `0.63.1` or newer.
+- It creates the ignored `runs/bitcoin-editability-test/` directory itself.
+- It does not ask for knowledge from this development conversation.
 
 ### 2. Prompt the first draft
 
@@ -58,6 +59,12 @@ Open the version 2 AEP supplied by the agent. In the scene composition:
 
 The test passes when the image is linked footage, the title is real text, the named transform properties contain editable keys, and the saved changes survive reopen.
 
+Stay in this same coding-agent task for steps 2 and 3 so the agent retains the project paths, accepted creative choices, and current MotionSpec hash. Starting another task between the first draft and prompt revision would weaken the continuity test. Manual editing happens in After Effects after the agent supplies version 2.
+
+## Separate existing-user update test
+
+Update behavior is a different acceptance case. After the fresh-user test is complete, reopen the same clone in a later coding session and ask the agent to follow `docs/update-policy.md`. It should fetch once, preserve the existing `runs/` project, use a fast-forward-only pull when an update exists, and continue in the same conversation unless it identifies a documented restart condition.
+
 ## Ambitious production test
 
 After the editability test passes, try a fuller reel with a generated 3D Bitcoin plate, sound effects, and music:
@@ -72,4 +79,3 @@ This second test exercises generation, moving plates, pacing, audio, and scoped 
 - **Factual explainer:** request a current event explainer that challenges the premise, researches claims, creates a claim ledger, and flags uncertainty before rendering.
 - **Brand product reel:** attach product photography and a brand guide, request a three-scene reel, then revise one headline, one crop, one color, and one timing window.
 - **RTL reel:** attach Persian copy and data, request localized digits and right-to-left layout, then manually inspect glyph shaping and font availability in Adobe.
-
