@@ -43,12 +43,20 @@ def test_director_catalogs_and_renders_scene_narration(tmp_path):
     assets.mkdir()
     audio = assets / "voice.wav"
     _tone(audio)
+    effect = assets / "whoosh.wav"
+    _tone(effect, frames=12_000)
     manifest = tmp_path / "asset-manifest.json"
     manifest.write_text(json.dumps([{"id": "narration", "kind": "audio", "uri": "assets/voice.wav",
-                                     "license": "CC0-1.0", "approved": True}]), encoding="utf-8")
+                                     "license": "CC0-1.0", "approved": True},
+                                    {"id": "whoosh", "kind": "audio", "uri": "assets/whoosh.wav",
+                                     "license": "CC0-1.0", "approved": True,
+                                     "generation": {"technique": "sound"}}]), encoding="utf-8")
     catalog = build_asset_catalog(manifest, tmp_path / "assets.json", fps=24)
     assert catalog[0]["sha256"] == hashlib.sha256(audio.read_bytes()).hexdigest()
     prompt, proposal = _project(tmp_path)
+    proposal["scenes"][0]["soundEffects"] = [
+        {"assetId": "whoosh", "startFrameOffset": 3, "durationFrames": 6, "gainDb": -6}
+    ]
     spec_path = tmp_path / "draft.motion.json"
     spec = compile_director_plan(prompt, spec_path, proposal, project_id="narrated",
                                  width=320, height=180, fps=24, assets=catalog)
@@ -57,6 +65,9 @@ def test_director_catalogs_and_renders_scene_narration(tmp_path):
     scene = spec["timeline"][0]
     narration = next(element for element in scene["elements"] if element["kind"] == "audio")
     assert narration["assetId"] == "narration"
+    effect_element = next(element for element in scene["elements"] if element["id"] == "sfx_1_1")
+    assert (effect_element["startFrame"], effect_element["endFrameExclusive"]) == (3, 9)
+    assert effect_element["params"]["gainDb"] == -6
     assert scene["beats"][0]["voice"]["value"] == "A narrated motion card."
     revision = freeze_revision(spec, tmp_path)
     result = render_preview(spec, tmp_path / "preview", scale=0.2, asset_root=tmp_path,
@@ -79,3 +90,19 @@ def test_director_rejects_unpaired_or_short_narration(tmp_path):
     with pytest.raises(DirectorError, match="scene-length"):
         compile_director_plan(prompt, tmp_path / "draft.motion.json", proposal,
                               project_id="narrated", width=320, height=180, fps=24, assets=catalog)
+
+
+def test_director_rejects_invalid_or_missing_sound_effect(tmp_path):
+    prompt, proposal = _project(tmp_path)
+    proposal["scenes"][0].pop("voice")
+    proposal["scenes"][0].pop("audioAssetId")
+    proposal["scenes"][0]["soundEffects"] = [
+        {"assetId": "missing", "startFrameOffset": 0, "durationFrames": 4, "gainDb": 0}
+    ]
+    with pytest.raises(DirectorError, match="unavailable sound effect"):
+        compile_director_plan(prompt, tmp_path / "missing.motion.json", proposal,
+                              project_id="sound_design", width=320, height=180, fps=24)
+    proposal["scenes"][0]["soundEffects"][0].update({"startFrameOffset": 22, "durationFrames": 4})
+    with pytest.raises(DirectorError, match="outside the scene"):
+        compile_director_plan(prompt, tmp_path / "outside.motion.json", proposal,
+                              project_id="sound_design", width=320, height=180, fps=24)

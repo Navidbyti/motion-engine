@@ -141,6 +141,30 @@ def test_card_layout_rejects_asset_only_zoom(tmp_path):
                               project_id="card_study", width=640, height=360, fps=24)
 
 
+def test_reel_pacing_contract_requires_enough_purposeful_short_scenes(tmp_path):
+    prompt = tmp_path / "prompt.txt"
+    prompt.write_text("Make a fast complete social reel.", encoding="utf-8")
+    proposal = json.loads((ROOT / "examples/director-abstract.plan.json").read_text(encoding="utf-8"))
+    proposal["scenes"].append(dict(proposal["scenes"][0]))
+    proposal["pacing"] = {"profile": "reel", "targetDurationFrames": 72, "toleranceFrames": 0}
+    for index, scene in enumerate(proposal["scenes"], 1):
+        scene.update({"purpose": f"Narrative beat {index}", "energy": min(5, index + 2)})
+    spec = compile_director_plan(prompt, tmp_path / "paced.motion.json", proposal,
+                                 project_id="paced_reel", width=320, height=568, fps=24)
+    assert len(spec["timeline"]) == 3
+    missing_purpose = json.loads(json.dumps(proposal))
+    del missing_purpose["scenes"][1]["purpose"]
+    with pytest.raises(DirectorError, match="needs a purpose and energy"):
+        compile_director_plan(prompt, tmp_path / "missing-purpose.motion.json", missing_purpose,
+                              project_id="paced_reel", width=320, height=568, fps=24)
+    too_slow = json.loads(json.dumps(proposal))
+    too_slow["scenes"][0]["durationFrames"] = 121
+    too_slow["pacing"].update({"targetDurationFrames": 169, "toleranceFrames": 0})
+    with pytest.raises(DirectorError, match="no scene longer than five seconds"):
+        compile_director_plan(prompt, tmp_path / "slow.motion.json", too_slow,
+                              project_id="paced_reel", width=320, height=568, fps=24)
+
+
 def test_slide_motion_moves_title_from_offscreen(tmp_path):
     prompt = tmp_path / "prompt.txt"
     prompt.write_text("A short title with a slide entrance.", encoding="utf-8")
@@ -160,6 +184,46 @@ def test_slide_motion_moves_title_from_offscreen(tmp_path):
     rtl_track = next(animation for animation in rtl["timeline"][0]["animations"]
                      if animation["targetId"] == "title_1" and animation["property"] == "x")
     assert rtl_track["keyframes"][0]["value"] == 320
+
+
+@pytest.mark.parametrize("motion,start_sign,overshoot_sign", [
+    ("whip_left", -1, 1),
+    ("whip_right", 1, -1),
+])
+def test_whip_motion_enters_with_directional_overshoot(tmp_path, motion, start_sign, overshoot_sign):
+    prompt = tmp_path / "prompt.txt"
+    prompt.write_text("A sharp entrance with a controlled settle.", encoding="utf-8")
+    proposal = json.loads((ROOT / "examples/director-abstract.plan.json").read_text(encoding="utf-8"))
+    proposal["scenes"] = proposal["scenes"][:1]
+    proposal["scenes"][0]["motion"] = motion
+    spec = compile_director_plan(prompt, tmp_path / f"{motion}.motion.json", proposal,
+                                 project_id=motion, width=640, height=360, fps=30)
+    track = next(animation for animation in spec["timeline"][0]["animations"]
+                 if animation["targetId"] == "title_1" and animation["property"] == "x")
+    values = [keyframe["value"] for keyframe in track["keyframes"]]
+    assert values[0] * start_sign > 0
+    assert values[1] * overshoot_sign > 0
+    assert values[-1] == spec["canvas"]["safeArea"]["left"]
+    assert ImageChops.difference(FrameRenderer(spec).render_frame(2),
+                                 FrameRenderer(spec).render_frame(20)).getbbox()
+
+
+@pytest.mark.parametrize("direction,size", [("vertical", (360, 640)), ("horizontal", (640, 360))])
+def test_director_gradient_background_adds_visual_depth(tmp_path, direction, size):
+    prompt = tmp_path / "prompt.txt"
+    prompt.write_text("Use a controlled two-color background.", encoding="utf-8")
+    proposal = json.loads((ROOT / "examples/director-abstract.plan.json").read_text(encoding="utf-8"))
+    proposal["scenes"] = proposal["scenes"][:1]
+    proposal["scenes"][0].update({"background": "#102030", "backgroundSecondary": "#D06020",
+                                   "backgroundGradient": direction})
+    spec = compile_director_plan(prompt, tmp_path / f"gradient-{direction}.motion.json", proposal,
+                                 project_id=f"gradient_{direction}", width=size[0], height=size[1], fps=30)
+    background = spec["timeline"][0]["elements"][0]
+    assert background["params"]["gradientEnd"] == "#D06020"
+    frame = FrameRenderer(spec).render_frame(0)
+    assert frame.getpixel((0, 0)) == (16, 32, 48)
+    far = (0, size[1] - 1) if direction == "vertical" else (size[0] - 1, 0)
+    assert frame.getpixel(far) == (208, 96, 32)
 
 
 def test_director_research_and_missing_asset_are_explicit(tmp_path):

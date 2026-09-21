@@ -47,12 +47,14 @@ def build_asset_catalog(manifest_path: str | Path, output_path: str | Path, *, f
         if not isinstance(item["uri"], str):
             raise AssetCatalogError(f"asset {asset_id}: URI must be a portable relative file path")
         generation = item.get("generation")
-        if generation is not None and (not isinstance(generation, dict) or generation.get("technique") not in ("image", "video", "3d", "voice")):
-            raise AssetCatalogError(f"asset {asset_id}: generation technique must be image, video, 3d, or voice")
+        if generation is not None and (not isinstance(generation, dict) or generation.get("technique") not in ("image", "video", "3d", "voice", "sound")):
+            raise AssetCatalogError(f"asset {asset_id}: generation technique must be image, video, 3d, voice, or sound")
         if generation is not None and generation["technique"] == "3d" and item["kind"] != "video.frames":
             raise AssetCatalogError(f"asset {asset_id}: 3D generation needs a moving frame plate")
         if generation is not None and generation["technique"] == "voice" and item["kind"] != "audio":
             raise AssetCatalogError(f"asset {asset_id}: voice generation needs an audio asset")
+        if generation is not None and generation["technique"] == "sound" and item["kind"] != "audio":
+            raise AssetCatalogError(f"asset {asset_id}: sound generation needs an audio asset")
         try:
             file = resolve_local_file(item, output_file.parent, "asset")
         except RevisionError as exc:

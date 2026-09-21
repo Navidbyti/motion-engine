@@ -34,6 +34,8 @@ The coding agent should:
 
 The local Motion Engine performs deterministic compilation, rendering, provenance, and QA. The desktop coding agent supplies creative judgment. No model API key is required by the repository.
 
+For a full social reel, tell the agent the desired length and ask it to use the `reel` pacing profile, purposeful scene progression, sound effects, and an inspected final audio mix. Use the `shot` profile for one compact visual idea.
+
 ## Current boundary
 
 The current release can create useful first drafts from supported typography, cards, images, video plates, narration WAVs, counters, and source-backed bar or line charts. Complex 3D work and complete editable coverage across every Adobe application still require additional tools or adapter work. The agent must state those limitations accurately instead of silently replacing a requested effect.

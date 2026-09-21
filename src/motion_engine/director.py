@@ -69,8 +69,8 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
     if width < 180 or height < 180 or fps not in (24, 25, 30, 50, 60):
         raise DirectorError("unsupported canvas or frame rate")
     required = {"title", "locale", "direction", "researchRequired", "assetRequests", "scenes"}
-    if not isinstance(proposal, dict) or not required <= set(proposal) or set(proposal) - required - {"fontFamily"}:
-        raise DirectorError("director plan needs title, locale, direction, researchRequired, assetRequests, scenes, and optional fontFamily only")
+    if not isinstance(proposal, dict) or not required <= set(proposal) or set(proposal) - required - {"fontFamily", "pacing"}:
+        raise DirectorError("director plan needs title, locale, direction, researchRequired, assetRequests, scenes, and supported optional fields only")
     font_family = proposal.get("fontFamily", "DejaVu Sans")
     if not isinstance(font_family, str) or not font_family.strip() or len(font_family) > 128:
         raise DirectorError("director fontFamily must be a nonempty font family name")
@@ -110,6 +110,31 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
         or proposal["direction"] not in ("ltr", "rtl")
         or not isinstance(proposal["scenes"], list) or not 1 <= len(proposal["scenes"]) <= 30):
         raise DirectorError("director plan metadata or scenes are invalid")
+    pacing = proposal.get("pacing")
+    if pacing is not None:
+        if (not isinstance(pacing, dict)
+                or set(pacing) != {"profile", "targetDurationFrames", "toleranceFrames"}
+                or pacing["profile"] not in ("shot", "reel", "explainer")
+                or not isinstance(pacing["targetDurationFrames"], int)
+                or isinstance(pacing["targetDurationFrames"], bool)
+                or not 12 <= pacing["targetDurationFrames"] <= 10_000
+                or not isinstance(pacing["toleranceFrames"], int)
+                or isinstance(pacing["toleranceFrames"], bool)
+                or not 0 <= pacing["toleranceFrames"] <= 900):
+            raise DirectorError("director pacing contract is invalid")
+        durations = [scene.get("durationFrames") for scene in proposal["scenes"] if isinstance(scene, dict)]
+        if len(durations) != len(proposal["scenes"]) or any(not isinstance(value, int) or isinstance(value, bool) for value in durations):
+            raise DirectorError("director pacing needs integer scene durations")
+        total = sum(durations)
+        if abs(total - pacing["targetDurationFrames"]) > pacing["toleranceFrames"]:
+            raise DirectorError("director plan duration misses its pacing target")
+        profile = pacing["profile"]
+        if profile == "shot" and len(durations) != 1:
+            raise DirectorError("shot pacing requires exactly one scene")
+        if profile == "reel" and (len(durations) < 3 or any(value > 5 * fps for value in durations)):
+            raise DirectorError("reel pacing requires at least three scenes and no scene longer than five seconds")
+        if profile == "explainer" and (len(durations) < 4 or any(value > 10 * fps for value in durations)):
+            raise DirectorError("explainer pacing requires at least four scenes and no scene longer than ten seconds")
     asset_list = assets or []
     if not isinstance(asset_list, list) or any(not isinstance(asset, dict) or not isinstance(asset.get("id"), str)
                                               for asset in asset_list):
@@ -157,8 +182,16 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
     cursor = 0
     scene_keys = {"durationFrames", "visual", "assetId", "title", "subtitle", "background", "accent", "motion"}
     for index, scene in enumerate(proposal["scenes"], 1):
-        if not isinstance(scene, dict) or not scene_keys <= set(scene) or set(scene) - scene_keys - {"claimIds", "voice", "audioAssetId", "transition", "transitionFrames", "counterValue", "counterStartValue", "counterDecimals", "counterPrefix", "counterSuffix", "chartDatasetId", "chartValueField", "chartCategoryField", "chartMinimum", "chartMaximum", "chartUnit", "chartDecimals", "chartTickCount"}:
+        if not isinstance(scene, dict) or not scene_keys <= set(scene) or set(scene) - scene_keys - {"claimIds", "voice", "audioAssetId", "transition", "transitionFrames", "counterValue", "counterStartValue", "counterDecimals", "counterPrefix", "counterSuffix", "chartDatasetId", "chartValueField", "chartCategoryField", "chartMinimum", "chartMaximum", "chartUnit", "chartDecimals", "chartTickCount", "purpose", "energy", "soundEffects", "backgroundSecondary", "backgroundGradient"}:
             raise DirectorError(f"scene {index} has missing or unknown plan fields")
+        purpose, energy = scene.get("purpose"), scene.get("energy")
+        if (("purpose" in scene) != ("energy" in scene)
+                or ("purpose" in scene and (not isinstance(purpose, str) or not purpose.strip()
+                                             or len(purpose) > 240
+                                             or not isinstance(energy, int) or isinstance(energy, bool)
+                                             or not 1 <= energy <= 5))
+                or (pacing is not None and "purpose" not in scene)):
+            raise DirectorError(f"scene {index} needs a purpose and energy from 1 to 5 for paced production")
         scene_claim_ids = scene.get("claimIds", [])
         if not isinstance(scene_claim_ids, list) or any(not isinstance(item, str) for item in scene_claim_ids) or len(scene_claim_ids) != len(set(scene_claim_ids)):
             raise DirectorError(f"scene {index} claimIds must be a list of unique IDs")
@@ -180,6 +213,14 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
         if any(not isinstance(scene[field], str) or not re.fullmatch(r"#[0-9A-Fa-f]{6}", scene[field])
                for field in ("background", "accent")):
             raise DirectorError(f"scene {index} colors must be #RRGGBB")
+        background_secondary = scene.get("backgroundSecondary")
+        background_gradient = scene.get("backgroundGradient")
+        if ("backgroundSecondary" in scene) != ("backgroundGradient" in scene):
+            raise DirectorError(f"scene {index} backgroundSecondary and backgroundGradient must be supplied together")
+        if "backgroundSecondary" in scene and (not isinstance(background_secondary, str)
+                                                or not re.fullmatch(r"#[0-9A-Fa-f]{6}", background_secondary)
+                                                or background_gradient not in ("vertical", "horizontal")):
+            raise DirectorError(f"scene {index} background gradient is invalid")
         visual, asset_id, motion = scene["visual"], scene["assetId"], scene["motion"]
         voice, audio_asset_id = scene.get("voice", ""), scene.get("audioAssetId", "")
         transition = scene.get("transition", "cut")
@@ -212,9 +253,36 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
                         raise DirectorError(f"scene {index} narration needs a scene-length mono 16-bit PCM WAV at 48 kHz")
             except (OSError, EOFError, wave.Error) as exc:
                 raise DirectorError(f"scene {index} narration audio cannot be decoded") from exc
+        sound_effects = scene.get("soundEffects", [])
+        if not isinstance(sound_effects, list) or len(sound_effects) > 8:
+            raise DirectorError(f"scene {index} soundEffects must be a list of at most eight cues")
+        for cue_index, cue in enumerate(sound_effects, 1):
+            if (not isinstance(cue, dict)
+                    or set(cue) != {"assetId", "startFrameOffset", "durationFrames", "gainDb"}
+                    or not isinstance(cue["assetId"], str)
+                    or not isinstance(cue["startFrameOffset"], int) or isinstance(cue["startFrameOffset"], bool)
+                    or not isinstance(cue["durationFrames"], int) or isinstance(cue["durationFrames"], bool)
+                    or cue["startFrameOffset"] < 0 or cue["durationFrames"] < 1
+                    or cue["startFrameOffset"] + cue["durationFrames"] > duration
+                    or not isinstance(cue["gainDb"], (int, float)) or isinstance(cue["gainDb"], bool)
+                    or not math.isfinite(cue["gainDb"]) or not -60 <= cue["gainDb"] <= 12):
+                raise DirectorError(f"scene {index} sound effect {cue_index} is invalid or outside the scene")
+            effect_asset = asset_ids.get(cue["assetId"])
+            if effect_asset is None or effect_asset.get("kind") != "audio":
+                raise DirectorError(f"scene {index} requests unavailable sound effect {cue['assetId']!r}")
+            effect_path = resolve_local_file(effect_asset, output.parent, "asset")
+            try:
+                with wave.open(str(effect_path), "rb") as effect:
+                    needed = cue["durationFrames"] * 48_000 // fps
+                    if (effect_path.suffix.lower() != ".wav" or effect.getcomptype() != "NONE"
+                            or effect.getnchannels() != 1 or effect.getsampwidth() != 2
+                            or effect.getframerate() != 48_000 or effect.getnframes() < needed):
+                        raise DirectorError(f"scene {index} sound effect {cue_index} needs enough mono 16-bit PCM WAV at 48 kHz")
+            except (OSError, EOFError, wave.Error) as exc:
+                raise DirectorError(f"scene {index} sound effect {cue_index} cannot be decoded") from exc
         if not isinstance(asset_id, str):
             raise DirectorError(f"scene {index} asset ID must be a string")
-        if visual not in ("typography", "shape", "card", "asset", "counter", "bar_chart", "line_chart") or motion not in ("none", "fade", "zoom", "slide", "rise"):
+        if visual not in ("typography", "shape", "card", "asset", "counter", "bar_chart", "line_chart") or motion not in ("none", "fade", "zoom", "slide", "rise", "whip_left", "whip_right"):
             raise DirectorError(f"scene {index} visual or motion is unsupported")
         if visual == "asset" and asset_id not in asset_ids:
             raise DirectorError(f"scene {index} requests unavailable asset {asset_id!r}; generate or import it first")
@@ -275,10 +343,14 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
             raise DirectorError(f"scene {index} chart fields require a chart visual")
         start, end = cursor, cursor + duration
         scene_id = f"scene_{index}"
+        background_params = {"shape": "rect", "color": scene["background"]}
+        if background_secondary:
+            background_params.update({"gradientEnd": background_secondary,
+                                      "gradientDirection": background_gradient})
         elements = [{"id": f"background_{index}", "kind": "shape", "startFrame": start,
                      "endFrameExclusive": end,
                      "bounds": {"x": 0, "y": 0, "width": width, "height": height},
-                     "params": {"shape": "rect", "color": scene["background"]}, "zIndex": -1}]
+                     "params": background_params, "zIndex": -1}]
         animations = []
         if visual == "asset":
             asset = asset_ids[asset_id]
@@ -291,6 +363,13 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
             if motion == "zoom":
                 animations.append({"targetId": element_id, "property": "scale", "keyframes": [
                     {"frame": start, "value": 1}, {"frame": end - 1, "value": 1.15, "easing": "ease_in_out"}]})
+            if motion in ("whip_left", "whip_right"):
+                direction = -1 if motion == "whip_left" else 1
+                overshoot = -direction * round(width * 0.06)
+                animations.append({"targetId": element_id, "property": "x", "keyframes": [
+                    {"frame": start, "value": direction * width},
+                    {"frame": start + min(7, duration - 2), "value": overshoot, "easing": "ease_out"},
+                    {"frame": start + min(11, duration - 1), "value": 0, "easing": "ease_in_out"}]})
             elements.append({"id": f"lower_third_{index}", "kind": "shape", "startFrame": start,
                              "endFrameExclusive": end,
                              "bounds": {"x": 0, "y": round(height * 0.62),
@@ -385,6 +464,19 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
                 animations.append({"targetId": element_id, "property": "x", "keyframes": [
                     {"frame": begin, "value": enter_x},
                     {"frame": finish, "value": text_x, "easing": "ease_out"}]})
+            if motion in ("whip_left", "whip_right"):
+                begin = start + (min(2, duration - 3) if title else min(5, duration - 3))
+                direction = -1 if motion == "whip_left" else 1
+                overshoot = text_x - direction * round(width * 0.05)
+                animations.append({"targetId": element_id, "property": "x", "keyframes": [
+                    {"frame": begin, "value": direction * width},
+                    {"frame": start + min(8 if title else 10, duration - 2),
+                     "value": overshoot, "easing": "ease_out"},
+                    {"frame": start + min(12 if title else 14, duration - 1),
+                     "value": text_x, "easing": "ease_in_out"}]})
+                animations.append({"targetId": element_id, "property": "opacity", "keyframes": [
+                    {"frame": begin, "value": 0},
+                    {"frame": min(begin + 3, end - 1), "value": 1, "easing": "ease_out"}]})
             if motion == "rise":
                 begin = start + (0 if title else min(4, duration - 2))
                 finish = start + min(12 if title else 16, duration - 1)
@@ -399,6 +491,13 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
             elements.append({"id": f"narration_{index}", "kind": "audio", "startFrame": start,
                              "endFrameExclusive": end, "assetId": audio_asset_id,
                              "params": {"gainDb": 0}, "zIndex": 3})
+        for cue_index, cue in enumerate(sound_effects, 1):
+            cue_start = start + cue["startFrameOffset"]
+            elements.append({"id": f"sfx_{index}_{cue_index}", "kind": "audio",
+                             "startFrame": cue_start,
+                             "endFrameExclusive": cue_start + cue["durationFrames"],
+                             "assetId": cue["assetId"], "params": {"gainDb": cue["gainDb"]},
+                             "zIndex": 3})
         timeline.append({"id": scene_id, "startFrame": start, "endFrameExclusive": end,
                          "transitionIn": "start" if index == 1 else transition,
                          **({"transitionFrames": transition_frames} if transition == "fade" else {}),

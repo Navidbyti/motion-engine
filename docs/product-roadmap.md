@@ -36,6 +36,8 @@ This is the ordered work list for a usable, general motion-production engine. A 
 - [x] Add preview x/y position tracks, desktop-agent slide entrances, and scoped position-keyframe edits with frame and canvas bounds checks.
 - [x] Add a reusable contrast-aware card layout to the desktop director, verified on horizontal and vertical public fixtures.
 - [x] Add a staggered rise-and-fade text entrance on frame-based tracks, verified on two public aspect ratios.
+- [x] Add explicit shot, reel, and explainer pacing contracts; paced reels require at least three purposeful scenes and cap individual scenes at five seconds.
+- [x] Add directional whip entrances with overshoot and settle, plus deterministic horizontal and vertical two-color scene backgrounds.
 - [x] Let desktop director plans attach exact narration text to approved scene-length WAV assets, resolve pending audio requests, and render the synchronized track into the first-draft MP4. Transcription and word alignment remain open.
 - [x] Let a director plan select an explicit font family; two static card plans rendered complete previews and passed native After Effects save/reopen checks on horizontal and vertical fixtures. Font coverage remains open.
 - [x] Preserve director `rise`, `slide`, and eased opacity motion in editable After Effects projects through exact integer-frame sampling; horizontal and vertical plans passed native save/reopen key checks. Font coverage remains open.
@@ -69,6 +71,7 @@ This is the ordered work list for a usable, general motion-production engine. A 
 - [ ] Add chart axes, ticks, labels, units, baseline rules, and exact-data visual conformance checks.
 - [x] Render chart category labels, bounded value ticks, explicit units, final values, and positive/negative zero baselines. Automated pixel-level geometry conformance remains open.
 - [x] Add frame-placed mono PCM WAV tracks with exact sample alignment, deterministic mixing, and clipping rejection.
+- [x] Let director plans place multiple approved sound-effect WAV cues at exact scene-relative frames with independent gain.
 - [ ] Add compressed/stereo audio, background music workflows, fades, ducking, loudness controls, and audio QA.
 - [ ] Add a performance path for long videos and high-resolution frames without changing deterministic output.
 

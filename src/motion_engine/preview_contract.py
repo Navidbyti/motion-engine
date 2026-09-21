@@ -2,7 +2,7 @@
 
 PREVIEW_PARAMS = {
     "text": {"color", "fontSize", "wrap"},
-    "shape": {"color", "shape"},
+    "shape": {"color", "shape", "gradientEnd", "gradientDirection"},
     "image": {"fit"},
     "video": {"fit", "sourceStartFrame"},
     "audio": {"gainDb"},

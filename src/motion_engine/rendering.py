@@ -414,7 +414,25 @@ class FrameRenderer:
         opacity = max(0.0, min(1.0, self._property(element["id"], "opacity", frame, 1.0)))
         overlay = Image.new("RGBA", image.size, (0, 0, 0, 0))
         color = _rgb(element["params"].get("color", "#FFFFFF"))
-        ImageDraw.Draw(overlay).rectangle((x, y, x + w, y + h), fill=(*color, round(255 * opacity)))
+        gradient_end = element["params"].get("gradientEnd")
+        if gradient_end is None:
+            ImageDraw.Draw(overlay).rectangle((x, y, x + w, y + h), fill=(*color, round(255 * opacity)))
+        else:
+            end_color = _rgb(gradient_end)
+            direction = element["params"].get("gradientDirection")
+            if direction not in ("vertical", "horizontal"):
+                raise RenderError(f"shape {element['id']} gradientDirection must be vertical or horizontal")
+            length = h if direction == "vertical" else w
+            strip = Image.new("RGBA", (1, length) if direction == "vertical" else (length, 1))
+            pixels = []
+            for position in range(length):
+                ratio = position / max(1, length - 1)
+                channels = tuple(round(left + (right - left) * ratio)
+                                 for left, right in zip(color, end_color))
+                pixels.append((*channels, round(255 * opacity)))
+            strip.putdata(pixels)
+            gradient = strip.resize((w, h))
+            overlay.paste(gradient, (x, y), gradient)
         image.paste(overlay, (0, 0), overlay)
 
     def _image(self, image: Image.Image, element: dict[str, Any], frame: int) -> None:
