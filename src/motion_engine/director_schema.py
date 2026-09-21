@@ -23,6 +23,7 @@ DIRECTOR_PLAN_SCHEMA = {
         "title": {"type": "string"},
         "locale": {"type": "string"},
         "direction": {"type": "string", "enum": ["ltr", "rtl"]},
+        "fontFamily": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "\\S"},
         "researchRequired": {"type": "boolean"},
         "assetRequests": {"type": "array", "items": {
             "type": "object", "additionalProperties": False,

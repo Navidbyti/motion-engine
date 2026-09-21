@@ -8,6 +8,7 @@ from PIL import ImageChops
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 from motion_engine.cli import main
+from motion_engine.ae_script import make_ae_script
 from motion_engine.director import DirectorError, compile_director_plan
 from motion_engine.planning import plan
 from motion_engine.rendering import FrameRenderer
@@ -44,6 +45,33 @@ def test_shape_accent_sits_between_title_and_subtitle():
     title, accent, subtitle = (elements[name]["bounds"] for name in ("title_2", "accent_2", "subtitle_2"))
     assert title["y"] + title["height"] <= accent["y"]
     assert accent["y"] + accent["height"] <= subtitle["y"]
+
+
+@pytest.mark.parametrize("orientation,size", [("horizontal", (640, 360)), ("vertical", (360, 640))])
+def test_director_card_can_choose_explicit_native_font(tmp_path, orientation, size):
+    from jsonschema import Draft202012Validator
+    from motion_engine.director_schema import DIRECTOR_PLAN_SCHEMA
+
+    proposal = json.loads((ROOT / "examples" / f"director-ae-card-{orientation}.plan.json").read_text(encoding="utf-8"))
+    assert not list(Draft202012Validator(DIRECTOR_PLAN_SCHEMA).iter_errors(proposal))
+    prompt = tmp_path / "prompt.txt"
+    prompt.write_text("Make a clean editable card.", encoding="utf-8")
+    spec = compile_director_plan(prompt, tmp_path / "card.motion.json", proposal,
+                                 project_id="editable_card", width=size[0], height=size[1], fps=30)
+    assert all(element["text"]["fontFamily"] == "Arial" for scene in spec["timeline"]
+               for element in scene["elements"] if element["kind"] == "text")
+    assert not validate(spec)
+    assert make_ae_script(spec, tmp_path / "build.jsx", tmp_path / "result.aep", tmp_path / "report.txt")
+
+
+def test_director_rejects_invalid_font_family(tmp_path):
+    proposal = json.loads((ROOT / "examples/director-ae-card-horizontal.plan.json").read_text(encoding="utf-8"))
+    proposal["fontFamily"] = "   "
+    prompt = tmp_path / "prompt.txt"
+    prompt.write_text("Make a card.", encoding="utf-8")
+    with pytest.raises(DirectorError, match="fontFamily"):
+        compile_director_plan(prompt, tmp_path / "card.motion.json", proposal,
+                              project_id="editable_card", width=640, height=360)
 
 
 @pytest.mark.parametrize("name,size", [

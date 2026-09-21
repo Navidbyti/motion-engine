@@ -66,8 +66,11 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
     if width < 180 or height < 180 or fps not in (24, 25, 30, 50, 60):
         raise DirectorError("unsupported canvas or frame rate")
     required = {"title", "locale", "direction", "researchRequired", "assetRequests", "scenes"}
-    if not isinstance(proposal, dict) or set(proposal) != required:
-        raise DirectorError("director plan needs title, locale, direction, researchRequired, assetRequests, and scenes only")
+    if not isinstance(proposal, dict) or not required <= set(proposal) or set(proposal) - required - {"fontFamily"}:
+        raise DirectorError("director plan needs title, locale, direction, researchRequired, assetRequests, scenes, and optional fontFamily only")
+    font_family = proposal.get("fontFamily", "DejaVu Sans")
+    if not isinstance(font_family, str) or not font_family.strip() or len(font_family) > 128:
+        raise DirectorError("director fontFamily must be a nonempty font family name")
     claim_source = None
     research_sources = []
     claim_locations = {}
@@ -218,7 +221,7 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
                              "endFrameExclusive": end,
                              "bounds": {"x": text_x, "y": y, "width": text_width, "height": box_h},
                              "text": {"value": value, "locale": proposal["locale"],
-                                      "direction": proposal["direction"], "fontFamily": "DejaVu Sans",
+                                      "direction": proposal["direction"], "fontFamily": font_family,
                                       "fontWeight": 700 if title else 400, "align": "center"},
                              "params": {"color": _card_text_color(scene["accent"]) if visual == "card" else "#FFFFFF",
                                         "fontSize": max(20, round(min(width, height) * (0.055 if title else 0.038))), "wrap": True},

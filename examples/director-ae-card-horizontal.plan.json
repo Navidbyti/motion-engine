@@ -1,0 +1,30 @@
+{
+  "title": "Card layout study",
+  "locale": "en-US",
+  "direction": "ltr",
+  "researchRequired": false,
+  "assetRequests": [],
+  "scenes": [
+    {
+      "durationFrames": 24,
+      "visual": "card",
+      "assetId": "",
+      "title": "Clear idea",
+      "subtitle": "One useful line",
+      "background": "#101820",
+      "accent": "#F5D547",
+      "motion": "none"
+    },
+    {
+      "durationFrames": 24,
+      "visual": "card",
+      "assetId": "",
+      "title": "Next step",
+      "subtitle": "Keep moving",
+      "background": "#E8EDF2",
+      "accent": "#17365D",
+      "motion": "none"
+    }
+  ],
+  "fontFamily": "Arial"
+}
