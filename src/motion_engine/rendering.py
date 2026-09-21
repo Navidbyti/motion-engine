@@ -157,6 +157,7 @@ class FrameRenderer:
                 if beat.get("voice", {}).get("value", "").strip():
                     linked = [elements_by_id.get(element_id) for element_id in beat.get("elementIds", [])]
                     if not any(element and element["kind"] == "audio"
+                               and element["params"].get("role") not in ("music", "sound_effect")
                                and element["startFrame"] <= beat["startFrame"]
                                and element["endFrameExclusive"] >= beat["endFrameExclusive"]
                                for element in linked):
@@ -295,13 +296,30 @@ class FrameRenderer:
         except (OSError, EOFError, wave.Error) as exc:
             raise RenderError(f"audio {element['id']} cannot be decoded: {exc}") from exc
         rate = self.spec["canvas"]["frameRate"]
-        count = _sample_for_frame(element["endFrameExclusive"], rate) - _sample_for_frame(element["startFrame"], rate)
-        if available < count:
+        params = element["params"]
+        duration_frames = element["endFrameExclusive"] - element["startFrame"]
+        source_start_frame = params.get("sourceStartFrame", 0)
+        fade_in_frames = params.get("fadeInFrames", 0)
+        fade_out_frames = params.get("fadeOutFrames", 0)
+        role = params.get("role", "generic")
+        if (not isinstance(source_start_frame, int) or isinstance(source_start_frame, bool) or source_start_frame < 0
+                or not isinstance(fade_in_frames, int) or isinstance(fade_in_frames, bool) or fade_in_frames < 0
+                or not isinstance(fade_out_frames, int) or isinstance(fade_out_frames, bool) or fade_out_frames < 0
+                or fade_in_frames + fade_out_frames > duration_frames):
+            raise RenderError(f"audio {element['id']} source and fade frames are invalid")
+        if role not in ("generic", "narration", "music", "sound_effect"):
+            raise RenderError(f"audio {element['id']} has unsupported role {role!r}")
+        source_start = _sample_for_frame(source_start_frame, rate)
+        count = _sample_for_frame(duration_frames, rate)
+        if available < source_start + count:
             raise RenderError(f"audio {element['id']} is shorter than its declared frame window")
-        gain = element["params"].get("gainDb", 0)
+        gain = params.get("gainDb", 0)
         if not isinstance(gain, (int, float)) or isinstance(gain, bool) or not math.isfinite(gain) or not -60 <= gain <= 12:
             raise RenderError(f"audio {element['id']} gainDb must be between -60 and 12")
-        self.audio_clips.append({"path": path, "element": element, "gain": 10 ** (gain / 20)})
+        self.audio_clips.append({"path": path, "element": element, "gain": 10 ** (gain / 20),
+                                 "sourceStart": source_start,
+                                 "fadeInSamples": _sample_for_frame(fade_in_frames, rate),
+                                 "fadeOutSamples": _sample_for_frame(fade_out_frames, rate)})
 
     def _property(self, element_id: str, property_name: str, frame: int, default: float) -> float:
         keyframes = self.animations.get(element_id, {}).get(property_name)
@@ -653,6 +671,7 @@ def _mix_audio(renderer: FrameRenderer, output: Path) -> None:
         start = _sample_for_frame(element["startFrame"], rate)
         end = _sample_for_frame(element["endFrameExclusive"], rate)
         with wave.open(str(clip["path"]), "rb") as source:
+            source.setpos(clip["sourceStart"])
             data = source.readframes(end - start)
         samples = array("h")
         samples.frombytes(data)
@@ -661,7 +680,12 @@ def _mix_audio(renderer: FrameRenderer, output: Path) -> None:
         if len(samples) != end - start:
             raise RenderError(f"audio {element['id']} changed or ended during mixing")
         for offset, value in enumerate(samples):
-            mixed[start + offset] += round(value * clip["gain"])
+            envelope = 1.0
+            if clip["fadeInSamples"]:
+                envelope = min(envelope, offset / clip["fadeInSamples"])
+            if clip["fadeOutSamples"]:
+                envelope = min(envelope, (len(samples) - 1 - offset) / clip["fadeOutSamples"])
+            mixed[start + offset] += round(value * clip["gain"] * max(0.0, envelope))
     if any(value < -32768 or value > 32767 for value in mixed):
         raise RenderError("audio mix clips; lower one or more gainDb values")
     result = array("h", mixed)

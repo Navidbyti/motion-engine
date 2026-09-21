@@ -69,7 +69,7 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
     if width < 180 or height < 180 or fps not in (24, 25, 30, 50, 60):
         raise DirectorError("unsupported canvas or frame rate")
     required = {"title", "locale", "direction", "researchRequired", "assetRequests", "scenes"}
-    if not isinstance(proposal, dict) or not required <= set(proposal) or set(proposal) - required - {"fontFamily", "pacing"}:
+    if not isinstance(proposal, dict) or not required <= set(proposal) or set(proposal) - required - {"fontFamily", "pacing", "soundtrack"}:
         raise DirectorError("director plan needs title, locale, direction, researchRequired, assetRequests, scenes, and supported optional fields only")
     font_family = proposal.get("fontFamily", "DejaVu Sans")
     if not isinstance(font_family, str) or not font_family.strip() or len(font_family) > 128:
@@ -104,7 +104,7 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
         raise DirectorError("assetRequests must be a list")
     if proposal["assetRequests"]:
         requests = [str(item.get("description", item)) for item in proposal["assetRequests"]]
-        raise DirectorError("first draft needs unresolved visual assets: " + "; ".join(requests))
+        raise DirectorError("first draft needs unresolved assets: " + "; ".join(requests))
     if (not isinstance(proposal["title"], str) or not proposal["title"].strip()
         or not isinstance(proposal["locale"], str) or len(proposal["locale"]) < 2
         or proposal["direction"] not in ("ltr", "rtl")
@@ -149,6 +149,41 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
             raise DirectorError(str(exc)) from exc
         if file_sha256(path) != asset["sha256"]:
             raise DirectorError(f"asset {asset['id']} SHA-256 mismatch")
+    soundtrack = proposal.get("soundtrack")
+    if soundtrack is not None:
+        if (not isinstance(soundtrack, dict)
+                or set(soundtrack) != {"assetId", "gainDb", "fadeInFrames", "fadeOutFrames",
+                                      "duckUnderNarrationDb"}
+                or not isinstance(soundtrack["gainDb"], (int, float))
+                or isinstance(soundtrack["gainDb"], bool) or not math.isfinite(soundtrack["gainDb"])
+                or not -60 <= soundtrack["gainDb"] <= 0
+                or not isinstance(soundtrack["duckUnderNarrationDb"], (int, float))
+                or isinstance(soundtrack["duckUnderNarrationDb"], bool)
+                or not math.isfinite(soundtrack["duckUnderNarrationDb"])
+                or not -60 <= soundtrack["duckUnderNarrationDb"] <= 0
+                or not isinstance(soundtrack["fadeInFrames"], int)
+                or isinstance(soundtrack["fadeInFrames"], bool) or soundtrack["fadeInFrames"] < 0
+                or not isinstance(soundtrack["fadeOutFrames"], int)
+                or isinstance(soundtrack["fadeOutFrames"], bool) or soundtrack["fadeOutFrames"] < 0):
+            raise DirectorError("director soundtrack contract is invalid")
+        durations = [scene.get("durationFrames") for scene in proposal["scenes"] if isinstance(scene, dict)]
+        if (len(durations) != len(proposal["scenes"])
+                or any(not isinstance(value, int) or isinstance(value, bool) or value < 1 for value in durations)):
+            raise DirectorError("director soundtrack needs valid scene durations")
+        if soundtrack["fadeInFrames"] > durations[0] or soundtrack["fadeOutFrames"] > durations[-1]:
+            raise DirectorError("director soundtrack fades must fit the first and last scenes")
+        music_asset = asset_ids.get(soundtrack["assetId"])
+        if music_asset is None or music_asset.get("kind") != "audio":
+            raise DirectorError(f"director soundtrack requests unavailable audio asset {soundtrack['assetId']!r}")
+        try:
+            with wave.open(str(resolve_local_file(music_asset, output.parent, "asset")), "rb") as audio:
+                needed = round(sum(durations) * 48_000 / fps)
+                if (audio.getcomptype() != "NONE" or audio.getnchannels() != 1
+                        or audio.getsampwidth() != 2 or audio.getframerate() != 48_000
+                        or audio.getnframes() < needed):
+                    raise DirectorError("director soundtrack needs a project-length mono 16-bit PCM WAV at 48 kHz")
+        except (OSError, EOFError, wave.Error) as exc:
+            raise DirectorError("director soundtrack audio cannot be decoded") from exc
     data_sources: dict[str, dict[str, Any]] = {}
     datasets: dict[str, dict[str, Any]] = {}
     reserved_source_ids = {"user_prompt", "director_plan", "claim_ledger", *(item["id"] for item in research_sources)}
@@ -519,13 +554,25 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
         if audio_asset_id:
             elements.append({"id": f"narration_{index}", "kind": "audio", "startFrame": start,
                              "endFrameExclusive": end, "assetId": audio_asset_id,
-                             "params": {"gainDb": 0}, "zIndex": 3})
+                             "params": {"gainDb": 0, "role": "narration"}, "zIndex": 3})
         for cue_index, cue in enumerate(sound_effects, 1):
             cue_start = start + cue["startFrameOffset"]
             elements.append({"id": f"sfx_{index}_{cue_index}", "kind": "audio",
                              "startFrame": cue_start,
                              "endFrameExclusive": cue_start + cue["durationFrames"],
-                             "assetId": cue["assetId"], "params": {"gainDb": cue["gainDb"]},
+                             "assetId": cue["assetId"],
+                             "params": {"gainDb": cue["gainDb"], "role": "sound_effect"},
+                             "zIndex": 3})
+        if soundtrack is not None:
+            music_gain = max(-60, soundtrack["gainDb"]
+                             + (soundtrack["duckUnderNarrationDb"] if audio_asset_id else 0))
+            elements.append({"id": f"music_{index}", "kind": "audio", "startFrame": start,
+                             "endFrameExclusive": end, "assetId": soundtrack["assetId"],
+                             "params": {"gainDb": music_gain, "role": "music",
+                                        "sourceStartFrame": start,
+                                        "fadeInFrames": soundtrack["fadeInFrames"] if index == 1 else 0,
+                                        "fadeOutFrames": (soundtrack["fadeOutFrames"]
+                                                          if index == len(proposal["scenes"]) else 0)},
                              "zIndex": 3})
         timeline.append({"id": scene_id, "startFrame": start, "endFrameExclusive": end,
                          "transitionIn": "start" if index == 1 else transition,

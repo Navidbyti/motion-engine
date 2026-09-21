@@ -91,6 +91,42 @@ def test_overlapping_audio_tracks_fail_on_clipping(tmp_path):
     assert not (tmp_path / "bad").exists()
 
 
+def test_audio_source_offset_and_frame_fades_are_sample_exact(tmp_path):
+    audio = tmp_path / "music.wav"
+    with wave.open(str(audio), "wb") as stream:
+        stream.setnchannels(1)
+        stream.setsampwidth(2)
+        stream.setframerate(48_000)
+        stream.writeframes(struct.pack("<" + "h" * 96_000, *([1000] * 48_000 + [2000] * 48_000)))
+    spec = copy.deepcopy(load_spec(ROOT / "examples/hello.motion.json"))
+    spec["assets"] = [{"id": "music_asset", "kind": "audio", "status": "available", "uri": "music.wav",
+                       "sha256": hashlib.sha256(audio.read_bytes()).hexdigest()}]
+    spec["timeline"][0]["elements"].append({
+        "id": "music_track", "kind": "audio", "startFrame": 30, "endFrameExclusive": 60,
+        "assetId": "music_asset", "params": {"gainDb": 0, "role": "music", "sourceStartFrame": 30,
+                                                 "fadeInFrames": 5, "fadeOutFrames": 5}})
+    assert plan(spec)["buildable"]
+    render_preview(spec, tmp_path / "music-render", asset_root=tmp_path, scale=0.1, mp4=False)
+    with wave.open(str(tmp_path / "music-render/mix.wav"), "rb") as stream:
+        samples = struct.unpack("<" + "h" * stream.getnframes(), stream.readframes(stream.getnframes()))
+    assert samples[48_000] == 0
+    assert samples[56_000] == 2000
+    assert samples[95_999] == 0
+    assert max(abs(value) for value in samples[:48_000]) == 0
+
+
+def test_audio_rejects_invalid_fades_and_source_range(tmp_path):
+    spec, _ = _with_audio(tmp_path)
+    audio_element = spec["timeline"][0]["elements"][-1]
+    audio_element["params"].update({"fadeInFrames": 16, "fadeOutFrames": 15})
+    assert not plan(spec)["buildable"]
+    with pytest.raises(RenderError, match="source and fade frames"):
+        FrameRenderer(spec, asset_root=tmp_path)
+    audio_element["params"] = {"gainDb": 0, "sourceStartFrame": 31}
+    with pytest.raises(RenderError, match="shorter"):
+        FrameRenderer(spec, asset_root=tmp_path)
+
+
 @pytest.mark.parametrize("amplitude,expected_issue", [
     (3000, None),
     (0, "audio_mix_silent"),

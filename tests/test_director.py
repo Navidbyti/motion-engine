@@ -250,7 +250,7 @@ def test_director_research_and_missing_asset_are_explicit(tmp_path):
     proposal["researchRequired"] = False
     proposal["assetRequests"] = [{"id": "coin", "kind": "3d",
                                   "description": "A rotating metallic coin in depth", "durationFrames": 90}]
-    with pytest.raises(DirectorError, match="unresolved visual assets"):
+    with pytest.raises(DirectorError, match="unresolved assets"):
         compile_director_plan(prompt, tmp_path / "draft.json", proposal,
                               project_id="draft", width=320, height=180, fps=24)
     proposal["assetRequests"] = []

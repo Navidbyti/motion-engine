@@ -34,7 +34,7 @@ The coding agent should:
 
 The local Motion Engine performs deterministic compilation, rendering, provenance, and QA. The desktop coding agent supplies creative judgment. No model API key is required by the repository.
 
-For a full social reel, tell the agent the desired length and ask it to use the `reel` pacing profile, purposeful scene progression, script-led entry/hold/exit timing, sound effects, and an inspected final audio mix. The agent should choose scene count and reading time from the content. Use the `shot` profile for one compact visual idea.
+For a full social reel, tell the agent the desired length and ask it to use the `reel` pacing profile, purposeful scene progression, script-led entry/hold/exit timing, sound effects, an optional ducked music bed, and an inspected final audio mix. The agent should choose scene count and reading time from the content. Use the `shot` profile for one compact visual idea.
 
 ## Current boundary
 

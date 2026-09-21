@@ -67,6 +67,16 @@ DIRECTOR_PLAN_SCHEMA = {
                                   "targetDurationFrames": {"type": "integer", "minimum": 12, "maximum": 10000},
                                   "toleranceFrames": {"type": "integer", "minimum": 0, "maximum": 900}},
                    "required": ["profile", "targetDurationFrames", "toleranceFrames"]},
+        "soundtrack": {"type": "object", "additionalProperties": False,
+                       "properties": {
+                           "assetId": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_.-]*$"},
+                           "gainDb": {"type": "number", "minimum": -60, "maximum": 0},
+                           "fadeInFrames": {"type": "integer", "minimum": 0},
+                           "fadeOutFrames": {"type": "integer", "minimum": 0},
+                           "duckUnderNarrationDb": {"type": "number", "minimum": -60, "maximum": 0},
+                       },
+                       "required": ["assetId", "gainDb", "fadeInFrames", "fadeOutFrames",
+                                    "duckUnderNarrationDb"]},
         "assetRequests": {"type": "array", "items": {
             "type": "object", "additionalProperties": False,
             "properties": {"id": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_.-]*$"},

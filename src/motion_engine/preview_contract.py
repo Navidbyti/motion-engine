@@ -5,7 +5,7 @@ PREVIEW_PARAMS = {
     "shape": {"color", "shape", "gradientEnd", "gradientDirection"},
     "image": {"fit"},
     "video": {"fit", "sourceStartFrame"},
-    "audio": {"gainDb"},
+    "audio": {"gainDb", "sourceStartFrame", "fadeInFrames", "fadeOutFrames", "role"},
     "counter": {"startValue", "endValue", "decimals", "prefix", "suffix", "color", "fontSize", "fontFamily", "digitPolicy", "align"},
     "chart.bar": {"categoryField", "minimum", "maximum", "color", "baselineColor", "barWidthFraction", "labelFontFamily", "tickCount", "showValues"},
     "chart.line": {"categoryField", "minimum", "maximum", "color", "baselineColor", "labelFontFamily", "tickCount", "showValues"},

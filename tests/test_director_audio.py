@@ -106,3 +106,55 @@ def test_director_rejects_invalid_or_missing_sound_effect(tmp_path):
     with pytest.raises(DirectorError, match="outside the scene"):
         compile_director_plan(prompt, tmp_path / "outside.motion.json", proposal,
                               project_id="sound_design", width=320, height=180, fps=24)
+
+
+def test_director_builds_faded_music_bed_and_ducks_narrated_scenes(tmp_path):
+    prompt = tmp_path / "prompt.txt"
+    prompt.write_text("Make a two-scene reel with narration and a continuous music bed.", encoding="utf-8")
+    proposal = json.loads((ROOT / "examples/director-abstract.plan.json").read_text(encoding="utf-8"))
+    proposal["scenes"][0].update({"voice": "The opening narration.", "audioAssetId": "narration"})
+    proposal["soundtrack"] = {"assetId": "music", "gainDb": -12, "fadeInFrames": 4,
+                              "fadeOutFrames": 6, "duckUnderNarrationDb": -9}
+    narration = tmp_path / "narration.wav"
+    music = tmp_path / "music.wav"
+    _tone(narration, frames=48_000)
+    _tone(music, frames=96_000)
+    assets = [{"id": asset_id, "kind": "audio", "status": "available", "uri": path.name,
+               "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+               "license": "CC0-1.0", "approved": True}
+              for asset_id, path in (("narration", narration), ("music", music))]
+    spec = compile_director_plan(prompt, tmp_path / "music.motion.json", proposal,
+                                 project_id="music_reel", width=320, height=180, fps=24,
+                                 assets=assets)
+    first_music = next(element for element in spec["timeline"][0]["elements"]
+                       if element["id"] == "music_1")
+    second_music = next(element for element in spec["timeline"][1]["elements"]
+                        if element["id"] == "music_2")
+    assert first_music["params"] == {"gainDb": -21, "role": "music", "sourceStartFrame": 0,
+                                      "fadeInFrames": 4, "fadeOutFrames": 0}
+    assert second_music["params"] == {"gainDb": -12, "role": "music", "sourceStartFrame": 24,
+                                       "fadeInFrames": 0, "fadeOutFrames": 6}
+    assert next(element for element in spec["timeline"][0]["elements"]
+                if element["id"] == "narration_1")["params"]["role"] == "narration"
+    result = render_preview(spec, tmp_path / "music-preview", asset_root=tmp_path, scale=0.2, mp4=False)
+    assert any(output["kind"] == "audio/wav" for output in result["outputs"])
+
+
+def test_director_rejects_short_soundtrack_and_fades_outside_end_scenes(tmp_path):
+    prompt = tmp_path / "prompt.txt"
+    prompt.write_text("Make a reel with music.", encoding="utf-8")
+    proposal = json.loads((ROOT / "examples/director-abstract.plan.json").read_text(encoding="utf-8"))
+    proposal["soundtrack"] = {"assetId": "music", "gainDb": -12, "fadeInFrames": 25,
+                              "fadeOutFrames": 4, "duckUnderNarrationDb": -9}
+    music = tmp_path / "music.wav"
+    _tone(music, frames=48_000)
+    assets = [{"id": "music", "kind": "audio", "status": "available", "uri": "music.wav",
+               "sha256": hashlib.sha256(music.read_bytes()).hexdigest(),
+               "license": "CC0-1.0", "approved": True}]
+    with pytest.raises(DirectorError, match="fades must fit"):
+        compile_director_plan(prompt, tmp_path / "bad-fade.motion.json", proposal,
+                              project_id="music_reel", width=320, height=180, fps=24, assets=assets)
+    proposal["soundtrack"]["fadeInFrames"] = 4
+    with pytest.raises(DirectorError, match="project-length"):
+        compile_director_plan(prompt, tmp_path / "short-music.motion.json", proposal,
+                              project_id="music_reel", width=320, height=180, fps=24, assets=assets)

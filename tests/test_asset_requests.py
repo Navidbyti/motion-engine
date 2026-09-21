@@ -124,3 +124,25 @@ def test_narration_request_resolves_against_reviewed_wav(tmp_path):
     resolved = resolve_asset_requests(plan, catalog_path, tmp_path / "resolved.json", fps=24)
     assert resolved["assetRequests"] == []
     assert resolved["scenes"][0]["audioAssetId"] == "narration"
+
+
+def test_soundtrack_request_resolves_without_scene_narration(tmp_path):
+    _, proposal = _project(tmp_path, "director-abstract")
+    proposal["scenes"] = proposal["scenes"][:1]
+    proposal["soundtrack"] = {"assetId": "music", "gainDb": -14, "fadeInFrames": 4,
+                              "fadeOutFrames": 4, "duckUnderNarrationDb": -8}
+    proposal["assetRequests"] = [{"id": "music", "kind": "audio",
+                                   "description": "Approved background music", "durationFrames": 24}]
+    plan = tmp_path / "plan.json"
+    plan.write_text(json.dumps(proposal), encoding="utf-8")
+    audio = tmp_path / "assets/demo-tone.wav"
+    audio.parent.mkdir()
+    shutil.copyfile(ROOT / "examples/assets/demo-tone.wav", audio)
+    catalog = [{"id": "music", "kind": "audio", "status": "available",
+                "uri": "assets/demo-tone.wav", "sha256": file_sha256(audio),
+                "license": "CC0-1.0", "approved": True}]
+    catalog_path = tmp_path / "assets.json"
+    catalog_path.write_text(json.dumps(catalog), encoding="utf-8")
+    resolved = resolve_asset_requests(plan, catalog_path, tmp_path / "resolved.json", fps=24)
+    assert resolved["assetRequests"] == []
+    assert resolved["soundtrack"]["assetId"] == "music"

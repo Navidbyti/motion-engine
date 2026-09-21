@@ -51,7 +51,10 @@ def resolve_asset_requests(plan_path: str | Path, catalog_path: str | Path,
         asset = assets.get(asset_id)
         if asset is None:
             raise AssetRequestError(f"asset request {asset_id}: no matching catalog record")
-        scenes = ([scene for scene in proposal["scenes"] if scene.get("audioAssetId") == asset_id]
+        soundtrack_use = (request["kind"] == "audio"
+                          and proposal.get("soundtrack", {}).get("assetId") == asset_id)
+        scenes = ((proposal["scenes"] if soundtrack_use else
+                   [scene for scene in proposal["scenes"] if scene.get("audioAssetId") == asset_id])
                   if request["kind"] == "audio" else
                   [scene for scene in proposal["scenes"] if scene["visual"] == "asset" and scene["assetId"] == asset_id])
         if not scenes:
@@ -90,14 +93,16 @@ def resolve_asset_requests(plan_path: str | Path, catalog_path: str | Path,
             except FrameAssetError as exc:
                 raise AssetRequestError(f"asset request {asset_id}: {exc}") from exc
         else:
-            needed_frames = max(request["durationFrames"], *(scene["durationFrames"] for scene in scenes))
+            needed_frames = max(request["durationFrames"],
+                                sum(scene["durationFrames"] for scene in scenes) if soundtrack_use else
+                                max(scene["durationFrames"] for scene in scenes))
             try:
                 with wave.open(str(file), "rb") as audio:
                     needed_samples = round(needed_frames * 48_000 / fps)
                     if (file.suffix.lower() != ".wav" or audio.getcomptype() != "NONE"
                             or audio.getnchannels() != 1 or audio.getsampwidth() != 2
                             or audio.getframerate() != 48_000 or audio.getnframes() < needed_samples):
-                        raise AssetRequestError(f"asset request {asset_id}: narration needs a scene-length mono 16-bit PCM WAV at 48 kHz")
+                        raise AssetRequestError(f"asset request {asset_id}: audio needs a mono 16-bit PCM WAV at 48 kHz covering the requested duration")
             except (OSError, EOFError, wave.Error) as exc:
                 raise AssetRequestError(f"asset request {asset_id}: audio cannot be decoded") from exc
     resolved = copy.deepcopy(proposal)

@@ -72,7 +72,8 @@ This is the ordered work list for a usable, general motion-production engine. A 
 - [x] Render chart category labels, bounded value ticks, explicit units, final values, and positive/negative zero baselines. Automated pixel-level geometry conformance remains open.
 - [x] Add frame-placed mono PCM WAV tracks with exact sample alignment, deterministic mixing, and clipping rejection.
 - [x] Let director plans place multiple approved sound-effect WAV cues at exact scene-relative frames with independent gain.
-- [ ] Add compressed/stereo audio, background music workflows, fades, ducking, loudness controls, and audio QA.
+- [x] Add project-length background music with exact source offsets, first/last fades, audio roles, and scene-level ducking under narration.
+- [ ] Add compressed/stereo audio, speech-activity ducking, loudness controls, and broader audio QA.
 - [ ] Add a performance path for long videos and high-resolution frames without changing deterministic output.
 
 ## 3. Adobe-native outputs

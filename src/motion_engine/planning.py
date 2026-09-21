@@ -91,6 +91,20 @@ def plan(spec: dict[str, Any], capabilities: dict[str, dict[str, Any]] | None = 
                         preview_feature_gaps.add(f"audio_asset:{element['id']}")
                     elif not str(asset["uri"]).lower().endswith(".wav"):
                         preview_feature_gaps.add(f"audio_format:{element['id']}")
+                    params = element["params"]
+                    duration = element["endFrameExclusive"] - element["startFrame"]
+                    if (not isinstance(params.get("sourceStartFrame", 0), int)
+                            or isinstance(params.get("sourceStartFrame", 0), bool)
+                            or params.get("sourceStartFrame", 0) < 0
+                            or not isinstance(params.get("fadeInFrames", 0), int)
+                            or isinstance(params.get("fadeInFrames", 0), bool)
+                            or params.get("fadeInFrames", 0) < 0
+                            or not isinstance(params.get("fadeOutFrames", 0), int)
+                            or isinstance(params.get("fadeOutFrames", 0), bool)
+                            or params.get("fadeOutFrames", 0) < 0
+                            or params.get("fadeInFrames", 0) + params.get("fadeOutFrames", 0) > duration
+                            or params.get("role", "generic") not in ("generic", "narration", "music", "sound_effect")):
+                        preview_feature_gaps.add(f"audio_timing:{element['id']}")
             elements.append({
                 "id": element["id"], "kind": element["kind"],
                 "startFrame": element["startFrame"],
@@ -105,6 +119,7 @@ def plan(spec: dict[str, Any], capabilities: dict[str, dict[str, Any]] | None = 
             if beat.get("voice", {}).get("value", "").strip():
                 linked = [elements_by_id.get(element_id) for element_id in beat.get("elementIds", [])]
                 if not any(element and element["kind"] == "audio"
+                           and element["params"].get("role") not in ("music", "sound_effect")
                            and element["startFrame"] <= beat["startFrame"]
                            and element["endFrameExclusive"] >= beat["endFrameExclusive"]
                            for element in linked):
