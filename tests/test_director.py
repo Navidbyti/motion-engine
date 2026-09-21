@@ -206,9 +206,11 @@ def test_first_draft_orchestrates_agent_plan_spec_and_video(tmp_path):
     spec_file = tmp_path / "first.motion.json"
     render_dir = tmp_path / "render"
     review_dir = tmp_path / "review"
+    package_dir = tmp_path / "bundle"
     args = ["first-draft", str(prompt), str(plan_file), "--project-id", "first",
             "--output-spec", str(spec_file),
             "--output-dir", str(render_dir), "--review-dir", str(review_dir),
+            "--package-dir", str(package_dir),
             "--width", "320", "--height", "180",
             "--fps", "24", "--scale", "0.5"]
     assert main(args) == 0
@@ -218,5 +220,9 @@ def test_first_draft_orchestrates_agent_plan_spec_and_video(tmp_path):
     assert not any(issue["severity"] == "error" for issue in qa["issues"])
     assert (review_dir / "sheet-001.png").is_file()
     assert len(json.loads((review_dir / "contact-sheet.json").read_text(encoding="utf-8"))["scenes"]) == 2
+    package = json.loads((package_dir / "package-manifest.json").read_text(encoding="utf-8"))
+    assert package["reviewPath"] == "review/contact-sheet.json"
+    assert (package_dir / "review/sheet-001.png").is_file()
+    assert main(["verify-package", str(package_dir)]) == 0
     assert freeze_revision(load_spec(spec_file), tmp_path)["revisionSha256"]
     assert main(args) == 2

@@ -60,8 +60,8 @@ motion-engine import-video clip.mp4 --output plate.zip --fps-num 30 --frames 90
 motion-engine director-schema --output director-schema.json
 motion-engine resolve-assets project/plan.json --assets project/assets.json --output project/ready-plan.json --fps 30
 motion-engine compile-director examples/assets/director-abstract.txt examples/director-abstract.plan.json --output examples/my-directed.motion.json --project-id my_directed --width 320 --height 180 --fps 24
-motion-engine first-draft project/prompt.txt project/plan.json --project-id my_video --output-spec project/first.motion.json --output-dir project/preview --review-dir project/review
-motion-engine revise-and-render project/first.motion.json project/edit.json --output-spec project/second.motion.json --output-dir project/second-preview --review-dir project/second-review
+motion-engine first-draft project/prompt.txt project/plan.json --project-id my_video --output-spec project/first.motion.json --output-dir project/preview --review-dir project/review --package-dir project/first-bundle
+motion-engine revise-and-render project/first.motion.json project/edit.json --output-spec project/second.motion.json --output-dir project/second-preview --review-dir project/second-review --package-dir project/second-bundle
 motion-engine make-review evidence.json --requirements examples/review-questions.json --output review.json
 motion-engine verify-claims examples/claims/northbridge.ledger.json --output claims-report.json
 motion-engine import-data examples/assets/weather.csv --project-root examples --dataset-id temperatures --source-id weather_csv --output dataset-fragment.json
@@ -71,7 +71,7 @@ motion-engine render examples/hello.motion.json --output-dir hello-preview
 motion-engine contact-sheet examples/hello.motion.json --render-dir hello-preview --output-dir hello-review
 motion-engine render examples/hello.motion.json --output-dir hello-preview --resume
 motion-engine qa examples/hello.motion.json --output hello-qa.json
-motion-engine package-preview examples/hello.motion.json --render-dir hello-preview --output-dir hello-bundle
+motion-engine package-preview examples/hello.motion.json --render-dir hello-preview --review-dir hello-review --output-dir hello-bundle
 motion-engine verify-package hello-bundle
 motion-engine render examples/image-card.motion.json --output-dir image-card-preview
 motion-engine make-ae-script examples/ae-card.motion.json --output-script build.jsx --output-aep result.aep --report ae-report.txt

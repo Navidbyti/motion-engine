@@ -21,13 +21,13 @@ Use the current Codex or Claude session as the creative and research brain. The 
 - Run `motion-engine director-schema` and author the complete plan before building individual scenes. Account for every scene, duration, exact text, visual, motion choice, requested asset, and factual claim.
 - Use only plan fields and primitives accepted by the current schema. If the requested shot needs a real image, video, or 3D plate, declare and fulfill an asset request; do not replace it with an unrelated rectangle or still image.
 - Inspect every supplied or generated asset, record its license and approval, build the asset catalog, and resolve requests before compiling.
-- Run `motion-engine first-draft` with a new MotionSpec path, preview directory, and review directory. Inspect `qa.json`, the contact sheet, and the actual MP4. Iterate when the visible result is weak or incomplete.
+- Run `motion-engine first-draft` with new MotionSpec, preview, review, and package paths. Inspect `qa.json`, the contact sheet, and the actual MP4 inside the verified bundle. Iterate when the visible result is weak or incomplete.
 
 Read `docs/desktop-agent-workflow.md` for exact commands. Read `docs/adobe-adapters.md` only when an Adobe deliverable is requested.
 
 ## Revise by prompt
 
-Resolve the requested scene and element IDs in the current MotionSpec. Write a typed revision request bound to the current canonical spec hash, then run `motion-engine revise-and-render` to new output paths. Inspect the changed scene and confirm unrelated scenes remain intact. A factual wording change requires renewed research and claim mapping.
+Resolve the requested scene and element IDs in the current MotionSpec. Write a typed revision request bound to the current canonical spec hash, then run `motion-engine revise-and-render` to new spec, preview, review, and package paths. Inspect the changed scene and confirm unrelated scenes remain intact. A factual wording change requires renewed research and claim mapping.
 
 If the requested edit has no supported typed operation, extend the engine or compile a new plan version. Never report that an unsupported edit was applied.
 

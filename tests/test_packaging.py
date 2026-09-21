@@ -11,6 +11,7 @@ from motion_engine.packaging import PackageError, package_preview, verify_previe
 from motion_engine.cli import main
 from motion_engine.rendering import render_preview
 from motion_engine.revisions import freeze_revision
+from motion_engine.contact_sheet import make_contact_sheet
 from motion_engine.validation import load_spec
 
 
@@ -49,3 +50,28 @@ def test_preview_package_rejects_unbuilt_required_native_target(tmp_path):
     with pytest.raises(PackageError, match="native adapters"):
         package_preview(custom, tmp_path / "missing-render", tmp_path / "bundle")
     assert not (tmp_path / "bundle").exists()
+
+
+def test_preview_bundle_rejects_changed_contact_sheet(tmp_path):
+    spec_path = ROOT / "examples/hello.motion.json"
+    spec = load_spec(spec_path)
+    revision = freeze_revision(spec, spec_path.parent)
+    render_preview(spec, tmp_path / "render", mp4=True, scale=0.1,
+                   asset_root=spec_path.parent, revision_sha256=revision["revisionSha256"])
+    make_contact_sheet(spec, spec_path.parent, tmp_path / "render", tmp_path / "review")
+    (tmp_path / "review/sheet-001.png").write_bytes(b"changed")
+    with pytest.raises(PackageError, match="missing or changed"):
+        package_preview(spec_path, tmp_path / "render", tmp_path / "bundle", tmp_path / "review")
+    assert not (tmp_path / "bundle").exists()
+
+
+def test_preview_bundle_rejects_output_nested_in_an_input(tmp_path):
+    spec_path = ROOT / "examples/hello.motion.json"
+    spec = load_spec(spec_path)
+    revision = freeze_revision(spec, spec_path.parent)
+    render_preview(spec, tmp_path / "render", mp4=True, scale=0.1,
+                   asset_root=spec_path.parent, revision_sha256=revision["revisionSha256"])
+    make_contact_sheet(spec, spec_path.parent, tmp_path / "render", tmp_path / "review")
+    for output in (tmp_path / "render/bundle", tmp_path / "review/bundle"):
+        with pytest.raises(PackageError, match="cannot be inside"):
+            package_preview(spec_path, tmp_path / "render", output, tmp_path / "review")

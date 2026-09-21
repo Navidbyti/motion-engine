@@ -42,7 +42,36 @@ def _file_records(root: Path) -> list[dict[str, str]]:
     return records
 
 
-def package_preview(spec_path: str | Path, render_dir: str | Path, output_dir: str | Path) -> dict[str, Any]:
+def _verify_contact_sheet(review_dir: str | Path, revision: dict[str, Any],
+                          render: dict[str, Any]) -> dict[str, Any]:
+    root = Path(review_dir).resolve()
+    try:
+        report = json.loads((root / "contact-sheet.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise PackageError("missing or invalid contact-sheet report") from exc
+    if (report.get("specSha256") != revision["specSha256"]
+            or report.get("revisionSha256") != revision["revisionSha256"]
+            or report.get("renderIdempotencyKey") != render["idempotencyKey"]):
+        raise PackageError("contact sheet does not match the current preview revision")
+    sheets = report.get("sheets")
+    if not isinstance(sheets, list) or not sheets:
+        raise PackageError("contact-sheet report contains no sheets")
+    expected = {"contact-sheet.json"}
+    for item in sheets:
+        if not isinstance(item, dict) or not isinstance(item.get("path"), str):
+            raise PackageError("contact-sheet report has an invalid sheet record")
+        path = _inside(root, item["path"])
+        if not path.is_file() or file_sha256(path) != item.get("sha256"):
+            raise PackageError(f"contact sheet {item['path']!r} is missing or changed")
+        expected.add(path.relative_to(root).as_posix())
+    actual = {path.relative_to(root).as_posix() for path in root.rglob("*") if path.is_file()}
+    if actual != expected:
+        raise PackageError("contact-sheet directory contains unverified files")
+    return report
+
+
+def package_preview(spec_path: str | Path, render_dir: str | Path, output_dir: str | Path,
+                    review_dir: str | Path | None = None) -> dict[str, Any]:
     """Copy verified inputs and a completed preview without claiming native deliverables."""
     spec_path = Path(spec_path).resolve()
     spec = load_spec(spec_path)
@@ -66,6 +95,11 @@ def package_preview(spec_path: str | Path, render_dir: str | Path, output_dir: s
     destination = Path(output_dir).resolve()
     if destination.exists():
         raise PackageError(f"package output {destination} already exists")
+    protected_roots = [Path(render_dir).resolve()]
+    if review_dir is not None:
+        protected_roots.append(Path(review_dir).resolve())
+    if any(destination.is_relative_to(root) for root in protected_roots):
+        raise PackageError("package output cannot be inside its render or review input")
     destination.parent.mkdir(parents=True, exist_ok=True)
     staging = Path(tempfile.mkdtemp(prefix=f".{destination.name}-", dir=destination.parent))
     try:
@@ -101,11 +135,17 @@ def package_preview(spec_path: str | Path, render_dir: str | Path, output_dir: s
                 shutil.copy2(source, target)
         _write_json(staging / "revision.json", revision)
         _write_json(staging / "qa-report.json", qa)
+        review = None
+        if review_dir is not None:
+            review = _verify_contact_sheet(review_dir, revision, render)
+            review_root = staging / "review"
+            shutil.copytree(Path(review_dir).resolve(), review_root)
         manifest = {
             "formatVersion": 1, "kind": "preview_bundle", "producerVersion": __version__,
             "projectId": spec["project"]["id"], "specPath": copy_spec.relative_to(staging).as_posix(),
             "specSha256": revision["specSha256"], "revisionSha256": revision["revisionSha256"],
-            "qaStatus": qa["status"], "files": _file_records(staging),
+            "qaStatus": qa["status"], "reviewPath": "review/contact-sheet.json" if review else None,
+            "files": _file_records(staging),
         }
         _write_json(staging / "package-manifest.json", manifest)
         verify_preview_bundle(staging)
@@ -143,4 +183,10 @@ def verify_preview_bundle(output_dir: str | Path) -> dict[str, Any]:
     qa = json.loads((root / "qa-report.json").read_text(encoding="utf-8"))
     if qa["status"] != manifest["qaStatus"] or qa["revisionSha256"] != revision["revisionSha256"]:
         raise PackageError("packaged QA report differs from revision")
+    review_path = manifest.get("reviewPath")
+    if review_path is not None:
+        review_file = _inside(root, review_path)
+        if review_file.name != "contact-sheet.json":
+            raise PackageError("package review path must name contact-sheet.json")
+        _verify_contact_sheet(review_file.parent, revision, render)
     return manifest

@@ -39,15 +39,19 @@ def test_agent_revision_request_renders_new_version(tmp_path):
     output_spec = tmp_path / "second.motion.json"
     render_dir = tmp_path / "second-preview"
     review_dir = tmp_path / "second-review"
+    package_dir = tmp_path / "second-bundle"
     args = ["revise-and-render", str(base), str(request_path),
             "--output-spec", str(output_spec), "--output-dir", str(render_dir),
-            "--review-dir", str(review_dir), "--scale", "0.5"]
+            "--review-dir", str(review_dir), "--package-dir", str(package_dir), "--scale", "0.5"]
     assert main(args) == 0
     assert (render_dir / "preview.mp4").is_file()
     qa = json.loads((render_dir / "qa.json").read_text(encoding="utf-8"))
     assert qa["status"] in ("passed", "needs_review")
     assert not any(issue["severity"] == "error" for issue in qa["issues"])
     assert (review_dir / "sheet-001.png").is_file()
+    assert (package_dir / "render/preview.mp4").is_file()
+    assert (package_dir / "review/contact-sheet.json").is_file()
+    assert main(["verify-package", str(package_dir)]) == 0
     revised = load_spec(output_spec)
     assert revised["timeline"][0]["elements"][-1]["text"]["value"] == "A new moving idea"
     assert freeze_revision(revised, tmp_path)["revisionSha256"]

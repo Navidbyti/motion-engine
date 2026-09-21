@@ -109,6 +109,7 @@ def main(argv: list[str] | None = None) -> int:
     first.add_argument("--output-spec", required=True)
     first.add_argument("--output-dir", required=True)
     first.add_argument("--review-dir", help="Create verified scene contact sheets in a new directory")
+    first.add_argument("--package-dir", help="Create a verified preview review bundle in a new directory")
     first.add_argument("--assets", help="Optional JSON list of available hashed assets")
     first.add_argument("--claims", help="Source-linked claim ledger for factual scenes")
     first.add_argument("--width", type=int, default=1080)
@@ -121,6 +122,7 @@ def main(argv: list[str] | None = None) -> int:
     revised_render.add_argument("--output-spec", required=True)
     revised_render.add_argument("--output-dir", required=True)
     revised_render.add_argument("--review-dir", help="Create verified scene contact sheets in a new directory")
+    revised_render.add_argument("--package-dir", help="Create a verified preview review bundle in a new directory")
     revised_render.add_argument("--scale", type=float, default=0.5)
     revise = sub.add_parser("revise-scene", help="Apply a typed edit to one scene against an exact MotionSpec hash")
     revise.add_argument("spec")
@@ -146,6 +148,7 @@ def main(argv: list[str] | None = None) -> int:
     bundle.add_argument("spec")
     bundle.add_argument("--render-dir", required=True)
     bundle.add_argument("--output-dir", required=True)
+    bundle.add_argument("--review-dir", help="Include an existing verified contact sheet directory")
     contact = sub.add_parser("contact-sheet", help="Create scene overview sheets from a verified preview")
     contact.add_argument("spec")
     contact.add_argument("--render-dir", required=True)
@@ -234,12 +237,14 @@ def main(argv: list[str] | None = None) -> int:
             spec_path = Path(args.output_spec).resolve()
             render_path = Path(args.output_dir).resolve()
             review_path = Path(args.review_dir).resolve() if args.review_dir else None
+            package_path = Path(args.package_dir).resolve() if args.package_dir else None
             prompt_path = Path(args.prompt).resolve()
             if (plan_path.parent != spec_path.parent or prompt_path.parent != spec_path.parent
-                    or len({plan_path, spec_path, render_path, prompt_path, review_path} - {None}) != (5 if review_path else 4)):
+                    or len({plan_path, spec_path, render_path, prompt_path, review_path, package_path} - {None}) != (4 + bool(review_path) + bool(package_path))):
                 raise DirectorError("prompt, plan, and MotionSpec must be distinct files in the same directory")
             if (not plan_path.is_file() or not prompt_path.is_file() or spec_path.exists() or render_path.exists()
-                    or (review_path is not None and review_path.exists())):
+                    or (review_path is not None and review_path.exists())
+                    or (package_path is not None and package_path.exists())):
                 raise DirectorError("prompt and plan must exist; spec and render outputs must be new paths")
             asset_list = None
             if args.assets:
@@ -260,10 +265,12 @@ def main(argv: list[str] | None = None) -> int:
             quality = qa_report(spec, spec_path.parent, render_path)
             _emit(quality, render_path / "qa.json")
             sheets = make_contact_sheet(spec, spec_path.parent, render_path, review_path) if review_path else None
+            bundle_manifest = package_preview(spec_path, render_path, package_path, review_path) if package_path else None
             print(json.dumps({"plan": str(plan_path), "spec": str(spec_path),
                               "render": str(render_path), "manifest": result,
                               "qa": str(render_path / "qa.json"), "qaStatus": quality["status"],
-                              "contactSheet": str(review_path / "contact-sheet.json") if sheets else None},
+                              "contactSheet": str(review_path / "contact-sheet.json") if sheets else None,
+                              "package": str(package_path) if bundle_manifest else None},
                              ensure_ascii=False, indent=2))
             return 0
         if args.command == "revise-and-render":
@@ -272,10 +279,11 @@ def main(argv: list[str] | None = None) -> int:
             spec_path = Path(args.output_spec).resolve()
             render_path = Path(args.output_dir).resolve()
             review_path = Path(args.review_dir).resolve() if args.review_dir else None
+            package_path = Path(args.package_dir).resolve() if args.package_dir else None
             if base_path.parent != spec_path.parent or request_path.parent != spec_path.parent:
                 raise SceneRevisionError("base spec, request, and new spec must share a directory")
-            if len({base_path, request_path, spec_path, render_path, review_path} - {None}) != (5 if review_path else 4) or not request_path.is_file() or any(
-                path.exists() for path in (spec_path, render_path) + ((review_path,) if review_path else ())
+            if len({base_path, request_path, spec_path, render_path, review_path, package_path} - {None}) != (4 + bool(review_path) + bool(package_path)) or not request_path.is_file() or any(
+                path.exists() for path in (spec_path, render_path) + ((review_path,) if review_path else ()) + ((package_path,) if package_path else ())
             ):
                 raise SceneRevisionError("revision request must exist; spec and render outputs must be new, distinct paths")
             base = load_spec(base_path)
@@ -295,10 +303,12 @@ def main(argv: list[str] | None = None) -> int:
             quality = qa_report(revised, spec_path.parent, render_path)
             _emit(quality, render_path / "qa.json")
             sheets = make_contact_sheet(revised, spec_path.parent, render_path, review_path) if review_path else None
+            bundle_manifest = package_preview(spec_path, render_path, package_path, review_path) if package_path else None
             print(json.dumps({"request": str(request_path), "spec": str(spec_path),
                               "render": str(render_path), "manifest": result,
                               "qa": str(render_path / "qa.json"), "qaStatus": quality["status"],
-                              "contactSheet": str(review_path / "contact-sheet.json") if sheets else None},
+                              "contactSheet": str(review_path / "contact-sheet.json") if sheets else None,
+                              "package": str(package_path) if bundle_manifest else None},
                              ensure_ascii=False, indent=2))
             return 0
         if args.command == "revise-scene":
@@ -340,7 +350,7 @@ def main(argv: list[str] | None = None) -> int:
             _emit(result, args.output)
             return 0 if result["status"] == "source_linked" else 1
         if args.command == "package-preview":
-            print(json.dumps(package_preview(args.spec, args.render_dir, args.output_dir), ensure_ascii=False, indent=2))
+            print(json.dumps(package_preview(args.spec, args.render_dir, args.output_dir, args.review_dir), ensure_ascii=False, indent=2))
             return 0
         if args.command == "verify-package":
             print(json.dumps(verify_preview_bundle(args.directory), ensure_ascii=False, indent=2))
