@@ -179,7 +179,7 @@
               "value": 0
             },
             {
-              "frame": 10,
+              "frame": 12,
               "value": 1,
               "easing": "ease_out"
             }
@@ -194,7 +194,7 @@
               "value": 0
             },
             {
-              "frame": 10,
+              "frame": 12,
               "value": 1,
               "easing": "ease_out"
             }
@@ -366,7 +366,7 @@
               "value": 0
             },
             {
-              "frame": 34,
+              "frame": 36,
               "value": 1,
               "easing": "ease_out"
             }
@@ -381,7 +381,7 @@
               "value": 0
             },
             {
-              "frame": 34,
+              "frame": 36,
               "value": 1,
               "easing": "ease_out"
             }

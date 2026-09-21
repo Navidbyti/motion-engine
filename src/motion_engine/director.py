@@ -131,10 +131,6 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
         profile = pacing["profile"]
         if profile == "shot" and len(durations) != 1:
             raise DirectorError("shot pacing requires exactly one scene")
-        if profile == "reel" and (len(durations) < 3 or any(value > 5 * fps for value in durations)):
-            raise DirectorError("reel pacing requires at least three scenes and no scene longer than five seconds")
-        if profile == "explainer" and (len(durations) < 4 or any(value > 10 * fps for value in durations)):
-            raise DirectorError("explainer pacing requires at least four scenes and no scene longer than ten seconds")
     asset_list = assets or []
     if not isinstance(asset_list, list) or any(not isinstance(asset, dict) or not isinstance(asset.get("id"), str)
                                               for asset in asset_list):
@@ -182,7 +178,7 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
     cursor = 0
     scene_keys = {"durationFrames", "visual", "assetId", "title", "subtitle", "background", "accent", "motion"}
     for index, scene in enumerate(proposal["scenes"], 1):
-        if not isinstance(scene, dict) or not scene_keys <= set(scene) or set(scene) - scene_keys - {"claimIds", "voice", "audioAssetId", "transition", "transitionFrames", "counterValue", "counterStartValue", "counterDecimals", "counterPrefix", "counterSuffix", "chartDatasetId", "chartValueField", "chartCategoryField", "chartMinimum", "chartMaximum", "chartUnit", "chartDecimals", "chartTickCount", "purpose", "energy", "soundEffects", "backgroundSecondary", "backgroundGradient"}:
+        if not isinstance(scene, dict) or not scene_keys <= set(scene) or set(scene) - scene_keys - {"claimIds", "voice", "audioAssetId", "transition", "transitionFrames", "counterValue", "counterStartValue", "counterDecimals", "counterPrefix", "counterSuffix", "chartDatasetId", "chartValueField", "chartCategoryField", "chartMinimum", "chartMaximum", "chartUnit", "chartDecimals", "chartTickCount", "purpose", "energy", "timing", "soundEffects", "backgroundSecondary", "backgroundGradient"}:
             raise DirectorError(f"scene {index} has missing or unknown plan fields")
         purpose, energy = scene.get("purpose"), scene.get("energy")
         if (("purpose" in scene) != ("energy" in scene)
@@ -204,6 +200,22 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
         duration = scene["durationFrames"]
         if not isinstance(duration, int) or isinstance(duration, bool) or not 12 <= duration <= 900:
             raise DirectorError(f"scene {index} duration must be 12 to 900 frames")
+        timing = scene.get("timing")
+        if pacing is not None and timing is None:
+            raise DirectorError(f"scene {index} needs editorial entry, hold, and exit timing")
+        if timing is not None:
+            if (not isinstance(timing, dict)
+                    or set(timing) != {"entryFrames", "holdFrames", "exitFrames"}
+                    or not isinstance(timing["entryFrames"], int) or isinstance(timing["entryFrames"], bool)
+                    or not isinstance(timing["holdFrames"], int) or isinstance(timing["holdFrames"], bool)
+                    or not isinstance(timing["exitFrames"], int) or isinstance(timing["exitFrames"], bool)
+                    or timing["entryFrames"] < 4 or timing["holdFrames"] < 1
+                    or timing["exitFrames"] < 0 or timing["exitFrames"] == 1
+                    or sum(timing.values()) != duration):
+                raise DirectorError(f"scene {index} editorial timing must exactly fill its duration")
+            entry_frames, exit_frames = timing["entryFrames"], timing["exitFrames"]
+        else:
+            entry_frames, exit_frames = min(12, duration - 1), 0
         if not isinstance(scene["title"], str) or not isinstance(scene["subtitle"], str):
             raise DirectorError(f"scene {index} text must be strings")
         if not scene["title"].strip() and not scene["subtitle"].strip() and scene["visual"] != "counter":
@@ -368,8 +380,9 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
                 overshoot = -direction * round(width * 0.06)
                 animations.append({"targetId": element_id, "property": "x", "keyframes": [
                     {"frame": start, "value": direction * width},
-                    {"frame": start + min(7, duration - 2), "value": overshoot, "easing": "ease_out"},
-                    {"frame": start + min(11, duration - 1), "value": 0, "easing": "ease_in_out"}]})
+                    {"frame": start + max(2, round(entry_frames * 0.65)),
+                     "value": overshoot, "easing": "ease_out"},
+                    {"frame": start + entry_frames, "value": 0, "easing": "ease_in_out"}]})
             elements.append({"id": f"lower_third_{index}", "kind": "shape", "startFrame": start,
                              "endFrameExclusive": end,
                              "bounds": {"x": 0, "y": round(height * 0.62),
@@ -400,13 +413,13 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
                                         "fontSize": max(24, round(min(width, height) * 0.12)),
                                         "fontFamily": font_family, "align": "center"},
                              "zIndex": 1, "sourceRefs": [ref, *claim_refs]})
-            finish = start + min(30, duration - 1)
+            finish = start + entry_frames
             animations.append({"targetId": counter_id, "property": "value", "keyframes": [
                 {"frame": start, "value": start_value},
                 {"frame": finish, "value": counter_value, "easing": "ease_out"}]})
         if visual in ("bar_chart", "line_chart"):
             chart_id = f"chart_{index}"
-            chart_start = start + min(8, duration - 2)
+            chart_start = start + max(1, entry_frames // 3)
             elements.append({"id": chart_id, "kind": "chart.bar" if visual == "bar_chart" else "chart.line",
                              "startFrame": chart_start, "endFrameExclusive": end,
                              "bounds": {"x": inset, "y": round(height * 0.25),
@@ -420,7 +433,7 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
                              "zIndex": 1, "sourceRefs": chart_refs})
             animations.append({"targetId": chart_id, "property": "reveal", "keyframes": [
                 {"frame": chart_start, "value": 0},
-                {"frame": start + min(max(12, duration // 2), duration - 1),
+                {"frame": start + entry_frames,
                  "value": 1, "easing": "ease_out"}]})
         for role, value in (("title", scene["title"]), ("subtitle", scene["subtitle"])):
             if not value.strip():
@@ -456,30 +469,30 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
                              "zIndex": 2, "sourceRefs": [ref, *claim_refs]})
             if motion == "fade":
                 animations.append({"targetId": element_id, "property": "opacity", "keyframes": [
-                    {"frame": start, "value": 0}, {"frame": start + min(10, duration - 1), "value": 1, "easing": "ease_out"}]})
+                    {"frame": start, "value": 0}, {"frame": start + entry_frames, "value": 1, "easing": "ease_out"}]})
             if motion == "slide":
-                begin = start + (0 if title else min(4, duration - 2))
-                finish = start + min(12 if title else 14, duration - 1)
+                begin = start + (0 if title else max(1, entry_frames // 4))
+                finish = start + entry_frames
                 enter_x = -round(width - 2 * inset) if proposal["direction"] == "ltr" else width
                 animations.append({"targetId": element_id, "property": "x", "keyframes": [
                     {"frame": begin, "value": enter_x},
                     {"frame": finish, "value": text_x, "easing": "ease_out"}]})
             if motion in ("whip_left", "whip_right"):
-                begin = start + (min(2, duration - 3) if title else min(5, duration - 3))
+                begin = start + (0 if title else max(1, entry_frames // 4))
                 direction = -1 if motion == "whip_left" else 1
                 overshoot = text_x - direction * round(width * 0.05)
+                overshoot_frame = begin + max(1, round((start + entry_frames - begin) * 0.65))
                 animations.append({"targetId": element_id, "property": "x", "keyframes": [
                     {"frame": begin, "value": direction * width},
-                    {"frame": start + min(8 if title else 10, duration - 2),
-                     "value": overshoot, "easing": "ease_out"},
-                    {"frame": start + min(12 if title else 14, duration - 1),
-                     "value": text_x, "easing": "ease_in_out"}]})
+                    {"frame": overshoot_frame, "value": overshoot, "easing": "ease_out"},
+                    {"frame": start + entry_frames, "value": text_x, "easing": "ease_in_out"}]})
                 animations.append({"targetId": element_id, "property": "opacity", "keyframes": [
                     {"frame": begin, "value": 0},
-                    {"frame": min(begin + 3, end - 1), "value": 1, "easing": "ease_out"}]})
+                    {"frame": min(begin + max(2, entry_frames // 3), start + entry_frames),
+                     "value": 1, "easing": "ease_out"}]})
             if motion == "rise":
-                begin = start + (0 if title else min(4, duration - 2))
-                finish = start + min(12 if title else 16, duration - 1)
+                begin = start + (0 if title else max(1, entry_frames // 4))
+                finish = start + entry_frames
                 enter_y = min(height, y + max(24, round(height * 0.12)))
                 animations.append({"targetId": element_id, "property": "y", "keyframes": [
                     {"frame": begin, "value": enter_y},
@@ -487,6 +500,22 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
                 animations.append({"targetId": element_id, "property": "opacity", "keyframes": [
                     {"frame": begin, "value": 0},
                     {"frame": finish, "value": 1, "easing": "ease_out"}]})
+        if exit_frames:
+            fade_start = end - exit_frames
+            for element in elements:
+                if (element["kind"] not in {"text", "shape", "image", "video", "counter"}
+                        or element["id"] == f"background_{index}"):
+                    continue
+                opacity = next((animation for animation in animations
+                                if animation["targetId"] == element["id"]
+                                and animation["property"] == "opacity"), None)
+                exit_keys = [{"frame": fade_start, "value": 1},
+                             {"frame": end - 1, "value": 0, "easing": "ease_in"}]
+                if opacity is None:
+                    animations.append({"targetId": element["id"], "property": "opacity",
+                                       "keyframes": exit_keys})
+                else:
+                    opacity["keyframes"].extend(exit_keys)
         if audio_asset_id:
             elements.append({"id": f"narration_{index}", "kind": "audio", "startFrame": start,
                              "endFrameExclusive": end, "assetId": audio_asset_id,
@@ -504,6 +533,11 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
                          "elements": elements,
                          "beats": [{"id": f"beat_{index}", "startFrame": start, "endFrameExclusive": end,
                                     "elementIds": [element["id"] for element in elements],
+                                    **({"notes": (f"Editorial timing: {entry_frames} frame entry, "
+                                                    f"{timing['holdFrames']} frame hold, "
+                                                    f"{exit_frames} frame exit. "
+                                                    f"Purpose: {purpose}. Energy: {energy}/5.")}
+                                       if timing is not None else {}),
                                     **({"voice": {"value": voice, "locale": proposal["locale"]}} if voice.strip() else {}),
                                     "onScreen": ([{"value": value, "locale": proposal["locale"]}
                                                   for value in (scene["title"], scene["subtitle"]) if value.strip()]

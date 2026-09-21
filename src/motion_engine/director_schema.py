@@ -32,6 +32,12 @@ SCENE_SCHEMA = {
         "chartTickCount": {"type": "integer", "minimum": 2, "maximum": 10},
         "purpose": {"type": "string", "minLength": 1, "maxLength": 240},
         "energy": {"type": "integer", "minimum": 1, "maximum": 5},
+        "timing": {"type": "object", "additionalProperties": False,
+                   "properties": {"entryFrames": {"type": "integer", "minimum": 4},
+                                  "holdFrames": {"type": "integer", "minimum": 1},
+                                  "exitFrames": {"type": "integer", "minimum": 0,
+                                                 "not": {"const": 1}}},
+                   "required": ["entryFrames", "holdFrames", "exitFrames"]},
         "soundEffects": {"type": "array", "maxItems": 8, "items": {
             "type": "object", "additionalProperties": False,
             "properties": {

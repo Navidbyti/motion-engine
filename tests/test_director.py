@@ -87,7 +87,9 @@ def test_director_eased_card_motion_compiles_to_ae_frame_samples(tmp_path, orien
     assert len(payload["positionTracks"]["scene_1/title_1"]) == 13
     assert len(payload["positionTracks"]["scene_2/title_2"]) == 13
     rise = 1 if proposal["scenes"][0]["motion"] == "rise" else 2
-    assert len(payload["opacityTracks"][f"scene_{rise}/subtitle_{rise}"]) == 13
+    opacity_samples = payload["opacityTracks"][f"scene_{rise}/subtitle_{rise}"]
+    scene_start = spec["timeline"][rise - 1]["startFrame"]
+    assert opacity_samples[-1] == {"frame": scene_start + 12, "value": 100.0}
 
 
 @pytest.mark.parametrize("name,size", [
@@ -141,27 +143,38 @@ def test_card_layout_rejects_asset_only_zoom(tmp_path):
                               project_id="card_study", width=640, height=360, fps=24)
 
 
-def test_reel_pacing_contract_requires_enough_purposeful_short_scenes(tmp_path):
+def test_editorial_pacing_controls_scene_animation_windows(tmp_path):
+    from jsonschema import Draft202012Validator
+    from motion_engine.director_schema import DIRECTOR_PLAN_SCHEMA
+
     prompt = tmp_path / "prompt.txt"
-    prompt.write_text("Make a fast complete social reel.", encoding="utf-8")
+    prompt.write_text("Make a complete social reel with deliberate editorial timing.", encoding="utf-8")
     proposal = json.loads((ROOT / "examples/director-abstract.plan.json").read_text(encoding="utf-8"))
-    proposal["scenes"].append(dict(proposal["scenes"][0]))
-    proposal["pacing"] = {"profile": "reel", "targetDurationFrames": 72, "toleranceFrames": 0}
+    proposal["scenes"][0]["durationFrames"] = 144
+    proposal["pacing"] = {"profile": "reel", "targetDurationFrames": 168, "toleranceFrames": 0}
     for index, scene in enumerate(proposal["scenes"], 1):
-        scene.update({"purpose": f"Narrative beat {index}", "energy": min(5, index + 2)})
+        scene.update({"purpose": f"Narrative beat {index}", "energy": min(5, index + 2),
+                      "timing": ({"entryFrames": 12, "holdFrames": 128, "exitFrames": 4}
+                                 if index == 1 else
+                                 {"entryFrames": 6, "holdFrames": 14, "exitFrames": 4})})
+    assert not list(Draft202012Validator(DIRECTOR_PLAN_SCHEMA).iter_errors(proposal))
     spec = compile_director_plan(prompt, tmp_path / "paced.motion.json", proposal,
                                  project_id="paced_reel", width=320, height=568, fps=24)
-    assert len(spec["timeline"]) == 3
+    assert len(spec["timeline"]) == 2
+    first = spec["timeline"][0]
+    title_opacity = next(animation for animation in first["animations"]
+                         if animation["targetId"] == "title_1" and animation["property"] == "opacity")
+    assert [keyframe["frame"] for keyframe in title_opacity["keyframes"]] == [0, 12, 140, 143]
+    assert "12 frame entry, 128 frame hold, 4 frame exit" in first["beats"][0]["notes"]
     missing_purpose = json.loads(json.dumps(proposal))
     del missing_purpose["scenes"][1]["purpose"]
     with pytest.raises(DirectorError, match="needs a purpose and energy"):
         compile_director_plan(prompt, tmp_path / "missing-purpose.motion.json", missing_purpose,
                               project_id="paced_reel", width=320, height=568, fps=24)
-    too_slow = json.loads(json.dumps(proposal))
-    too_slow["scenes"][0]["durationFrames"] = 121
-    too_slow["pacing"].update({"targetDurationFrames": 169, "toleranceFrames": 0})
-    with pytest.raises(DirectorError, match="no scene longer than five seconds"):
-        compile_director_plan(prompt, tmp_path / "slow.motion.json", too_slow,
+    invalid_timing = json.loads(json.dumps(proposal))
+    invalid_timing["scenes"][0]["timing"]["holdFrames"] = 127
+    with pytest.raises(DirectorError, match="exactly fill"):
+        compile_director_plan(prompt, tmp_path / "bad-timing.motion.json", invalid_timing,
                               project_id="paced_reel", width=320, height=568, fps=24)
 
 
