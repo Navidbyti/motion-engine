@@ -102,3 +102,25 @@ def test_asset_request_rejects_missing_or_altered_media(tmp_path):
     catalog_path.write_text(json.dumps(altered), encoding="utf-8")
     with pytest.raises(AssetRequestError, match="SHA-256 mismatch"):
         resolve_asset_requests(plan, catalog_path, tmp_path / "resolved.json", fps=24)
+
+
+def test_narration_request_resolves_against_reviewed_wav(tmp_path):
+    _, proposal = _project(tmp_path, "director-abstract")
+    proposal["scenes"] = proposal["scenes"][:1]
+    proposal["scenes"][0].update({"durationFrames": 24, "voice": "A short narrated scene.",
+                                   "audioAssetId": "narration"})
+    proposal["assetRequests"] = [{"id": "narration", "kind": "audio",
+                                   "description": "Approved narration take", "durationFrames": 24}]
+    plan = tmp_path / "plan.json"
+    plan.write_text(json.dumps(proposal), encoding="utf-8")
+    audio = tmp_path / "assets/demo-tone.wav"
+    audio.parent.mkdir()
+    shutil.copyfile(ROOT / "examples/assets/demo-tone.wav", audio)
+    catalog = [{"id": "narration", "kind": "audio", "status": "available",
+                "uri": "assets/demo-tone.wav", "sha256": file_sha256(audio),
+                "license": "CC0-1.0", "approved": True}]
+    catalog_path = tmp_path / "assets.json"
+    catalog_path.write_text(json.dumps(catalog), encoding="utf-8")
+    resolved = resolve_asset_requests(plan, catalog_path, tmp_path / "resolved.json", fps=24)
+    assert resolved["assetRequests"] == []
+    assert resolved["scenes"][0]["audioAssetId"] == "narration"

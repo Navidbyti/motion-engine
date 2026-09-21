@@ -108,9 +108,8 @@ class FrameRenderer:
         for scene_index, scene in enumerate(spec["timeline"]):
             if scene.get("transitionIn") not in (None, "start" if scene_index == 0 else "cut"):
                 raise RenderError(f"unsupported preview transition {scene['transitionIn']!r}")
-            if any(beat.get("voice", {}).get("value", "").strip() for beat in scene["beats"]):
-                raise RenderError("voice audio is not supported by the preview renderer")
             element_kinds = {element["id"]: element["kind"] for element in scene["elements"]}
+            elements_by_id = {element["id"]: element for element in scene["elements"]}
             for element in scene["elements"]:
                 if element["kind"] not in PREVIEW_KINDS:
                     raise RenderError(f"unsupported preview element {element['kind']!r} ({element['id']})")
@@ -135,6 +134,14 @@ class FrameRenderer:
                     raise RenderError(f"text element {element['id']} requires text")
                 if element["kind"].startswith("chart.") and "dataBinding" not in element:
                     raise RenderError(f"chart element {element['id']} requires dataBinding")
+            for beat in scene["beats"]:
+                if beat.get("voice", {}).get("value", "").strip():
+                    linked = [elements_by_id.get(element_id) for element_id in beat.get("elementIds", [])]
+                    if not any(element and element["kind"] == "audio"
+                               and element["startFrame"] <= beat["startFrame"]
+                               and element["endFrameExclusive"] >= beat["endFrameExclusive"]
+                               for element in linked):
+                        raise RenderError(f"voice audio for beat {beat['id']} needs a linked audio element covering its frame window")
             for animation in scene["animations"]:
                 kind = element_kinds.get(animation["targetId"])
                 if kind is None or animation["property"] not in PREVIEW_ANIMATIONS_BY_KIND.get(kind, set()):

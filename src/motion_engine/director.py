@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import re
+import wave
 from pathlib import Path
 from typing import Any
 
@@ -115,10 +116,10 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
     if len(asset_ids) != len(asset_list):
         raise DirectorError("duplicate asset ID")
     for asset in asset_list:
-        if (asset.get("kind") not in ("image", "video.frames") or asset.get("status") != "available"
+        if (asset.get("kind") not in ("image", "video.frames", "audio") or asset.get("status") != "available"
             or asset.get("approved") is not True or not isinstance(asset.get("license"), str)
             or not asset["license"].strip() or not asset.get("sha256")):
-            raise DirectorError("director assets must be approved, licensed, available hashed images or frame plates")
+            raise DirectorError("director assets must be approved, licensed, available hashed supported media")
         try:
             path = resolve_local_file(asset, output.parent, "asset")
         except ValueError as exc:
@@ -131,7 +132,7 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
     cursor = 0
     scene_keys = {"durationFrames", "visual", "assetId", "title", "subtitle", "background", "accent", "motion"}
     for index, scene in enumerate(proposal["scenes"], 1):
-        if not isinstance(scene, dict) or not scene_keys <= set(scene) or set(scene) - scene_keys - {"claimIds"}:
+        if not isinstance(scene, dict) or not scene_keys <= set(scene) or set(scene) - scene_keys - {"claimIds", "voice", "audioAssetId"}:
             raise DirectorError(f"scene {index} has missing or unknown plan fields")
         scene_claim_ids = scene.get("claimIds", [])
         if not isinstance(scene_claim_ids, list) or any(not isinstance(item, str) for item in scene_claim_ids) or len(scene_claim_ids) != len(set(scene_claim_ids)):
@@ -155,6 +156,26 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
                for field in ("background", "accent")):
             raise DirectorError(f"scene {index} colors must be #RRGGBB")
         visual, asset_id, motion = scene["visual"], scene["assetId"], scene["motion"]
+        voice, audio_asset_id = scene.get("voice", ""), scene.get("audioAssetId", "")
+        if not isinstance(voice, str) or not isinstance(audio_asset_id, str) or bool(voice.strip()) != bool(audio_asset_id):
+            raise DirectorError(f"scene {index} voice and audioAssetId must be supplied together")
+        if len(voice) > 5000:
+            raise DirectorError(f"scene {index} voice is too long")
+        if audio_asset_id:
+            audio_asset = asset_ids.get(audio_asset_id)
+            if audio_asset is None or audio_asset.get("kind") != "audio":
+                raise DirectorError(f"scene {index} requests unavailable audio asset {audio_asset_id!r}")
+            path = resolve_local_file(audio_asset, output.parent, "asset")
+            try:
+                with wave.open(str(path), "rb") as audio:
+                    rate = audio.getframerate()
+                    needed = round(duration * rate / fps)
+                    if (path.suffix.lower() != ".wav" or audio.getcomptype() != "NONE"
+                            or audio.getnchannels() != 1 or audio.getsampwidth() != 2
+                            or rate != 48_000 or audio.getnframes() < needed):
+                        raise DirectorError(f"scene {index} narration needs a scene-length mono 16-bit PCM WAV at 48 kHz")
+            except (OSError, EOFError, wave.Error) as exc:
+                raise DirectorError(f"scene {index} narration audio cannot be decoded") from exc
         if not isinstance(asset_id, str):
             raise DirectorError(f"scene {index} asset ID must be a string")
         if visual not in ("typography", "shape", "card", "asset") or motion not in ("none", "fade", "zoom", "slide", "rise"):
@@ -246,10 +267,15 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
                 animations.append({"targetId": element_id, "property": "opacity", "keyframes": [
                     {"frame": begin, "value": 0},
                     {"frame": finish, "value": 1, "easing": "ease_out"}]})
+        if audio_asset_id:
+            elements.append({"id": f"narration_{index}", "kind": "audio", "startFrame": start,
+                             "endFrameExclusive": end, "assetId": audio_asset_id,
+                             "params": {"gainDb": 0}, "zIndex": 3})
         timeline.append({"id": scene_id, "startFrame": start, "endFrameExclusive": end,
                          "transitionIn": "start" if index == 1 else "cut", "elements": elements,
                          "beats": [{"id": f"beat_{index}", "startFrame": start, "endFrameExclusive": end,
                                     "elementIds": [element["id"] for element in elements],
+                                    **({"voice": {"value": voice, "locale": proposal["locale"]}} if voice.strip() else {}),
                                     "onScreen": [{"value": value, "locale": proposal["locale"]}
                                                  for value in (scene["title"], scene["subtitle"]) if value.strip()],
                                     "sourceRefs": [ref, *claim_refs]}],

@@ -54,13 +54,11 @@ def plan(spec: dict[str, Any], capabilities: dict[str, dict[str, Any]] | None = 
     scenes = []
     requested_kinds: set[str] = set()
     assets = {asset["id"]: asset for asset in spec["assets"]}
-    voice_requested = False
     preview_feature_gaps: set[str] = set()
     for scene in spec["timeline"]:
         scene_index = len(scenes)
         if scene.get("transitionIn") not in (None, "start" if scene_index == 0 else "cut"):
             preview_feature_gaps.add(f"transition:{scene['transitionIn']}")
-        voice_requested = voice_requested or any(beat.get("voice", {}).get("value", "").strip() for beat in scene["beats"])
         elements = []
         element_kinds = {element["id"]: element["kind"] for element in scene["elements"]}
         for element in scene["elements"]:
@@ -102,6 +100,15 @@ def plan(spec: dict[str, Any], capabilities: dict[str, dict[str, Any]] | None = 
                 "assetId": element.get("assetId"),
                 "sourceRefs": element.get("sourceRefs", []),
             })
+        elements_by_id = {element["id"]: element for element in scene["elements"]}
+        for beat in scene["beats"]:
+            if beat.get("voice", {}).get("value", "").strip():
+                linked = [elements_by_id.get(element_id) for element_id in beat.get("elementIds", [])]
+                if not any(element and element["kind"] == "audio"
+                           and element["startFrame"] <= beat["startFrame"]
+                           and element["endFrameExclusive"] >= beat["endFrameExclusive"]
+                           for element in linked):
+                    preview_feature_gaps.add("voice_audio")
         scenes.append({
             "id": scene["id"], "startFrame": scene["startFrame"],
             "endFrameExclusive": scene["endFrameExclusive"],
@@ -139,8 +146,6 @@ def plan(spec: dict[str, Any], capabilities: dict[str, dict[str, Any]] | None = 
         unsupported = requested_kinds - supported
         editable_missing = requested_kinds - set(adapter["editableKinds"]) if deliverable["editable"] else set()
         unsupported_features = sorted(preview_feature_gaps) if target == "video/mp4" else []
-        if voice_requested and target == "video/mp4":
-            unsupported_features.append("voice_audio")
         buildable = adapter["status"] == "available" and not unsupported and not editable_missing and not unsupported_features
         capabilities_report.append({
             "deliverableId": deliverable["id"], "target": target,

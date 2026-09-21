@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import re
+import wave
 from pathlib import Path
 from typing import Any
 
@@ -40,16 +41,18 @@ def build_asset_catalog(manifest_path: str | Path, output_path: str | Path, *, f
         if not isinstance(asset_id, str) or not re.fullmatch(r"[A-Za-z][A-Za-z0-9_.-]*", asset_id) or asset_id in seen:
             raise AssetCatalogError(f"asset {index}: ID is invalid or duplicated")
         seen.add(asset_id)
-        if (item["kind"] not in ("image", "video.frames") or item["approved"] is not True
+        if (item["kind"] not in ("image", "video.frames", "audio") or item["approved"] is not True
             or not isinstance(item["license"], str) or not item["license"].strip()):
-            raise AssetCatalogError(f"asset {asset_id}: needs an approved image or frame plate with a nonblank license")
+            raise AssetCatalogError(f"asset {asset_id}: needs approved supported media with a nonblank license")
         if not isinstance(item["uri"], str):
             raise AssetCatalogError(f"asset {asset_id}: URI must be a portable relative file path")
         generation = item.get("generation")
-        if generation is not None and (not isinstance(generation, dict) or generation.get("technique") not in ("image", "video", "3d")):
-            raise AssetCatalogError(f"asset {asset_id}: generation technique must be image, video, or 3d")
+        if generation is not None and (not isinstance(generation, dict) or generation.get("technique") not in ("image", "video", "3d", "voice")):
+            raise AssetCatalogError(f"asset {asset_id}: generation technique must be image, video, 3d, or voice")
         if generation is not None and generation["technique"] == "3d" and item["kind"] != "video.frames":
             raise AssetCatalogError(f"asset {asset_id}: 3D generation needs a moving frame plate")
+        if generation is not None and generation["technique"] == "voice" and item["kind"] != "audio":
+            raise AssetCatalogError(f"asset {asset_id}: voice generation needs an audio asset")
         try:
             file = resolve_local_file(item, output_file.parent, "asset")
         except RevisionError as exc:
@@ -67,12 +70,21 @@ def build_asset_catalog(manifest_path: str | Path, output_path: str | Path, *, f
                     image.verify()
             except (OSError, ValueError) as exc:
                 raise AssetCatalogError(f"asset {asset_id}: image cannot be decoded") from exc
-        else:
+        elif item["kind"] == "video.frames":
             try:
                 archive = FrameArchive(record, output_file.parent, {"numerator": fps, "denominator": 1})
                 for frame in (0, archive.frame_count // 2, archive.frame_count - 1):
                     archive.frame(frame)
             except FrameAssetError as exc:
                 raise AssetCatalogError(f"asset {asset_id}: {exc}") from exc
+        else:
+            try:
+                with wave.open(str(file), "rb") as audio:
+                    if (file.suffix.lower() != ".wav" or audio.getcomptype() != "NONE"
+                            or audio.getnchannels() != 1 or audio.getsampwidth() != 2
+                            or audio.getframerate() != 48_000 or audio.getnframes() < 1):
+                        raise AssetCatalogError(f"asset {asset_id}: audio needs nonempty mono 16-bit PCM WAV at 48 kHz")
+            except (OSError, EOFError, wave.Error) as exc:
+                raise AssetCatalogError(f"asset {asset_id}: audio cannot be decoded") from exc
         catalog.append(record)
     return catalog

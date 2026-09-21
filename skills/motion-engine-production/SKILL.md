@@ -21,6 +21,7 @@ Use the current Codex or Claude session as the creative and research brain. The 
 - Run `motion-engine director-schema` and author the complete plan before building individual scenes. Account for every scene, duration, exact text, visual, motion choice, requested asset, and factual claim.
 - Use only plan fields and primitives accepted by the current schema. If the requested shot needs a real image, video, or 3D plate, declare and fulfill an asset request; do not replace it with an unrelated rectangle or still image.
 - Inspect every supplied or generated asset, record its license and approval, build the asset catalog, and resolve requests before compiling.
+- When narration is available, preserve its exact script in the scene `voice` and attach the reviewed scene-length WAV through `audioAssetId`; do not claim transcription or word alignment unless those checks were actually run.
 - Run `motion-engine first-draft` with new MotionSpec, preview, review, and package paths. Inspect `qa.json`, the contact sheet, and the actual MP4 inside the verified bundle. Iterate when the visible result is weak or incomplete.
 
 Read `docs/desktop-agent-workflow.md` for exact commands. Read `docs/adobe-adapters.md` only when an Adobe deliverable is requested.

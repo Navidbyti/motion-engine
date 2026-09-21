@@ -4,6 +4,7 @@ from __future__ import annotations
 import copy
 import json
 import re
+import wave
 from pathlib import Path
 from typing import Any
 
@@ -50,10 +51,12 @@ def resolve_asset_requests(plan_path: str | Path, catalog_path: str | Path,
         asset = assets.get(asset_id)
         if asset is None:
             raise AssetRequestError(f"asset request {asset_id}: no matching catalog record")
-        scenes = [scene for scene in proposal["scenes"] if scene["visual"] == "asset" and scene["assetId"] == asset_id]
+        scenes = ([scene for scene in proposal["scenes"] if scene.get("audioAssetId") == asset_id]
+                  if request["kind"] == "audio" else
+                  [scene for scene in proposal["scenes"] if scene["visual"] == "asset" and scene["assetId"] == asset_id])
         if not scenes:
             raise AssetRequestError(f"asset request {asset_id}: no scene uses this asset ID")
-        expected_kind = "image" if request["kind"] == "image" else "video.frames"
+        expected_kind = "image" if request["kind"] == "image" else "audio" if request["kind"] == "audio" else "video.frames"
         if (asset.get("kind") != expected_kind or asset.get("status") != "available"
             or asset.get("approved") is not True or not isinstance(asset.get("license"), str)
             or not asset["license"].strip() or not isinstance(asset.get("sha256"), str)
@@ -76,7 +79,7 @@ def resolve_asset_requests(plan_path: str | Path, catalog_path: str | Path,
                     image.verify()
             except (OSError, ValueError) as exc:
                 raise AssetRequestError(f"asset request {asset_id}: image cannot be decoded") from exc
-        else:
+        elif expected_kind == "video.frames":
             try:
                 archive = FrameArchive(asset, output.parent, {"numerator": fps, "denominator": 1})
                 needed = max(request["durationFrames"], *(scene["durationFrames"] for scene in scenes))
@@ -86,6 +89,17 @@ def resolve_asset_requests(plan_path: str | Path, catalog_path: str | Path,
                 archive.frame(needed - 1)
             except FrameAssetError as exc:
                 raise AssetRequestError(f"asset request {asset_id}: {exc}") from exc
+        else:
+            needed_frames = max(request["durationFrames"], *(scene["durationFrames"] for scene in scenes))
+            try:
+                with wave.open(str(file), "rb") as audio:
+                    needed_samples = round(needed_frames * 48_000 / fps)
+                    if (file.suffix.lower() != ".wav" or audio.getcomptype() != "NONE"
+                            or audio.getnchannels() != 1 or audio.getsampwidth() != 2
+                            or audio.getframerate() != 48_000 or audio.getnframes() < needed_samples):
+                        raise AssetRequestError(f"asset request {asset_id}: narration needs a scene-length mono 16-bit PCM WAV at 48 kHz")
+            except (OSError, EOFError, wave.Error) as exc:
+                raise AssetRequestError(f"asset request {asset_id}: audio cannot be decoded") from exc
     resolved = copy.deepcopy(proposal)
     resolved["assetRequests"] = []
     return resolved

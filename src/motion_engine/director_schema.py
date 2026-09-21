@@ -11,6 +11,8 @@ SCENE_SCHEMA = {
         "background": {"type": "string"},
         "accent": {"type": "string"},
         "motion": {"type": "string", "enum": ["none", "fade", "zoom", "slide", "rise"]},
+        "voice": {"type": "string", "maxLength": 5000},
+        "audioAssetId": {"type": "string"},
         "claimIds": {"type": "array", "uniqueItems": True, "items": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_.-]*$"}},
     },
     "required": ["durationFrames", "visual", "assetId", "title", "subtitle", "background", "accent", "motion"],
@@ -28,7 +30,7 @@ DIRECTOR_PLAN_SCHEMA = {
         "assetRequests": {"type": "array", "items": {
             "type": "object", "additionalProperties": False,
             "properties": {"id": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_.-]*$"},
-                           "kind": {"type": "string", "enum": ["image", "video", "3d"]},
+                           "kind": {"type": "string", "enum": ["image", "video", "3d", "audio"]},
                            "description": {"type": "string", "minLength": 1},
                            "durationFrames": {"type": "integer", "minimum": 1}},
             "required": ["id", "kind", "description", "durationFrames"],
