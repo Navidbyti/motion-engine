@@ -15,7 +15,7 @@ def _paths(tmp_path):
     return (tmp_path / "build.jsx", tmp_path / "result.aep", tmp_path / "report.txt")
 
 
-@pytest.mark.parametrize("fixture", ["ae-card.motion.json", "ae-vertical.motion.json", "ae-shapes.motion.json", "ae-image.motion.json", "ae-card-position.motion.json", "ae-vertical-position.motion.json", "ae-layered-landscape.motion.json", "ae-layered-vertical.motion.json", "ae-wrap-landscape.motion.json", "ae-wrap-vertical.motion.json"])
+@pytest.mark.parametrize("fixture", ["ae-card.motion.json", "ae-vertical.motion.json", "ae-shapes.motion.json", "ae-image.motion.json", "ae-image-scale.motion.json", "ae-card-position.motion.json", "ae-vertical-position.motion.json", "ae-layered-landscape.motion.json", "ae-layered-vertical.motion.json", "ae-wrap-landscape.motion.json", "ae-wrap-vertical.motion.json"])
 def test_ae_script_embeds_text_project_and_reopen_checks(tmp_path, fixture):
     spec = load_spec(ROOT / "examples" / fixture)
     script, aep, report = _paths(tmp_path)
@@ -31,7 +31,7 @@ def test_ae_script_embeds_text_project_and_reopen_checks(tmp_path, fixture):
     if fixture == "ae-shapes.motion.json":
         assert "ADBE Vector Shape - Rect" in content
         assert "ADBE Vector Fill Color" in content
-    if fixture == "ae-image.motion.json":
+    if fixture.startswith("ae-image"):
         assert payload["imageAssets"][0]["id"] == "synthetic_plate"
         assert "reopened image link missing" in content
     if fixture.startswith("ae-wrap-"):

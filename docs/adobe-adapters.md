@@ -31,7 +31,7 @@ A director-to-AE integration probe initially failed on the default `DejaVu Sans 
 
 The adapter accepts `linear`, `ease_in`, `ease_out`, `ease_in_out`, and `hold` for opacity, x/y, and still-image scale tracks. To preserve the preview renderer's exact integer-frame cubic semantics, nonlinear segments are sampled once per frame and written as editable linear AE keys; sparse linear tracks remain sparse. After Effects 2024 24.5x52 passed save/reopen verification for the public `examples/director-ae-motion-horizontal.plan.json` and `examples/director-ae-motion-vertical.plan.json` fixtures, which cover `rise` with opacity and `slide` in opposite scene orders. Reopen checks compared each sampled key's time and value. This approach favors deterministic frame parity over compact AE curves.
 
-The exporter now also writes and verifies still-image Scale keyframes in its generated JSX. Automated tests cover `contain` and nonuniform `stretch` base scales plus eased integer-frame sampling. A licensed After Effects save/reopen run for this new Scale track remains pending, so this extension is not yet listed as a native compatibility result.
+The exporter also writes and verifies still-image Scale keyframes in its generated JSX. Automated tests cover `contain` and nonuniform `stretch` base scales plus eased integer-frame sampling. On 2026-09-21, After Effects 2024 version 24.5x52 on Windows passed a create, save, close, reopen probe derived from the public `examples/ae-image-scale.motion.json` fixture. The native reopen check confirmed all 25 sampled Scale keys, their frame times, and their two-axis values; the report was `PASS|24.5x52|ae-image-scale|1`.
 
 ## Experimental Illustrator static artboards
 

@@ -84,7 +84,7 @@ This is the ordered work list for a usable, general motion-production engine. A 
 - [x] Add composition markers for beat windows and verify marker comments, starts, and durations after native reopen.
 - [x] Import hashed local PNG/JPEG images as linked After Effects footage, with fit rules and missing-link reopen checks.
 - [x] Preserve linear x/y position keyframes as editable After Effects Position tracks; save/reopen passed on landscape and two-scene vertical public fixtures in After Effects 2024 24.5x52.
-- [x] Generate editable After Effects Scale tracks for linked still images with contain/stretch base-scale preservation and reopen assertions; licensed app verification remains pending.
+- [x] Generate editable After Effects Scale tracks for linked still images with contain/stretch base-scale preservation and reopen assertions; a 25-key eased Scale track passed native save/reopen verification in After Effects 2024 24.5x52 on Windows on 2026-09-21.
 - [x] Preserve stable MotionSpec `zIndex` stacking in After Effects; reordered landscape and vertical public fixtures passed native save/reopen checks.
 - [x] Create editable After Effects paragraph text boxes for `wrap: true`; landscape and vertical fixtures passed native save/reopen geometry checks. Visual text flow review remains open.
 - [ ] Build an Illustrator adapter for editable artboards, vector assets, type, and charts.
