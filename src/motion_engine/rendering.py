@@ -106,8 +106,19 @@ class FrameRenderer:
         self.issues: list[dict[str, str]] = []
         self.animations: dict[str, dict[str, list[dict[str, Any]]]] = {}
         for scene_index, scene in enumerate(spec["timeline"]):
-            if scene.get("transitionIn") not in (None, "start" if scene_index == 0 else "cut"):
+            transition = scene.get("transitionIn", "start" if scene_index == 0 else "cut")
+            if transition not in (("start",) if scene_index == 0 else ("cut", "fade")):
                 raise RenderError(f"unsupported preview transition {scene['transitionIn']!r}")
+            transition_frames = scene.get("transitionFrames")
+            if transition == "fade":
+                previous = spec["timeline"][scene_index - 1]
+                maximum = min(scene["endFrameExclusive"] - scene["startFrame"],
+                              previous["endFrameExclusive"] - previous["startFrame"])
+                if (not isinstance(transition_frames, int) or isinstance(transition_frames, bool)
+                        or not 2 <= transition_frames <= min(120, maximum)):
+                    raise RenderError(f"fade transition on {scene['id']} must fit both adjacent scenes")
+            elif transition_frames is not None:
+                raise RenderError(f"transitionFrames on {scene['id']} requires a fade")
             element_kinds = {element["id"]: element["kind"] for element in scene["elements"]}
             elements_by_id = {element["id"]: element for element in scene["elements"]}
             for element in scene["elements"]:
@@ -446,11 +457,8 @@ class FrameRenderer:
                 if len(visible) >= 2:
                     draw.line(visible, fill=color, width=max(1, round(5 * self.scale)), joint="curve")
 
-    def render_frame(self, frame: int) -> Image.Image:
-        if not 0 <= frame < self.duration:
-            raise RenderError(f"frame {frame} outside [0, {self.duration})")
+    def _scene_frame(self, scene: dict[str, Any], frame: int) -> Image.Image:
         image = Image.new("RGB", (self.width, self.height), self.background)
-        scene = next(s for s in self.spec["timeline"] if s["startFrame"] <= frame < s["endFrameExclusive"])
         for element in sorted(scene["elements"], key=lambda e: e.get("zIndex", 0)):
             if not element["startFrame"] <= frame < element["endFrameExclusive"]:
                 continue
@@ -467,6 +475,31 @@ class FrameRenderer:
                 self._video(image, element, frame)
             else:
                 self._chart(image, element, frame)
+        return image
+
+    def render_frame(self, frame: int) -> Image.Image:
+        if not 0 <= frame < self.duration:
+            raise RenderError(f"frame {frame} outside [0, {self.duration})")
+        scene_index = next(index for index, scene in enumerate(self.spec["timeline"])
+                           if scene["startFrame"] <= frame < scene["endFrameExclusive"])
+        scene = self.spec["timeline"][scene_index]
+        image = self._scene_frame(scene, frame)
+        opacity = 1.0
+        if scene.get("transitionIn") == "fade":
+            incoming = scene["transitionFrames"] - scene["transitionFrames"] // 2
+            local = frame - scene["startFrame"]
+            if local < incoming:
+                opacity = (local + 1) / (incoming + 1)
+        if scene_index + 1 < len(self.spec["timeline"]):
+            following = self.spec["timeline"][scene_index + 1]
+            if following.get("transitionIn") == "fade":
+                outgoing = following["transitionFrames"] // 2
+                remaining = scene["endFrameExclusive"] - 1 - frame
+                if remaining < outgoing:
+                    opacity = min(opacity, (remaining + 1) / (outgoing + 1))
+        if opacity < 1:
+            background = Image.new("RGB", image.size, self.background)
+            image = Image.blend(background, image, opacity)
         for disclosure in self.spec["policies"]["disclosures"]:
             if disclosure["startFrame"] <= frame < disclosure["endFrameExclusive"]:
                 self._text(image, {"id": disclosure["id"], "text": disclosure["text"], "bounds": disclosure.get("bounds", {"x": 20, "y": self.spec["canvas"]["height"] - 100, "width": self.spec["canvas"]["width"] - 40, "height": 80}), "params": {"color": "#FFFFFF"}}, frame)

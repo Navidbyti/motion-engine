@@ -57,7 +57,7 @@ def plan(spec: dict[str, Any], capabilities: dict[str, dict[str, Any]] | None = 
     preview_feature_gaps: set[str] = set()
     for scene in spec["timeline"]:
         scene_index = len(scenes)
-        if scene.get("transitionIn") not in (None, "start" if scene_index == 0 else "cut"):
+        if scene.get("transitionIn") not in (None, "start" if scene_index == 0 else "cut", "fade" if scene_index else "start"):
             preview_feature_gaps.add(f"transition:{scene['transitionIn']}")
         elements = []
         element_kinds = {element["id"]: element["kind"] for element in scene["elements"]}
@@ -113,6 +113,7 @@ def plan(spec: dict[str, Any], capabilities: dict[str, dict[str, Any]] | None = 
             "id": scene["id"], "startFrame": scene["startFrame"],
             "endFrameExclusive": scene["endFrameExclusive"],
             "transitionIn": scene.get("transitionIn"),
+            "transitionFrames": scene.get("transitionFrames"),
             "beats": [{"id": beat["id"], "startFrame": beat["startFrame"], "endFrameExclusive": beat["endFrameExclusive"], "elementIds": beat.get("elementIds", []), "sourceRefs": beat.get("sourceRefs", [])} for beat in scene["beats"]],
             "elements": elements,
             "animations": scene["animations"],

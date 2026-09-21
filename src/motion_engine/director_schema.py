@@ -13,6 +13,8 @@ SCENE_SCHEMA = {
         "motion": {"type": "string", "enum": ["none", "fade", "zoom", "slide", "rise"]},
         "voice": {"type": "string", "maxLength": 5000},
         "audioAssetId": {"type": "string"},
+        "transition": {"type": "string", "enum": ["cut", "fade"]},
+        "transitionFrames": {"type": "integer", "minimum": 2, "maximum": 120},
         "claimIds": {"type": "array", "uniqueItems": True, "items": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_.-]*$"}},
     },
     "required": ["durationFrames", "visual", "assetId", "title", "subtitle", "background", "accent", "motion"],

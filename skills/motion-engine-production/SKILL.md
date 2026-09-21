@@ -19,6 +19,7 @@ Use the current Codex or Claude session as the creative and research brain. The 
 - Infer ordinary creative choices. Ask only when an essential constraint cannot be inferred.
 - For factual or current topics, research before writing narration. Challenge the premise, save source snapshots, create a claim ledger, and follow `docs/research.md`. A source-linked report still needs semantic review.
 - Run `motion-engine director-schema` and author the complete plan before building individual scenes. Account for every scene, duration, exact text, visual, motion choice, requested asset, and factual claim.
+- Use a bounded `fade` transition when a cut is too abrupt; inspect the actual boundary frames because the current transition fades through the project background and does not overlap scenes or fade audio.
 - Use only plan fields and primitives accepted by the current schema. If the requested shot needs a real image, video, or 3D plate, declare and fulfill an asset request; do not replace it with an unrelated rectangle or still image.
 - Inspect every supplied or generated asset, record its license and approval, build the asset catalog, and resolve requests before compiling.
 - When narration is available, preserve its exact script in the scene `voice` and attach the reviewed scene-length WAV through `audioAssetId`; do not claim transcription or word alignment unless those checks were actually run.

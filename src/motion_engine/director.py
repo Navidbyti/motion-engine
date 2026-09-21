@@ -132,7 +132,7 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
     cursor = 0
     scene_keys = {"durationFrames", "visual", "assetId", "title", "subtitle", "background", "accent", "motion"}
     for index, scene in enumerate(proposal["scenes"], 1):
-        if not isinstance(scene, dict) or not scene_keys <= set(scene) or set(scene) - scene_keys - {"claimIds", "voice", "audioAssetId"}:
+        if not isinstance(scene, dict) or not scene_keys <= set(scene) or set(scene) - scene_keys - {"claimIds", "voice", "audioAssetId", "transition", "transitionFrames"}:
             raise DirectorError(f"scene {index} has missing or unknown plan fields")
         scene_claim_ids = scene.get("claimIds", [])
         if not isinstance(scene_claim_ids, list) or any(not isinstance(item, str) for item in scene_claim_ids) or len(scene_claim_ids) != len(set(scene_claim_ids)):
@@ -157,6 +157,17 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
             raise DirectorError(f"scene {index} colors must be #RRGGBB")
         visual, asset_id, motion = scene["visual"], scene["assetId"], scene["motion"]
         voice, audio_asset_id = scene.get("voice", ""), scene.get("audioAssetId", "")
+        transition = scene.get("transition", "cut")
+        transition_frames = scene.get("transitionFrames")
+        if transition not in ("cut", "fade"):
+            raise DirectorError(f"scene {index} transition is unsupported")
+        if index == 1 and (transition != "cut" or transition_frames is not None):
+            raise DirectorError("first director scene cannot declare an incoming transition")
+        if transition == "cut" and transition_frames is not None:
+            raise DirectorError(f"scene {index} cut cannot declare transitionFrames")
+        if transition == "fade" and (not isinstance(transition_frames, int) or isinstance(transition_frames, bool)
+                                      or not 2 <= transition_frames <= 120):
+            raise DirectorError(f"scene {index} fade needs 2 to 120 transitionFrames")
         if not isinstance(voice, str) or not isinstance(audio_asset_id, str) or bool(voice.strip()) != bool(audio_asset_id):
             raise DirectorError(f"scene {index} voice and audioAssetId must be supplied together")
         if len(voice) > 5000:
@@ -272,7 +283,9 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
                              "endFrameExclusive": end, "assetId": audio_asset_id,
                              "params": {"gainDb": 0}, "zIndex": 3})
         timeline.append({"id": scene_id, "startFrame": start, "endFrameExclusive": end,
-                         "transitionIn": "start" if index == 1 else "cut", "elements": elements,
+                         "transitionIn": "start" if index == 1 else transition,
+                         **({"transitionFrames": transition_frames} if transition == "fade" else {}),
+                         "elements": elements,
                          "beats": [{"id": f"beat_{index}", "startFrame": start, "endFrameExclusive": end,
                                     "elementIds": [element["id"] for element in elements],
                                     **({"voice": {"value": voice, "locale": proposal["locale"]}} if voice.strip() else {}),

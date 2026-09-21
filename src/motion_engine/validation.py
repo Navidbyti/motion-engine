@@ -129,11 +129,26 @@ def validate_semantics(spec: dict[str, Any]) -> list[str]:
 
     timeline = spec.get("timeline", [])
     cursor = 0
-    for scene in timeline:
+    for scene_index, scene in enumerate(timeline):
         start, end = scene["startFrame"], scene["endFrameExclusive"]
         if start != cursor or end <= start or end > duration:
             errors.append(f"scene {scene['id']}: invalid or non-contiguous range [{start}, {end}) after {cursor}")
         cursor = end
+        transition = scene.get("transitionIn", "start" if scene_index == 0 else "cut")
+        transition_frames = scene.get("transitionFrames")
+        if scene_index == 0:
+            if transition != "start" or transition_frames is not None:
+                errors.append(f"scene {scene['id']}: first scene must use start without transitionFrames")
+        elif transition == "cut":
+            if transition_frames is not None:
+                errors.append(f"scene {scene['id']}: cut cannot declare transitionFrames")
+        elif transition == "fade":
+            previous = timeline[scene_index - 1]
+            maximum = min(end - start, previous["endFrameExclusive"] - previous["startFrame"])
+            if not isinstance(transition_frames, int) or isinstance(transition_frames, bool) or transition_frames > maximum:
+                errors.append(f"scene {scene['id']}: fade transitionFrames must fit both adjacent scenes")
+        else:
+            errors.append(f"scene {scene['id']}: unsupported transition {transition!r}")
         elements = {x["id"]: x for x in scene["elements"]}
         for element in scene["elements"]:
             e_start, e_end = element["startFrame"], element["endFrameExclusive"]

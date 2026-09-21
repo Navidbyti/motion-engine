@@ -61,6 +61,7 @@ This is the ordered work list for a usable, general motion-production engine. A 
 - [x] Add a hashed PNG-frame video proxy with exact frame mapping, explicit source trim, FFmpeg import, and two public aspect-ratio fixtures. Native media import, broad color management, and performance remain open.
 - [ ] Add tables, cards, counters, scatter charts, icons, masks, and reusable compositions as tested primitives.
 - [ ] Add scene transitions and a complete animation property/easing contract, with exact frame semantics.
+- [x] Add a deterministic nonoverlapping scene fade through the project background, verified on horizontal and vertical plans. Overlapping transitions and audio fades remain open.
 - [x] Add explicit multiline text, opt-in space wrapping, overflow rejection, and libraqm-backed RTL preview.
 - [ ] Add word breaking for scripts without spaces, rich text, glyph coverage checks, and locale-aware formatting.
 - [ ] Add chart axes, ticks, labels, units, baseline rules, and exact-data visual conformance checks.
