@@ -96,6 +96,7 @@ def make_ae_script(spec: dict[str, Any], script_path: str | Path,
     position_tracks = {}
     opacity_tracks = {}
     scale_tracks = {}
+    rotation_tracks = {}
     layer_order = []
     for scene in spec["timeline"]:
         layer_order.append(sorted(range(len(scene["elements"])),
@@ -125,7 +126,7 @@ def make_ae_script(spec: dict[str, Any], script_path: str | Path,
             prop = animation["property"]
             element = scene_elements.get(animation["targetId"])
             keys = animation["keyframes"]
-            limit = (1 if prop == "opacity" else 3 if prop == "scale" else
+            limit = (1 if prop == "opacity" else 3 if prop == "scale" else 360 if prop == "rotation" else
                      spec["canvas"]["width" if prop == "x" else "height"] if prop in ("x", "y") else None)
             if (element is None or limit is None or not keys
                 or any(key.get("easing", "linear") not in _AE_EASING
@@ -133,13 +134,14 @@ def make_ae_script(spec: dict[str, Any], script_path: str | Path,
                        or not math.isfinite(key["value"])
                        or not ((0 <= key["value"] <= 1) if prop == "opacity" else
                                (1 <= key["value"] <= 3) if prop == "scale" else
+                               (-360 <= key["value"] <= 360) if prop == "rotation" else
                                (-limit <= key["value"] <= limit))
                        or not element["startFrame"] <= key["frame"] < element["endFrameExclusive"]
                        for key in keys)
                 or [key["frame"] for key in keys] != sorted({key["frame"] for key in keys})):
-                raise AEExportError("initial After Effects adapter supports opacity, image scale, or x/y keyframes with known easing within the element window")
-            if prop == "scale" and element["kind"] != "image":
-                raise AEExportError("initial After Effects scale keyframes require an image element")
+                raise AEExportError("initial After Effects adapter supports opacity, image scale/rotation, or x/y keyframes with known easing within the element window")
+            if prop in ("scale", "rotation") and element["kind"] != "image":
+                raise AEExportError(f"initial After Effects {prop} keyframes require an image element")
         for element in scene["elements"]:
             axes = {animation["property"]: animation["keyframes"] for animation in scene["animations"]
                     if animation["targetId"] == element["id"] and animation["property"] in ("x", "y")}
@@ -169,6 +171,12 @@ def make_ae_script(spec: dict[str, Any], script_path: str | Path,
                      "value": [base_x * _animation_value(scale, frame),
                                base_y * _animation_value(scale, frame)]}
                     for frame in _track_frames(scale)]
+            rotation = next((animation["keyframes"] for animation in scene["animations"]
+                             if animation["targetId"] == element["id"] and animation["property"] == "rotation"), None)
+            if rotation:
+                rotation_tracks[scene["id"] + "/" + element["id"]] = [
+                    {"frame": frame, "value": _animation_value(rotation, frame)}
+                    for frame in _track_frames(rotation)]
     output = Path(aep_path).resolve()
     report = Path(report_path).resolve()
     script = Path(script_path).resolve()
@@ -181,6 +189,7 @@ def make_ae_script(spec: dict[str, Any], script_path: str | Path,
     job = {"spec": spec, "aep": output.as_posix(), "report": report.as_posix(),
            "imageAssets": images, "positionTracks": position_tracks,
            "opacityTracks": opacity_tracks, "scaleTracks": scale_tracks,
+           "rotationTracks": rotation_tracks,
            "layerOrder": layer_order}
     payload = json.dumps(job, ensure_ascii=True, separators=(",", ":"))
     source = "var job = " + payload + ";\n" + _SCRIPT
@@ -319,6 +328,16 @@ _SCRIPT = r'''
                         scale.setInterpolationTypeAtKey(s, KeyframeInterpolationType.LINEAR,
                             KeyframeInterpolationType.LINEAR);
                 }
+                var rotationTrack = job.rotationTracks[scene.id + "/" + element.id];
+                if (rotationTrack) {
+                    var rotation = layer.property("Transform").property("Rotation");
+                    for (var r = 0; r < rotationTrack.length; r++)
+                        rotation.setValueAtTime((rotationTrack[r].frame - scene.startFrame) / rate,
+                            rotationTrack[r].value);
+                    for (var r = 1; r <= rotation.numKeys; r++)
+                        rotation.setInterpolationTypeAtKey(r, KeyframeInterpolationType.LINEAR,
+                            KeyframeInterpolationType.LINEAR);
+                }
             }
         }
         app.project.save(outputFile);
@@ -396,6 +415,17 @@ _SCRIPT = r'''
                             Math.abs(scaleValue[1] - scaleTrack[s].value[1]) > 0.001)
                             throw new Error("reopened scale key mismatch: " + expectedElement.id);
                     }
+                }
+                var rotationTrack = job.rotationTracks[spec.timeline[b].id + "/" + expectedElement.id];
+                if (rotationTrack) {
+                    var reopenedRotation = reopenedText.property("Transform").property("Rotation");
+                    if (reopenedRotation.numKeys !== rotationTrack.length)
+                        throw new Error("reopened rotation key count mismatch: " + expectedElement.id);
+                    for (var r = 0; r < rotationTrack.length; r++)
+                        if (Math.abs(reopenedRotation.keyTime(r + 1) -
+                                     (rotationTrack[r].frame - spec.timeline[b].startFrame) / rate) > 0.0001 ||
+                            Math.abs(reopenedRotation.keyValue(r + 1) - rotationTrack[r].value) > 0.001)
+                            throw new Error("reopened rotation key mismatch: " + expectedElement.id);
                 }
                 if (expectedElement.kind === "text") {
                     var reopenedDocument = reopenedText.property("Source Text").value;

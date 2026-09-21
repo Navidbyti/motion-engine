@@ -174,6 +174,14 @@ class FrameRenderer:
                     for keyframe in animation["keyframes"]
                 ):
                     raise RenderError(f"visual {animation['targetId']} scale keyframes must be finite numbers from 1 to 3")
+                if animation["property"] == "rotation" and any(
+                    not isinstance(keyframe["value"], (int, float))
+                    or isinstance(keyframe["value"], bool)
+                    or not math.isfinite(keyframe["value"])
+                    or not -360 <= keyframe["value"] <= 360
+                    for keyframe in animation["keyframes"]
+                ):
+                    raise RenderError(f"visual {animation['targetId']} rotation keyframes must be finite degrees from -360 to 360")
                 if animation["property"] == "value" and any(
                     not isinstance(keyframe["value"], (int, float)) or isinstance(keyframe["value"], bool)
                     or not math.isfinite(keyframe["value"]) for keyframe in animation["keyframes"]
@@ -479,15 +487,17 @@ class FrameRenderer:
         if zoom != 1:
             rendered = rendered.resize((max(1, round(rendered.width * zoom)),
                                         max(1, round(rendered.height * zoom))), Image.Resampling.LANCZOS)
-            viewport = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-            viewport.paste(rendered, ((w - rendered.width) // 2, (h - rendered.height) // 2))
-            rendered = viewport
+        rotation = self._property(element["id"], "rotation", frame, 0.0)
+        if rotation:
+            rendered = rendered.rotate(-rotation, resample=Image.Resampling.BICUBIC, expand=True)
+        viewport = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+        viewport.paste(rendered, ((w - rendered.width) // 2, (h - rendered.height) // 2), rendered)
+        rendered = viewport
         opacity = max(0.0, min(1.0, self._property(element["id"], "opacity", frame, 1.0)))
         if opacity < 1:
             rendered = rendered.copy()
             rendered.putalpha(rendered.getchannel("A").point(lambda a: round(a * opacity)))
-        position = (x + (w - rendered.width) // 2, y + (h - rendered.height) // 2)
-        image.paste(rendered, position, rendered)
+        image.paste(rendered, (x, y), rendered)
 
     def _chart(self, image: Image.Image, element: dict[str, Any], frame: int) -> None:
         binding = element["dataBinding"]

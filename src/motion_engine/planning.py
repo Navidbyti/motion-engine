@@ -144,6 +144,11 @@ def plan(spec: dict[str, Any], capabilities: dict[str, dict[str, Any]] | None = 
                     or not math.isfinite(keyframe["value"]) or not 1 <= keyframe["value"] <= 3
                 ):
                     preview_feature_gaps.add(f"animation_value:scale:{animation['targetId']}")
+                if animation["property"] == "rotation" and (
+                    not isinstance(keyframe["value"], (int, float)) or isinstance(keyframe["value"], bool)
+                    or not math.isfinite(keyframe["value"]) or not -360 <= keyframe["value"] <= 360
+                ):
+                    preview_feature_gaps.add(f"animation_value:rotation:{animation['targetId']}")
                 if animation["property"] == "value" and (
                     not isinstance(keyframe["value"], (int, float)) or isinstance(keyframe["value"], bool)
                     or not math.isfinite(keyframe["value"])

@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "project": {
     "id": "ae-image-scale",
-    "title": "Editable linked image scale",
+    "title": "Editable linked image scale and rotation",
     "locale": "en-US",
     "direction": "ltr"
   },
@@ -145,6 +145,21 @@
             {
               "frame": 24,
               "value": 1.5,
+              "easing": "ease_out"
+            }
+          ]
+        },
+        {
+          "targetId": "plate",
+          "property": "rotation",
+          "keyframes": [
+            {
+              "frame": 0,
+              "value": -5
+            },
+            {
+              "frame": 24,
+              "value": 15,
               "easing": "ease_out"
             }
           ]

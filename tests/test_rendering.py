@@ -228,6 +228,30 @@ def test_image_zoom_is_frame_exact_and_clipped_to_its_bounds(tmp_path, example):
         FrameRenderer(spec, asset_root=tmp_path)
 
 
+def test_image_rotation_is_clockwise_frame_exact_and_clipped(tmp_path):
+    plate = Image.new("RGB", (100, 100), (0, 0, 255))
+    Image.Image.paste(plate, (255, 0, 0), (0, 0, 100, 50))
+    plate.save(tmp_path / "rotate.png")
+    spec = copy.deepcopy(load_spec(ROOT / "examples" / "image-card.motion.json"))
+    spec["assets"][0].update({"uri": "rotate.png", "sha256": hashlib.sha256((tmp_path / "rotate.png").read_bytes()).hexdigest()})
+    scene = spec["timeline"][0]
+    element = scene["elements"][0]
+    element["bounds"] = {"x": 80, "y": 80, "width": 100, "height": 100}
+    scene["animations"] = [{"targetId": element["id"], "property": "rotation", "keyframes": [
+        {"frame": 0, "value": 0}, {"frame": 95, "value": 90, "easing": "linear"}]}]
+    assert plan(spec)["capabilities"][0]["buildable"]
+    renderer = FrameRenderer(spec, asset_root=tmp_path)
+    assert renderer.render_frame(0).getpixel((90, 90)) == (255, 0, 0)
+    rotated = renderer.render_frame(95)
+    assert rotated.getpixel((90, 130)) == (0, 0, 255)
+    assert rotated.getpixel((170, 130)) == (255, 0, 0)
+    assert rotated.getpixel((79, 130)) == (16, 24, 32)
+    scene["animations"][0]["keyframes"][-1]["value"] = 361
+    assert "animation_value:rotation:plate" in plan(spec)["capabilities"][0]["unsupportedFeatures"]
+    with pytest.raises(RenderError, match="rotation keyframes"):
+        FrameRenderer(spec, asset_root=tmp_path)
+
+
 def test_image_asset_hash_mismatch_stops_before_output(tmp_path):
     Image.new("RGB", (4, 4), (255, 0, 0)).save(tmp_path / "plate.png")
     spec = copy.deepcopy(load_spec(ROOT / "examples/hello.motion.json"))

@@ -192,6 +192,24 @@ def revise_scene(spec: dict[str, Any], request: dict[str, Any], *,
                                           if not (a["targetId"] == element["id"] and a["property"] == "scale")]
             target_scene["animations"].append({"targetId": element["id"], "property": "scale", "keyframes": value})
             element.setdefault("sourceRefs", []).append(ref)
+        elif action == "set_visual_rotation":
+            if element["kind"] not in ("image", "video") or not isinstance(value, list) or not 1 <= len(value) <= 20:
+                raise SceneRevisionError(f"operation {index}: set_visual_rotation needs an image or video and 1 to 20 keyframes")
+            for key in value:
+                if (not isinstance(key, dict) or set(key) - {"frame", "value", "easing"}
+                    or "frame" not in key or "value" not in key
+                    or not isinstance(key["frame"], int) or isinstance(key["frame"], bool)
+                    or not element["startFrame"] <= key["frame"] < element["endFrameExclusive"]
+                    or not isinstance(key["value"], (int, float)) or isinstance(key["value"], bool)
+                    or not math.isfinite(key["value"]) or not -360 <= key["value"] <= 360
+                    or key.get("easing", "linear") not in PREVIEW_EASING):
+                    raise SceneRevisionError(f"operation {index}: rotation keyframe is unsupported")
+            if [key["frame"] for key in value] != sorted({key["frame"] for key in value}):
+                raise SceneRevisionError(f"operation {index}: rotation keyframes must be unique and sorted")
+            target_scene["animations"] = [a for a in target_scene["animations"]
+                                          if not (a["targetId"] == element["id"] and a["property"] == "rotation")]
+            target_scene["animations"].append({"targetId": element["id"], "property": "rotation", "keyframes": copy.deepcopy(value)})
+            element.setdefault("sourceRefs", []).append(ref)
         elif action == "set_audio_gain":
             if (element["kind"] != "audio" or not isinstance(value, (int, float))
                 or isinstance(value, bool) or not math.isfinite(value) or not -60 <= value <= 12):

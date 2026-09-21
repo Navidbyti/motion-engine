@@ -11,12 +11,12 @@ PREVIEW_PARAMS = {
     "chart.line": {"categoryField", "minimum", "maximum", "color", "baselineColor", "labelFontFamily", "tickCount", "showValues"},
 }
 PREVIEW_KINDS = set(PREVIEW_PARAMS)
-PREVIEW_ANIMATIONS = {"opacity", "reveal", "scale", "value", "x", "y"}
+PREVIEW_ANIMATIONS = {"opacity", "reveal", "rotation", "scale", "value", "x", "y"}
 PREVIEW_ANIMATIONS_BY_KIND = {
     "text": {"opacity", "x", "y"},
     "shape": {"opacity", "x", "y"},
-    "image": {"opacity", "scale", "x", "y"},
-    "video": {"opacity", "scale", "x", "y"},
+    "image": {"opacity", "rotation", "scale", "x", "y"},
+    "video": {"opacity", "rotation", "scale", "x", "y"},
     "audio": set(),
     "counter": {"value", "opacity", "x", "y"},
     "chart.bar": {"reveal"},

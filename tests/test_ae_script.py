@@ -140,3 +140,29 @@ def test_ae_script_rejects_scale_animation_on_non_image_layer(tmp_path):
             {"frame": 0, "value": 1}, {"frame": 12, "value": 1.2}]})
     with pytest.raises(AEExportError, match="require an image"):
         make_ae_script(spec, *_paths(tmp_path))
+
+
+def test_ae_script_preserves_editable_image_rotation_keyframes(tmp_path):
+    spec = load_spec(ROOT / "examples/ae-image.motion.json")
+    spec["timeline"][0]["animations"].append({
+        "targetId": "plate", "property": "rotation", "keyframes": [
+            {"frame": 0, "value": -5}, {"frame": 24, "value": 15, "easing": "ease_out"}]})
+    script, aep, report = _paths(tmp_path)
+    make_ae_script(spec, script, aep, report, asset_root=ROOT / "examples")
+    content = script.read_text(encoding="utf-8")
+    payload = json.loads(content.removeprefix("var job = ").split(";\n", 1)[0])
+    track = payload["rotationTracks"]["card_scene/plate"]
+    assert len(track) == 25
+    assert track[0] == {"frame": 0, "value": -5.0}
+    assert track[12]["value"] == pytest.approx(12.5)
+    assert track[-1] == {"frame": 24, "value": 15.0}
+    assert "reopened rotation key mismatch" in content
+
+
+def test_ae_script_rejects_rotation_animation_on_non_image_layer(tmp_path):
+    spec = load_spec(ROOT / "examples/ae-card.motion.json")
+    spec["timeline"][0]["animations"].append({
+        "targetId": "title", "property": "rotation", "keyframes": [
+            {"frame": 0, "value": 0}, {"frame": 12, "value": 10}]})
+    with pytest.raises(AEExportError, match="require an image"):
+        make_ae_script(spec, *_paths(tmp_path))

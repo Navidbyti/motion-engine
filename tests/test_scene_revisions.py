@@ -68,6 +68,24 @@ def test_image_zoom_revision_and_cli_hash_conflict(tmp_path):
         revise_scene(revised, request, request_path=request_file, output_path=tmp_path / "v3.motion.json")
 
 
+def test_visual_rotation_revision_is_scoped_and_typed(tmp_path):
+    spec = load_spec(ROOT / "examples" / "image-card.motion.json")
+    for item in spec["sources"] + spec["assets"]:
+        destination = tmp_path / item["uri"]
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(ROOT / "examples" / item["uri"], destination)
+    request = {"baseSpecSha256": spec_sha256(spec), "sceneId": "card_scene", "operations": [
+        {"op": "set_visual_rotation", "elementId": "plate", "value": [
+            {"frame": 0, "value": 0}, {"frame": 24, "value": 12, "easing": "ease_out"}]}]}
+    request_file = tmp_path / "rotation.json"
+    request_file.write_text(json.dumps(request), encoding="utf-8")
+    revised = revise_scene(spec, request, request_path=request_file, output_path=tmp_path / "v2.motion.json")
+    track = revised["timeline"][0]["animations"][-1]
+    assert track["property"] == "rotation"
+    assert track["keyframes"][-1]["value"] == 12
+    assert not validate(revised)
+
+
 def test_revision_rejects_unknown_or_invalid_operations(tmp_path):
     spec = load_spec(ROOT / "examples/image-card.motion.json")
     request_file = tmp_path / "edit.json"

@@ -57,6 +57,7 @@ This is the ordered work list for a usable, general motion-production engine. A 
 ## 2. Generic scene composition and preview
 
 - [x] Add frame-exact, bounded image scale keyframes for slow zooms, tested on two public project shapes; moving 3D subjects still require a video or 3D source.
+- [x] Add frame-exact clockwise 2D rotation for image and video plates, typed prompt revisions, and editable linked-image Rotation tracks; 25 eased keys passed native save/reopen verification in After Effects 2024 24.5x52 on Windows on 2026-09-21.
 
 - [x] Add local raster image assets with hash checks, fit/crop rules, and no silent substitution.
 - [ ] Add vector assets/SVG and licensed font manifests; verify availability and glyph coverage.
