@@ -157,7 +157,7 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
     cursor = 0
     scene_keys = {"durationFrames", "visual", "assetId", "title", "subtitle", "background", "accent", "motion"}
     for index, scene in enumerate(proposal["scenes"], 1):
-        if not isinstance(scene, dict) or not scene_keys <= set(scene) or set(scene) - scene_keys - {"claimIds", "voice", "audioAssetId", "transition", "transitionFrames", "counterValue", "counterStartValue", "counterDecimals", "counterPrefix", "counterSuffix", "chartDatasetId", "chartValueField", "chartCategoryField", "chartMinimum", "chartMaximum"}:
+        if not isinstance(scene, dict) or not scene_keys <= set(scene) or set(scene) - scene_keys - {"claimIds", "voice", "audioAssetId", "transition", "transitionFrames", "counterValue", "counterStartValue", "counterDecimals", "counterPrefix", "counterSuffix", "chartDatasetId", "chartValueField", "chartCategoryField", "chartMinimum", "chartMaximum", "chartUnit", "chartDecimals", "chartTickCount"}:
             raise DirectorError(f"scene {index} has missing or unknown plan fields")
         scene_claim_ids = scene.get("claimIds", [])
         if not isinstance(scene_claim_ids, list) or any(not isinstance(item, str) for item in scene_claim_ids) or len(scene_claim_ids) != len(set(scene_claim_ids)):
@@ -235,7 +235,7 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
                 raise DirectorError(f"scene {index} counter values or formatting are invalid")
         elif any(field in scene for field in ("counterValue", "counterStartValue", "counterDecimals", "counterPrefix", "counterSuffix")):
             raise DirectorError(f"scene {index} counter fields require a counter visual")
-        chart_fields = ("chartDatasetId", "chartValueField", "chartCategoryField", "chartMinimum", "chartMaximum")
+        chart_fields = ("chartDatasetId", "chartValueField", "chartCategoryField", "chartMinimum", "chartMaximum", "chartUnit", "chartDecimals", "chartTickCount")
         chart_dataset = None
         chart_refs: list[dict[str, Any]] = []
         if visual in ("bar_chart", "line_chart"):
@@ -261,6 +261,15 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
                     or chart_maximum <= chart_minimum
                     or any(value < chart_minimum or value > chart_maximum for value in values)):
                 raise DirectorError(f"scene {index} chart range is invalid or clips values")
+            chart_unit = scene.get("chartUnit", columns[value_field].get("unit", ""))
+            chart_decimals = scene.get("chartDecimals", 0)
+            chart_tick_count = scene.get("chartTickCount", 5)
+            if (not isinstance(chart_unit, str) or len(chart_unit) > 32
+                    or not isinstance(chart_decimals, int) or isinstance(chart_decimals, bool)
+                    or not 0 <= chart_decimals <= 6
+                    or not isinstance(chart_tick_count, int) or isinstance(chart_tick_count, bool)
+                    or not 2 <= chart_tick_count <= 10):
+                raise DirectorError(f"scene {index} chart formatting is invalid")
             chart_refs = chart_dataset.get("sourceRefs", [])
         elif any(field in scene for field in chart_fields):
             raise DirectorError(f"scene {index} chart fields require a chart visual")
@@ -323,10 +332,12 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
                              "startFrame": chart_start, "endFrameExclusive": end,
                              "bounds": {"x": inset, "y": round(height * 0.25),
                                         "width": width - 2 * inset, "height": round(height * 0.52)},
-                             "dataBinding": {"datasetId": chart_dataset["id"], "field": value_field},
+                             "dataBinding": {"datasetId": chart_dataset["id"], "field": value_field,
+                                             "format": {"unit": chart_unit, "decimals": chart_decimals}},
                              "params": {"categoryField": category_field, "minimum": chart_minimum,
                                         "maximum": chart_maximum, "color": scene["accent"],
-                                        "baselineColor": "#718096", "labelFontFamily": font_family},
+                                        "baselineColor": "#718096", "labelFontFamily": font_family,
+                                        "tickCount": chart_tick_count, "showValues": True},
                              "zIndex": 1, "sourceRefs": chart_refs})
             animations.append({"targetId": chart_id, "property": "reveal", "keyframes": [
                 {"frame": chart_start, "value": 0},

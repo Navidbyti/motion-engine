@@ -67,6 +67,7 @@ This is the ordered work list for a usable, general motion-production engine. A 
 - [x] Add explicit multiline text, opt-in space wrapping, overflow rejection, and libraqm-backed RTL preview.
 - [ ] Add word breaking for scripts without spaces, rich text, glyph coverage checks, and locale-aware formatting.
 - [ ] Add chart axes, ticks, labels, units, baseline rules, and exact-data visual conformance checks.
+- [x] Render chart category labels, bounded value ticks, explicit units, final values, and positive/negative zero baselines. Automated pixel-level geometry conformance remains open.
 - [x] Add frame-placed mono PCM WAV tracks with exact sample alignment, deterministic mixing, and clipping rejection.
 - [ ] Add compressed/stereo audio, background music workflows, fades, ducking, loudness controls, and audio QA.
 - [ ] Add a performance path for long videos and high-resolution frames without changing deterministic output.

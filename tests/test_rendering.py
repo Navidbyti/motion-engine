@@ -9,7 +9,7 @@ from PIL import Image, ImageChops, features
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
-from motion_engine.rendering import FrameRenderer, RenderError, _localize_digits, render_preview
+from motion_engine.rendering import FrameRenderer, RenderError, _format_chart_value, _localize_digits, render_preview
 from motion_engine.planning import plan
 from motion_engine.validation import load_spec
 
@@ -43,6 +43,24 @@ def test_line_chart_is_data_driven():
     del spec["timeline"][0]["elements"][1]["params"]["categoryField"]
     renderer = FrameRenderer(spec, scale=0.2)
     assert changed(renderer.render_frame(60), renderer.render_frame(24))
+
+
+def test_chart_value_format_is_bounded_and_deterministic():
+    assert _format_chart_value(31, 0) == "31"
+    assert _format_chart_value(2.345, 2) == "2.35"
+    with pytest.raises(RenderError, match="decimals"):
+        _format_chart_value(1, 7)
+
+
+def test_chart_handles_negative_values_around_zero_baseline():
+    spec = copy.deepcopy(load_spec(ROOT / "examples/weather.motion.json"))
+    spec["project"]["direction"] = "ltr"
+    spec["timeline"][0]["elements"][0]["text"].update({"value": "Range", "direction": "ltr"})
+    chart = spec["timeline"][0]["elements"][1]
+    spec["datasets"][0]["rows"][0]["temperatureC"] = -10
+    chart["params"].update({"minimum": -20, "maximum": 40, "tickCount": 4, "showValues": True})
+    chart["dataBinding"]["format"] = {"unit": "°C", "decimals": 0}
+    FrameRenderer(spec, scale=0.5).render_frame(60)
 
 
 def test_digit_policy_is_local_to_each_text_item():

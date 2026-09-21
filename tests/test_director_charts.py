@@ -33,6 +33,7 @@ def _project(tmp_path: Path, visual: str = "bar_chart") -> tuple[Path, dict, dic
         "subtitle": "Synthetic test data", "motion": "fade",
         "chartDatasetId": "temperatures", "chartValueField": "temperatureC",
         "chartCategoryField": "city", "chartMinimum": 0, "chartMaximum": 40,
+        "chartUnit": "°C", "chartDecimals": 1, "chartTickCount": 4,
     })
     return prompt, proposal, fragment, fragment_path
 
@@ -50,7 +51,10 @@ def test_director_compiles_source_checked_charts_in_two_formats(tmp_path, visual
     assert plan(spec)["buildable"]
     chart = next(element for element in spec["timeline"][0]["elements"]
                  if element["kind"].startswith("chart."))
-    assert chart["dataBinding"] == {"datasetId": "temperatures", "field": "temperatureC"}
+    assert chart["dataBinding"] == {"datasetId": "temperatures", "field": "temperatureC",
+                                    "format": {"unit": "°C", "decimals": 1}}
+    assert chart["params"]["tickCount"] == 4
+    assert chart["params"]["showValues"] is True
     assert chart["sourceRefs"] == fragment["dataset"]["sourceRefs"]
     assert fragment["dataset"]["sourceRefs"][0] in spec["timeline"][0]["sourceRefs"]
     assert fragment["dataset"]["sourceRefs"][0] in spec["timeline"][0]["beats"][0]["sourceRefs"]
@@ -83,6 +87,7 @@ def test_first_draft_cli_accepts_imported_dataset_fragment(tmp_path):
     ({"chartValueField": "city"}, "value field must be numeric"),
     ({"chartCategoryField": "missing"}, "category field is unavailable"),
     ({"chartMaximum": 25}, "clips values"),
+    ({"chartDecimals": 7}, "formatting is invalid"),
 ])
 def test_director_rejects_unavailable_or_misleading_chart_bindings(tmp_path, change, message):
     prompt, proposal, fragment, _ = _project(tmp_path)

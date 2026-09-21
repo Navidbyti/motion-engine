@@ -54,6 +54,12 @@ def _localize_digits(value: str, policy: str | None, locale: str) -> str:
     return value.translate(str.maketrans(persian + arabic + latin, target * 3))
 
 
+def _format_chart_value(value: float, decimals: int) -> str:
+    if not isinstance(decimals, int) or isinstance(decimals, bool) or not 0 <= decimals <= 6:
+        raise RenderError("chart decimals must be an integer from 0 to 6")
+    return f"{value:.{decimals}f}"
+
+
 def _easing(value: float, name: str | None) -> float:
     if name in (None, "linear"):
         return value
@@ -458,12 +464,24 @@ class FrameRenderer:
         if not all(isinstance(v, (int, float)) and math.isfinite(v) for v in values):
             raise RenderError(f"chart {element['id']} requires finite numeric values")
         params = element["params"]
+        value_format = binding.get("format", {})
+        if not isinstance(value_format, dict) or set(value_format) - {"unit", "decimals"}:
+            raise RenderError(f"chart {element['id']} has unsupported value format")
+        unit = value_format.get("unit", "")
+        decimals = value_format.get("decimals", 0)
+        tick_count = params.get("tickCount", 5)
+        show_values = params.get("showValues", False)
+        if (not isinstance(unit, str) or len(unit) > 32
+                or not isinstance(tick_count, int) or isinstance(tick_count, bool) or not 2 <= tick_count <= 10
+                or not isinstance(show_values, bool)):
+            raise RenderError(f"chart {element['id']} formatting is invalid")
+        _format_chart_value(0, decimals)
         minimum = float(params.get("minimum", min(0, *values)))
         maximum = float(params.get("maximum", max(values)))
         if not maximum > minimum:
             raise RenderError(f"chart {element['id']} needs maximum greater than minimum")
         x, y, w, h = self._bounds(element["bounds"])
-        left_margin = min(round(30 * self.scale), max(1, round(w * 0.12)))
+        left_margin = min(round(80 * self.scale), max(1, round(w * 0.25)))
         right_margin = min(round(25 * self.scale), max(1, round(w * 0.10)))
         top_margin = min(round(25 * self.scale), max(1, round(h * 0.10)))
         bottom_margin = min(round(80 * self.scale), max(1, round(h * 0.22)))
@@ -474,28 +492,53 @@ class FrameRenderer:
         draw = ImageDraw.Draw(image)
         color = _rgb(params.get("color", "#FFFFFF"))
         baseline = _rgb(params.get("baselineColor", "#6B7280"))
-        draw.line((left, bottom, right, bottom), fill=baseline, width=max(1, round(2 * self.scale)))
         reveal = max(0.0, min(1.0, self._property(element["id"], "reveal", frame, 1.0)))
         category_field = params.get("categoryField")
         if category_field and any(category_field not in row for row in rows):
             raise RenderError(f"chart {element['id']} categoryField {category_field!r} is absent from data")
         font = self._font(params.get("labelFontFamily", "DejaVu Sans"), max(8, round(28 * self.scale)))
+        axis_font = self._font(params.get("labelFontFamily", "DejaVu Sans"), max(7, round(22 * self.scale)))
+        grid = tuple(round((channel + 255) / 2) for channel in baseline)
+        for tick_index in range(tick_count):
+            ratio = tick_index / (tick_count - 1)
+            tick_value = minimum + ratio * (maximum - minimum)
+            tick_y = bottom - ratio * (bottom - top)
+            draw.line((left, tick_y, right, tick_y), fill=grid, width=max(1, round(self.scale)))
+            draw.text((left - max(2, round(8 * self.scale)), tick_y),
+                      _format_chart_value(tick_value, decimals), font=axis_font,
+                      fill=(255, 255, 255), anchor="rm")
+        if unit:
+            draw.text((left, top - max(2, round(5 * self.scale))), unit, font=axis_font,
+                      fill=(255, 255, 255), anchor="lb")
+        zero_ratio = (0 - minimum) / (maximum - minimum)
+        zero_y = bottom - max(0.0, min(1.0, zero_ratio)) * (bottom - top)
+        draw.line((left, zero_y, right, zero_y), fill=baseline, width=max(1, round(2 * self.scale)))
         if element["kind"] == "chart.bar":
             slot = (right - left) / len(rows)
             bar_width = max(1, round(slot * float(params.get("barWidthFraction", 0.62))))
             for index, (row, value) in enumerate(zip(rows, values)):
-                height = max(0, round((value - minimum) / (maximum - minimum) * (bottom - top) * reveal))
                 center = left + (index + 0.5) * slot
-                draw.rectangle((round(center - bar_width / 2), bottom - height, round(center + bar_width / 2), bottom), fill=color)
+                target_y = bottom - (value - minimum) / (maximum - minimum) * (bottom - top)
+                value_y = zero_y + (target_y - zero_y) * reveal
+                draw.rectangle((round(center - bar_width / 2), round(min(zero_y, value_y)),
+                                round(center + bar_width / 2), round(max(zero_y, value_y))), fill=color)
                 if category_field:
                     label = str(row[category_field])
                     draw.text((center, bottom + round(12 * self.scale)), label, font=font, fill=(255, 255, 255), anchor="mt")
+                if show_values and reveal >= 0.999:
+                    anchor = "mb" if value >= 0 else "mt"
+                    offset = -max(2, round(5 * self.scale)) if value >= 0 else max(2, round(5 * self.scale))
+                    draw.text((center, target_y + offset), _format_chart_value(value, decimals),
+                              font=axis_font, fill=(255, 255, 255), anchor=anchor)
         else:
             points = []
             for index, value in enumerate(values):
                 px = left + index * (right - left) / max(1, len(values) - 1)
                 py = bottom - (value - minimum) / (maximum - minimum) * (bottom - top)
                 points.append((px, py))
+                if category_field:
+                    draw.text((px, bottom + round(12 * self.scale)), str(rows[index][category_field]),
+                              font=font, fill=(255, 255, 255), anchor="mt")
             if len(points) == 1:
                 draw.ellipse((points[0][0] - 3, points[0][1] - 3, points[0][0] + 3, points[0][1] + 3), fill=color)
             else:
@@ -508,6 +551,13 @@ class FrameRenderer:
                     visible.append((start[0] + (end[0] - start[0]) * fraction, start[1] + (end[1] - start[1]) * fraction))
                 if len(visible) >= 2:
                     draw.line(visible, fill=color, width=max(1, round(5 * self.scale)), joint="curve")
+            if show_values and reveal >= 0.999:
+                radius = max(2, round(4 * self.scale))
+                for (px, py), value in zip(points, values):
+                    draw.ellipse((px - radius, py - radius, px + radius, py + radius), fill=color)
+                    draw.text((px, py - radius - max(2, round(4 * self.scale))),
+                              _format_chart_value(value, decimals), font=axis_font,
+                              fill=(255, 255, 255), anchor="mb")
 
     def _scene_frame(self, scene: dict[str, Any], frame: int) -> Image.Image:
         image = Image.new("RGB", (self.width, self.height), self.background)
