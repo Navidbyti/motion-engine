@@ -8,7 +8,7 @@ PREVIEW_PARAMS = {
     "audio": {"gainDb"},
     "counter": {"startValue", "endValue", "decimals", "prefix", "suffix", "color", "fontSize", "fontFamily", "digitPolicy", "align"},
     "chart.bar": {"categoryField", "minimum", "maximum", "color", "baselineColor", "barWidthFraction", "labelFontFamily"},
-    "chart.line": {"minimum", "maximum", "color", "baselineColor", "labelFontFamily"},
+    "chart.line": {"categoryField", "minimum", "maximum", "color", "baselineColor", "labelFontFamily"},
 }
 PREVIEW_KINDS = set(PREVIEW_PARAMS)
 PREVIEW_ANIMATIONS = {"opacity", "reveal", "scale", "value", "x", "y"}

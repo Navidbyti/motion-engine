@@ -18,6 +18,8 @@ For supplied narration, set both `voice` and `audioAssetId` on the scene. The ca
 
 For an animated statistic, set `visual: "counter"` and provide a finite `counterValue`. Optional `counterStartValue`, `counterDecimals` from 0 to 6, `counterPrefix`, and `counterSuffix` control the typed number and its deterministic display. The compiler creates a structured counter element with an eased numeric track and records the final displayed value in the beat. The preview does not infer units, locale formatting, or factual meaning; the agent must select those from verified source data.
 
+For a source-backed chart, import CSV or XLSX data first and pass its fragment with `--data-fragment`. Set `visual` to `bar_chart` or `line_chart`, then provide `chartDatasetId` and numeric `chartValueField`. Optional `chartCategoryField`, `chartMinimum`, and `chartMaximum` control category validation and the plotted range. The compiler refuses missing or clipped data and adds exact-source QA. Axes, tick labels, units, and locale formatting still need richer chart primitives.
+
 For a factual prompt, set `researchRequired: true`, provide `claimIds` for every scene, and pass a [source-linked claim ledger](research.md) with `--claims`. The preview is reviewable, but QA requires a person to assess claim meaning, source quality, and uncertainty before factual release. The compiler does not certify truth.
 
 For a smaller step, use `motion-engine compile-director PROMPT PLAN --output SPEC --project-id ID`, followed by `freeze` and `render`. The compiler checks scene frame limits, IDs, available assets, and the resulting MotionSpec. The desktop agent must inspect the actual video and revise weak scenes. See [revisions](revisions.md) for typed scene edits.

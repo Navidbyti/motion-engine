@@ -35,7 +35,8 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
                           width: int = 1080, height: int = 1920, fps: int = 30,
                           assets: list[dict[str, Any]] | None = None,
                           proposal_path: str | Path | None = None,
-                          claim_ledger_path: str | Path | None = None) -> dict[str, Any]:
+                          claim_ledger_path: str | Path | None = None,
+                          data_fragments: list[dict[str, Any]] | None = None) -> dict[str, Any]:
     prompt = Path(prompt_path).resolve()
     output = Path(output_path).resolve()
     try:
@@ -127,13 +128,36 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
             raise DirectorError(str(exc)) from exc
         if file_sha256(path) != asset["sha256"]:
             raise DirectorError(f"asset {asset['id']} SHA-256 mismatch")
+    data_sources: dict[str, dict[str, Any]] = {}
+    datasets: dict[str, dict[str, Any]] = {}
+    reserved_source_ids = {"user_prompt", "director_plan", "claim_ledger", *(item["id"] for item in research_sources)}
+    for fragment_index, fragment in enumerate(data_fragments or []):
+        if (not isinstance(fragment, dict) or set(fragment) != {"source", "dataset", "headerMapping"}
+                or not isinstance(fragment["source"], dict) or not isinstance(fragment["dataset"], dict)):
+            raise DirectorError(f"data fragment {fragment_index} is not an import-data result")
+        source, dataset = fragment["source"], fragment["dataset"]
+        source_id, dataset_id = source.get("id"), dataset.get("id")
+        if (not isinstance(source_id, str) or not isinstance(dataset_id, str)
+                or source_id in reserved_source_ids or dataset_id in datasets):
+            raise DirectorError(f"data fragment {fragment_index} has a missing, reserved, or duplicate ID")
+        existing = data_sources.get(source_id)
+        if existing is not None and existing != source:
+            raise DirectorError(f"data source {source_id!r} has conflicting records")
+        try:
+            source_file = resolve_local_file(source, output.parent, "data source")
+        except ValueError as exc:
+            raise DirectorError(str(exc)) from exc
+        if not source.get("sha256") or file_sha256(source_file) != source["sha256"]:
+            raise DirectorError(f"data source {source_id!r} SHA-256 mismatch")
+        data_sources[source_id] = source
+        datasets[dataset_id] = dataset
     inset = max(24, round(min(width, height) * 0.07))
     ref = {"sourceId": "user_prompt", "location": "entire prompt", "method": "desktop agent adaptation", "confidence": 0.7}
     timeline = []
     cursor = 0
     scene_keys = {"durationFrames", "visual", "assetId", "title", "subtitle", "background", "accent", "motion"}
     for index, scene in enumerate(proposal["scenes"], 1):
-        if not isinstance(scene, dict) or not scene_keys <= set(scene) or set(scene) - scene_keys - {"claimIds", "voice", "audioAssetId", "transition", "transitionFrames", "counterValue", "counterStartValue", "counterDecimals", "counterPrefix", "counterSuffix"}:
+        if not isinstance(scene, dict) or not scene_keys <= set(scene) or set(scene) - scene_keys - {"claimIds", "voice", "audioAssetId", "transition", "transitionFrames", "counterValue", "counterStartValue", "counterDecimals", "counterPrefix", "counterSuffix", "chartDatasetId", "chartValueField", "chartCategoryField", "chartMinimum", "chartMaximum"}:
             raise DirectorError(f"scene {index} has missing or unknown plan fields")
         scene_claim_ids = scene.get("claimIds", [])
         if not isinstance(scene_claim_ids, list) or any(not isinstance(item, str) for item in scene_claim_ids) or len(scene_claim_ids) != len(set(scene_claim_ids)):
@@ -190,7 +214,7 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
                 raise DirectorError(f"scene {index} narration audio cannot be decoded") from exc
         if not isinstance(asset_id, str):
             raise DirectorError(f"scene {index} asset ID must be a string")
-        if visual not in ("typography", "shape", "card", "asset", "counter") or motion not in ("none", "fade", "zoom", "slide", "rise"):
+        if visual not in ("typography", "shape", "card", "asset", "counter", "bar_chart", "line_chart") or motion not in ("none", "fade", "zoom", "slide", "rise"):
             raise DirectorError(f"scene {index} visual or motion is unsupported")
         if visual == "asset" and asset_id not in asset_ids:
             raise DirectorError(f"scene {index} requests unavailable asset {asset_id!r}; generate or import it first")
@@ -211,6 +235,35 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
                 raise DirectorError(f"scene {index} counter values or formatting are invalid")
         elif any(field in scene for field in ("counterValue", "counterStartValue", "counterDecimals", "counterPrefix", "counterSuffix")):
             raise DirectorError(f"scene {index} counter fields require a counter visual")
+        chart_fields = ("chartDatasetId", "chartValueField", "chartCategoryField", "chartMinimum", "chartMaximum")
+        chart_dataset = None
+        chart_refs: list[dict[str, Any]] = []
+        if visual in ("bar_chart", "line_chart"):
+            dataset_id, value_field = scene.get("chartDatasetId"), scene.get("chartValueField")
+            category_field = scene.get("chartCategoryField")
+            chart_dataset = datasets.get(dataset_id)
+            if chart_dataset is None:
+                raise DirectorError(f"scene {index} requests unavailable dataset {dataset_id!r}")
+            columns = {column["name"]: column for column in chart_dataset.get("columns", [])}
+            if value_field not in columns or columns[value_field].get("type") not in ("integer", "number"):
+                raise DirectorError(f"scene {index} chart value field must be numeric")
+            if category_field not in columns:
+                raise DirectorError(f"scene {index} chart category field is unavailable")
+            values = [row.get(value_field) for row in chart_dataset.get("rows", [])]
+            if not values or any(not isinstance(value, (int, float)) or isinstance(value, bool)
+                                 or not math.isfinite(value) for value in values):
+                raise DirectorError(f"scene {index} chart needs finite numeric rows")
+            chart_minimum = scene.get("chartMinimum", min(0, *values))
+            chart_maximum = scene.get("chartMaximum", max(values))
+            if (not isinstance(chart_minimum, (int, float)) or isinstance(chart_minimum, bool)
+                    or not isinstance(chart_maximum, (int, float)) or isinstance(chart_maximum, bool)
+                    or not math.isfinite(chart_minimum) or not math.isfinite(chart_maximum)
+                    or chart_maximum <= chart_minimum
+                    or any(value < chart_minimum or value > chart_maximum for value in values)):
+                raise DirectorError(f"scene {index} chart range is invalid or clips values")
+            chart_refs = chart_dataset.get("sourceRefs", [])
+        elif any(field in scene for field in chart_fields):
+            raise DirectorError(f"scene {index} chart fields require a chart visual")
         start, end = cursor, cursor + duration
         scene_id = f"scene_{index}"
         elements = [{"id": f"background_{index}", "kind": "shape", "startFrame": start,
@@ -263,6 +316,22 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
             animations.append({"targetId": counter_id, "property": "value", "keyframes": [
                 {"frame": start, "value": start_value},
                 {"frame": finish, "value": counter_value, "easing": "ease_out"}]})
+        if visual in ("bar_chart", "line_chart"):
+            chart_id = f"chart_{index}"
+            chart_start = start + min(8, duration - 2)
+            elements.append({"id": chart_id, "kind": "chart.bar" if visual == "bar_chart" else "chart.line",
+                             "startFrame": chart_start, "endFrameExclusive": end,
+                             "bounds": {"x": inset, "y": round(height * 0.25),
+                                        "width": width - 2 * inset, "height": round(height * 0.52)},
+                             "dataBinding": {"datasetId": chart_dataset["id"], "field": value_field},
+                             "params": {"categoryField": category_field, "minimum": chart_minimum,
+                                        "maximum": chart_maximum, "color": scene["accent"],
+                                        "baselineColor": "#718096", "labelFontFamily": font_family},
+                             "zIndex": 1, "sourceRefs": chart_refs})
+            animations.append({"targetId": chart_id, "property": "reveal", "keyframes": [
+                {"frame": chart_start, "value": 0},
+                {"frame": start + min(max(12, duration // 2), duration - 1),
+                 "value": 1, "easing": "ease_out"}]})
         for role, value in (("title", scene["title"]), ("subtitle", scene["subtitle"])):
             if not value.strip():
                 continue
@@ -278,6 +347,9 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
             elif visual == "counter":
                 y = round(height * (0.14 if title else 0.70))
                 box_h = round(height * (0.20 if title else 0.15))
+            elif visual in ("bar_chart", "line_chart"):
+                y = round(height * (0.06 if title else 0.82))
+                box_h = round(height * (0.16 if title else 0.16))
             else:
                 y = round(height * (0.22 if title else 0.68))
                 box_h = round(height * (0.35 if title else 0.18))
@@ -328,8 +400,8 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
                                                  + ([{"value": prefix + f"{counter_value:.{decimals}f}" + suffix,
                                                        "locale": proposal["locale"]}]
                                                     if visual == "counter" else [])),
-                                    "sourceRefs": [ref, *claim_refs]}],
-                         "animations": animations, "sourceRefs": [ref, *claim_refs]
+                                    "sourceRefs": [ref, *claim_refs, *chart_refs]}],
+                         "animations": animations, "sourceRefs": [ref, *claim_refs, *chart_refs]
                          + ([{**plan_ref, "location": f"/scenes/{index - 1}"}] if plan_ref else [])})
         cursor = end
     if cursor > 10_000:
@@ -344,12 +416,14 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
             "sources": [{"id": "user_prompt", "uri": prompt_uri, "mediaType": "text/plain",
                          "sha256": file_sha256(prompt), "authority": ["creative brief"]}]
                        + ([plan_source] if plan_source else [])
-                       + ([claim_source] if claim_source else []) + research_sources,
-            "assets": asset_list, "datasets": [], "timeline": timeline,
+                       + ([claim_source] if claim_source else []) + research_sources + list(data_sources.values()),
+            "assets": asset_list, "datasets": list(datasets.values()), "timeline": timeline,
             "deliverables": [{"id": "preview", "target": "video/mp4", "profile": "preview",
                               "required": True, "editable": False}],
-            "policies": {"qa": ([{"id": "claim_review", "rule": "claim.semantic_review", "severity": "warning"}]
-                                   if claim_source else []),
+            "policies": {"qa": (([{"id": "claim_review", "rule": "claim.semantic_review", "severity": "warning"}]
+                                    if claim_source else [])
+                                   + ([{"id": "chart_values", "rule": "chart.data_exact", "severity": "error"}]
+                                      if any(scene["visual"] in ("bar_chart", "line_chart") for scene in proposal["scenes"]) else [])),
                          "disclosures": [], "approvals": ["first draft visual review"],
                          "unsupportedFeature": "error"}}
     errors = validate(spec)

@@ -463,7 +463,12 @@ class FrameRenderer:
         if not maximum > minimum:
             raise RenderError(f"chart {element['id']} needs maximum greater than minimum")
         x, y, w, h = self._bounds(element["bounds"])
-        left, top, right, bottom = x + round(30 * self.scale), y + round(25 * self.scale), x + w - round(25 * self.scale), y + h - round(80 * self.scale)
+        left_margin = min(round(30 * self.scale), max(1, round(w * 0.12)))
+        right_margin = min(round(25 * self.scale), max(1, round(w * 0.10)))
+        top_margin = min(round(25 * self.scale), max(1, round(h * 0.10)))
+        bottom_margin = min(round(80 * self.scale), max(1, round(h * 0.22)))
+        left, top, right, bottom = (x + left_margin, y + top_margin,
+                                    x + w - right_margin, y + h - bottom_margin)
         if bottom <= top or right <= left:
             raise RenderError(f"chart {element['id']} bounds too small")
         draw = ImageDraw.Draw(image)

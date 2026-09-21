@@ -49,6 +49,7 @@ This is the ordered work list for a usable, general motion-production engine. A 
 - [x] Prove a literal text drafting subset: each UTF-8 line becomes a cited MotionSpec scene, validates, and renders to MP4 on two public language/aspect fixtures. This does not interpret briefs, tables, or creative intent.
 - [x] Add a structured source review file for ambiguities, missing inputs, permissions, and approvals, with source-bound IDs and explicit resolutions. Human identity and rights remain producer checks.
 - [x] Add deterministic CSV/XLSX-to-dataset mapping with source ranges, formula-cache checks, and conservative numeric types.
+- [x] Connect imported CSV/XLSX fragments to source-checked bar and line scenes in the desktop director. Rich axes, labels, and unit formatting remain open.
 - [ ] Add explicit unit interpretation and mappings for nonrectangular tables and decimal values beyond JSON number precision.
 
 ## 2. Generic scene composition and preview

@@ -88,6 +88,7 @@ def main(argv: list[str] | None = None) -> int:
     director.add_argument("--project-id", required=True)
     director.add_argument("--assets", help="Optional JSON list of available hashed assets")
     director.add_argument("--claims", help="Source-linked claim ledger for factual scenes")
+    director.add_argument("--data-fragment", action="append", default=[], help="Imported dataset fragment JSON; repeat for more datasets")
     director.add_argument("--width", type=int, default=1080)
     director.add_argument("--height", type=int, default=1920)
     director.add_argument("--fps", type=int, default=30)
@@ -112,6 +113,7 @@ def main(argv: list[str] | None = None) -> int:
     first.add_argument("--package-dir", help="Create a verified preview review bundle in a new directory")
     first.add_argument("--assets", help="Optional JSON list of available hashed assets")
     first.add_argument("--claims", help="Source-linked claim ledger for factual scenes")
+    first.add_argument("--data-fragment", action="append", default=[], help="Imported dataset fragment JSON; repeat for more datasets")
     first.add_argument("--width", type=int, default=1080)
     first.add_argument("--height", type=int, default=1920)
     first.add_argument("--fps", type=int, default=30)
@@ -214,11 +216,16 @@ def main(argv: list[str] | None = None) -> int:
             if args.assets:
                 with Path(args.assets).open("r", encoding="utf-8") as stream:
                     asset_list = json.load(stream)
+            data_fragments = []
+            for path in args.data_fragment:
+                with Path(path).open("r", encoding="utf-8") as stream:
+                    data_fragments.append(json.load(stream))
             result = compile_director_plan(args.prompt, args.output, proposal,
                                            project_id=args.project_id, width=args.width,
                                            height=args.height, fps=args.fps,
                                            assets=asset_list, proposal_path=args.proposal,
-                                           claim_ledger_path=args.claims)
+                                           claim_ledger_path=args.claims,
+                                           data_fragments=data_fragments)
             _emit(result, args.output)
             return 0
         if args.command == "director-schema":
@@ -252,11 +259,16 @@ def main(argv: list[str] | None = None) -> int:
                     asset_list = json.load(stream)
             with plan_path.open("r", encoding="utf-8") as stream:
                 proposal = json.load(stream)
+            data_fragments = []
+            for path in args.data_fragment:
+                with Path(path).open("r", encoding="utf-8") as stream:
+                    data_fragments.append(json.load(stream))
             spec = compile_director_plan(args.prompt, spec_path, proposal,
                                          project_id=args.project_id, width=args.width,
                                          height=args.height, fps=args.fps,
                                          assets=asset_list, proposal_path=plan_path,
-                                         claim_ledger_path=args.claims)
+                                         claim_ledger_path=args.claims,
+                                         data_fragments=data_fragments)
             _emit(spec, spec_path)
             revision = freeze_revision(spec, spec_path.parent)
             result = render_preview(spec, render_path, scale=args.scale,
