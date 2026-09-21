@@ -25,7 +25,7 @@ def _safe_area_issues(spec: dict[str, Any], severity: str) -> list[dict[str, str
     inset = canvas.get("safeArea", {"top": 0, "right": 0, "bottom": 0, "left": 0})
     left, top = inset["left"], inset["top"]
     right, bottom = canvas["width"] - inset["right"], canvas["height"] - inset["bottom"]
-    items = [element for scene in spec["timeline"] for element in scene["elements"] if element["kind"] == "text"]
+    items = [element for scene in spec["timeline"] for element in scene["elements"] if element["kind"] in ("text", "counter")]
     items += spec["policies"]["disclosures"]
     issues = []
     for item in items:

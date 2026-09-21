@@ -60,6 +60,7 @@ This is the ordered work list for a usable, general motion-production engine. A 
 - [ ] Add video plates with trimming, proxies, color conversion, and deterministic frame mapping.
 - [x] Add a hashed PNG-frame video proxy with exact frame mapping, explicit source trim, FFmpeg import, and two public aspect-ratio fixtures. Native media import, broad color management, and performance remain open.
 - [ ] Add tables, cards, counters, scatter charts, icons, masks, and reusable compositions as tested primitives.
+- [x] Add a structured animated counter with finite numeric tracks, deterministic precision and affixes, safe-area QA, and horizontal/vertical director tests. Broader locale and source binding remain open.
 - [ ] Add scene transitions and a complete animation property/easing contract, with exact frame semantics.
 - [x] Add a deterministic nonoverlapping scene fade through the project background, verified on horizontal and vertical plans. Overlapping transitions and audio fades remain open.
 - [x] Add explicit multiline text, opt-in space wrapping, overflow rejection, and libraqm-backed RTL preview.

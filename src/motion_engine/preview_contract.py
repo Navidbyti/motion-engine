@@ -6,17 +6,19 @@ PREVIEW_PARAMS = {
     "image": {"fit"},
     "video": {"fit", "sourceStartFrame"},
     "audio": {"gainDb"},
+    "counter": {"startValue", "endValue", "decimals", "prefix", "suffix", "color", "fontSize", "fontFamily", "digitPolicy", "align"},
     "chart.bar": {"categoryField", "minimum", "maximum", "color", "baselineColor", "barWidthFraction", "labelFontFamily"},
     "chart.line": {"minimum", "maximum", "color", "baselineColor", "labelFontFamily"},
 }
 PREVIEW_KINDS = set(PREVIEW_PARAMS)
-PREVIEW_ANIMATIONS = {"opacity", "reveal", "scale", "x", "y"}
+PREVIEW_ANIMATIONS = {"opacity", "reveal", "scale", "value", "x", "y"}
 PREVIEW_ANIMATIONS_BY_KIND = {
     "text": {"opacity", "x", "y"},
     "shape": {"opacity", "x", "y"},
     "image": {"opacity", "scale", "x", "y"},
     "video": {"opacity", "scale", "x", "y"},
     "audio": set(),
+    "counter": {"value", "opacity", "x", "y"},
     "chart.bar": {"reveal"},
     "chart.line": {"reveal"},
 }

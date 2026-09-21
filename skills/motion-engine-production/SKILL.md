@@ -21,6 +21,7 @@ Use the current Codex or Claude session as the creative and research brain. The 
 - Run `motion-engine director-schema` and author the complete plan before building individual scenes. Account for every scene, duration, exact text, visual, motion choice, requested asset, and factual claim.
 - Use a bounded `fade` transition when a cut is too abrupt; inspect the actual boundary frames because the current transition fades through the project background and does not overlap scenes or fade audio.
 - Use only plan fields and primitives accepted by the current schema. If the requested shot needs a real image, video, or 3D plate, declare and fulfill an asset request; do not replace it with an unrelated rectangle or still image.
+- Use `visual: "counter"` for an animated sourced statistic and specify its numeric value, precision, prefix, and suffix explicitly; do not extract exact numbers from generated pixels.
 - Inspect every supplied or generated asset, record its license and approval, build the asset catalog, and resolve requests before compiling.
 - When narration is available, preserve its exact script in the scene `voice` and attach the reviewed scene-length WAV through `audioAssetId`; do not claim transcription or word alignment unless those checks were actually run.
 - Run `motion-engine first-draft` with new MotionSpec, preview, review, and package paths. Inspect `qa.json`, the contact sheet, and the actual MP4 inside the verified bundle. Iterate when the visible result is weak or incomplete.

@@ -6,6 +6,7 @@ and refuses ungrounded factual plans or assets that do not exist.
 from __future__ import annotations
 
 import json
+import math
 import re
 import wave
 from pathlib import Path
@@ -132,7 +133,7 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
     cursor = 0
     scene_keys = {"durationFrames", "visual", "assetId", "title", "subtitle", "background", "accent", "motion"}
     for index, scene in enumerate(proposal["scenes"], 1):
-        if not isinstance(scene, dict) or not scene_keys <= set(scene) or set(scene) - scene_keys - {"claimIds", "voice", "audioAssetId", "transition", "transitionFrames"}:
+        if not isinstance(scene, dict) or not scene_keys <= set(scene) or set(scene) - scene_keys - {"claimIds", "voice", "audioAssetId", "transition", "transitionFrames", "counterValue", "counterStartValue", "counterDecimals", "counterPrefix", "counterSuffix"}:
             raise DirectorError(f"scene {index} has missing or unknown plan fields")
         scene_claim_ids = scene.get("claimIds", [])
         if not isinstance(scene_claim_ids, list) or any(not isinstance(item, str) for item in scene_claim_ids) or len(scene_claim_ids) != len(set(scene_claim_ids)):
@@ -148,7 +149,7 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
             raise DirectorError(f"scene {index} duration must be 12 to 900 frames")
         if not isinstance(scene["title"], str) or not isinstance(scene["subtitle"], str):
             raise DirectorError(f"scene {index} text must be strings")
-        if not scene["title"].strip() and not scene["subtitle"].strip():
+        if not scene["title"].strip() and not scene["subtitle"].strip() and scene["visual"] != "counter":
             raise DirectorError(f"scene {index} needs visible text")
         if any(len(scene[field]) > 500 for field in ("title", "subtitle")):
             raise DirectorError(f"scene {index} text is too long for this draft primitive")
@@ -189,7 +190,7 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
                 raise DirectorError(f"scene {index} narration audio cannot be decoded") from exc
         if not isinstance(asset_id, str):
             raise DirectorError(f"scene {index} asset ID must be a string")
-        if visual not in ("typography", "shape", "card", "asset") or motion not in ("none", "fade", "zoom", "slide", "rise"):
+        if visual not in ("typography", "shape", "card", "asset", "counter") or motion not in ("none", "fade", "zoom", "slide", "rise"):
             raise DirectorError(f"scene {index} visual or motion is unsupported")
         if visual == "asset" and asset_id not in asset_ids:
             raise DirectorError(f"scene {index} requests unavailable asset {asset_id!r}; generate or import it first")
@@ -197,6 +198,19 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
             raise DirectorError(f"scene {index} has an asset ID without an asset visual")
         if motion == "zoom" and visual != "asset":
             raise DirectorError(f"scene {index} zoom needs an image or moving plate")
+        counter_value = scene.get("counterValue")
+        if visual == "counter":
+            start_value = scene.get("counterStartValue", 0)
+            decimals = scene.get("counterDecimals", 0)
+            prefix, suffix = scene.get("counterPrefix", ""), scene.get("counterSuffix", "")
+            if (not isinstance(counter_value, (int, float)) or isinstance(counter_value, bool) or not math.isfinite(counter_value)
+                    or not isinstance(start_value, (int, float)) or isinstance(start_value, bool) or not math.isfinite(start_value)
+                    or not isinstance(decimals, int) or isinstance(decimals, bool) or not 0 <= decimals <= 6
+                    or not isinstance(prefix, str) or not isinstance(suffix, str)
+                    or len(prefix) > 32 or len(suffix) > 32):
+                raise DirectorError(f"scene {index} counter values or formatting are invalid")
+        elif any(field in scene for field in ("counterValue", "counterStartValue", "counterDecimals", "counterPrefix", "counterSuffix")):
+            raise DirectorError(f"scene {index} counter fields require a counter visual")
         start, end = cursor, cursor + duration
         scene_id = f"scene_{index}"
         elements = [{"id": f"background_{index}", "kind": "shape", "startFrame": start,
@@ -232,6 +246,23 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
                              "bounds": {"x": inset, "y": inset,
                                         "width": width - 2 * inset, "height": height - 2 * inset},
                              "params": {"shape": "rect", "color": scene["accent"]}, "zIndex": 0})
+        if visual == "counter":
+            counter_id = f"counter_{index}"
+            counter_y = round(height * 0.38)
+            elements.append({"id": counter_id, "kind": "counter", "startFrame": start,
+                             "endFrameExclusive": end,
+                             "bounds": {"x": inset, "y": counter_y,
+                                        "width": width - 2 * inset, "height": round(height * 0.25)},
+                             "params": {"startValue": start_value, "endValue": counter_value,
+                                        "decimals": decimals, "prefix": prefix, "suffix": suffix,
+                                        "color": scene["accent"],
+                                        "fontSize": max(24, round(min(width, height) * 0.12)),
+                                        "fontFamily": font_family, "align": "center"},
+                             "zIndex": 1, "sourceRefs": [ref, *claim_refs]})
+            finish = start + min(30, duration - 1)
+            animations.append({"targetId": counter_id, "property": "value", "keyframes": [
+                {"frame": start, "value": start_value},
+                {"frame": finish, "value": counter_value, "easing": "ease_out"}]})
         for role, value in (("title", scene["title"]), ("subtitle", scene["subtitle"])):
             if not value.strip():
                 continue
@@ -244,6 +275,9 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
                 card_h = height - 2 * inset
                 y = inset + round(card_h * (0.18 if title else 0.62))
                 box_h = round(card_h * (0.36 if title else 0.22))
+            elif visual == "counter":
+                y = round(height * (0.14 if title else 0.70))
+                box_h = round(height * (0.20 if title else 0.15))
             else:
                 y = round(height * (0.22 if title else 0.68))
                 box_h = round(height * (0.35 if title else 0.18))
@@ -289,8 +323,11 @@ def compile_director_plan(prompt_path: str | Path, output_path: str | Path,
                          "beats": [{"id": f"beat_{index}", "startFrame": start, "endFrameExclusive": end,
                                     "elementIds": [element["id"] for element in elements],
                                     **({"voice": {"value": voice, "locale": proposal["locale"]}} if voice.strip() else {}),
-                                    "onScreen": [{"value": value, "locale": proposal["locale"]}
-                                                 for value in (scene["title"], scene["subtitle"]) if value.strip()],
+                                    "onScreen": ([{"value": value, "locale": proposal["locale"]}
+                                                  for value in (scene["title"], scene["subtitle"]) if value.strip()]
+                                                 + ([{"value": prefix + f"{counter_value:.{decimals}f}" + suffix,
+                                                       "locale": proposal["locale"]}]
+                                                    if visual == "counter" else [])),
                                     "sourceRefs": [ref, *claim_refs]}],
                          "animations": animations, "sourceRefs": [ref, *claim_refs]
                          + ([{**plan_ref, "location": f"/scenes/{index - 1}"}] if plan_ref else [])})

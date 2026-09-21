@@ -139,6 +139,8 @@ class FrameRenderer:
                     self._load_video(element)
                 if element["kind"] == "audio":
                     self._load_audio(element)
+                if element["kind"] == "counter":
+                    self._validate_counter(element)
                 if element["kind"] != "audio" and "bounds" not in element:
                     raise RenderError(f"preview element {element['id']} requires bounds")
                 if element["kind"] == "text" and "text" not in element:
@@ -165,6 +167,11 @@ class FrameRenderer:
                     for keyframe in animation["keyframes"]
                 ):
                     raise RenderError(f"visual {animation['targetId']} scale keyframes must be finite numbers from 1 to 3")
+                if animation["property"] == "value" and any(
+                    not isinstance(keyframe["value"], (int, float)) or isinstance(keyframe["value"], bool)
+                    or not math.isfinite(keyframe["value"]) for keyframe in animation["keyframes"]
+                ):
+                    raise RenderError(f"counter {animation['targetId']} value keyframes must be finite numbers")
                 if animation["property"] in ("x", "y"):
                     limit = canvas["width"] if animation["property"] == "x" else canvas["height"]
                     if any(not isinstance(keyframe["value"], (int, float)) or isinstance(keyframe["value"], bool)
@@ -293,6 +300,46 @@ class FrameRenderer:
     def _property(self, element_id: str, property_name: str, frame: int, default: float) -> float:
         keyframes = self.animations.get(element_id, {}).get(property_name)
         return _interpolate(keyframes, frame) if keyframes else default
+
+    def _validate_counter(self, element: dict[str, Any]) -> None:
+        params = element["params"]
+        start, end, decimals = params.get("startValue", 0), params.get("endValue"), params.get("decimals", 0)
+        if (not isinstance(start, (int, float)) or isinstance(start, bool) or not math.isfinite(start)
+                or not isinstance(end, (int, float)) or isinstance(end, bool) or not math.isfinite(end)
+                or not isinstance(decimals, int) or isinstance(decimals, bool) or not 0 <= decimals <= 6
+                or not isinstance(params.get("prefix", ""), str) or len(params.get("prefix", "")) > 32
+                or not isinstance(params.get("suffix", ""), str) or len(params.get("suffix", "")) > 32
+                or params.get("align", "center") not in ("start", "center", "end")
+                or not isinstance(params.get("fontFamily", "DejaVu Sans"), str)
+                or not params.get("fontFamily", "DejaVu Sans").strip()
+                or len(params.get("fontFamily", "DejaVu Sans")) > 128
+                or not isinstance(params.get("fontSize", 48), (int, float))
+                or isinstance(params.get("fontSize", 48), bool)
+                or not math.isfinite(params.get("fontSize", 48)) or params.get("fontSize", 48) <= 0
+                or params.get("digitPolicy") not in (None, "none", "locale", "latin", "persian", "arabic_indic")):
+            raise RenderError(f"counter {element['id']} has invalid values or formatting")
+        _rgb(params.get("color", "#FFFFFF"))
+
+    def _counter(self, image: Image.Image, element: dict[str, Any], frame: int) -> None:
+        params = element["params"]
+        decimals = params.get("decimals", 0)
+        value = self._property(element["id"], "value", frame, params["endValue"])
+        if not math.isfinite(value):
+            raise RenderError(f"counter {element['id']} produced a non-finite value")
+        if abs(value) < 0.5 * (10 ** -decimals):
+            value = 0.0
+        formatted = f"{value:.{decimals}f}"
+        formatted = _localize_digits(formatted, params.get("digitPolicy"), self.spec["project"]["locale"])
+        proxy = {**element, "kind": "text",
+                 "text": {"value": params.get("prefix", "") + formatted + params.get("suffix", ""),
+                          "locale": self.spec["project"]["locale"],
+                          "direction": self.spec["project"].get("direction", "ltr"),
+                          "fontFamily": params.get("fontFamily", "DejaVu Sans"),
+                          "fontWeight": 700, "align": params.get("align", "center")},
+                 "params": {"color": params.get("color", "#FFFFFF"),
+                            "fontSize": params.get("fontSize", min(90, element["bounds"]["height"] * 0.52)),
+                            "wrap": False}}
+        self._text(image, proxy, frame)
 
     def _text(self, image: Image.Image, element: dict[str, Any], frame: int) -> None:
         text = element["text"]
@@ -467,6 +514,8 @@ class FrameRenderer:
                 continue
             if kind == "text":
                 self._text(image, element, frame)
+            elif kind == "counter":
+                self._counter(image, element, frame)
             elif kind == "shape":
                 self._shape(image, element, frame)
             elif kind == "image":
