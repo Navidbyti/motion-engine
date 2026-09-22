@@ -1,14 +1,26 @@
 # Motion Engine
 
-**Current build: v0.67.0** · Run `motion-engine version` to check the installed build.
+**Current build: v0.67.1** · Run `motion-engine version` to check the installed build.
 
-## Use it with Codex, Claude, or Antigravity
+## Start here — send only this link
 
-You do not need to create an outputs folder, write JSON, or operate the command line. Give the repository link and your video request to a desktop coding agent. The agent should clone and configure the project, create its ignored `runs/<project-name>/` workspace, run the production workflow, inspect the rendered video, and show you the draft.
+Send this repository link to a new Codex, Claude Code, or Antigravity task:
 
 **Repository:** https://github.com/Navidbyti/motion-engine
 
-Copy the ready-made agent prompt from **[START_HERE.md](START_HERE.md)**.
+The coding agent should open this README and take care of cloning, setup, diagnostics, project folders, planning, commands, rendering, and QA. You do not need to create an outputs folder, write JSON, or operate the command line.
+
+### First production prompt
+
+After sending the link, attach your script, brief, PDF, spreadsheet, brand files, images, audio, or reference video and send:
+
+> Set up Motion Engine from the repository I sent you and follow its AGENTS.md and README. Create a private project workspace for my attached files and this request: **[describe the video here]**. Research factual claims when needed, direct the complete video, prepare the required assets, and build a full first draft. Inspect the actual MP4, pacing, graphics, copy, and audio before showing it to me. Give me the local review page and editor delivery. Handle folders, JSON, commands, versioning, and QA yourself. Ask me only when you need an essential creative choice, a rights-cleared asset, account access, or a manual Adobe action.
+
+Replace the bold placeholder with the video you want. Keep later scene revision prompts in the same task.
+
+### Instructions for the coding agent receiving only the URL
+
+Clone the repository into a fresh directory, read `AGENTS.md` and `START_HERE.md`, install the documented local environment, run the test suite and `motion-engine doctor`, and report the installed version. If the user has not supplied a production request yet, finish setup first and then ask them to attach their inputs and describe the video. Once supplied, create the private workspace with `motion-engine init-project` and run the full workflow through `motion-engine produce`. Inspect the rendered output before presenting it. Do not ask the user to run commands or prepare repository files.
 
 An agent using the project for the first time should clone it into a fresh directory and follow `START_HERE.md`. The [safe update policy](docs/update-policy.md) applies only when the agent opens an existing clone.
 

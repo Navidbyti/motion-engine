@@ -1,0 +1,72 @@
+name: Editor alpha report
+description: Report a setup, production, review, revision, or Adobe handoff problem
+title: "[Editor alpha] "
+labels: ["editor-alpha"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for testing Motion Engine. Remove private scripts, customer data, credentials, and licensed assets before submitting this public report.
+  - type: dropdown
+    id: stage
+    attributes:
+      label: Stage
+      options:
+        - Link-only setup
+        - Environment diagnostics
+        - Research or director plan
+        - First-draft production
+        - Review page
+        - Prompt revision
+        - After Effects handoff
+        - Premiere Pro handoff
+        - Photoshop or Illustrator handoff
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Motion Engine version
+      description: The output of motion-engine version, if available.
+      placeholder: 0.67.1
+    validations:
+      required: true
+  - type: textarea
+    id: request
+    attributes:
+      label: Production request
+      description: Summarize the request without private client information.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual result
+      description: Include the affected scene ID and safe command output when relevant.
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostic report
+      description: Paste the safe JSON output from motion-engine doctor. Do not include credentials or private file contents.
+      render: json
+  - type: input
+    id: adobe
+    attributes:
+      label: Adobe application and version
+      placeholder: After Effects 2024 24.5x52
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Public report check
+      options:
+        - label: I removed credentials, private source material, customer data, and unlicensed assets.
+          required: true
