@@ -58,6 +58,8 @@ This is the ordered work list for a usable, general motion-production engine. A 
 
 - [x] Render stable scene IDs as independent, hash-bound review modules with exact global-frame semantics and selective scene requests.
 - [x] Assemble a verified full timeline from compatible cached modules and newly rendered scene modules; reject stale, tampered, missing, or disagreeing candidates before publishing output.
+- [x] Generate a portable local review interface with the assembled preview, independently playable scene modules, visible copy and timing, stable IDs, and copyable scene edit prompts.
+- [ ] Add active agent-session integration so submitting a scene prompt from the review interface can route directly to the current desktop coding-agent task.
 - [ ] Add a dependency-scoped cache index so unrelated asset and dataset changes do not conservatively invalidate every scene module.
 
 - [x] Add frame-exact, bounded image scale keyframes for slow zooms, tested on two public project shapes; moving 3D subjects still require a video or 3D source.

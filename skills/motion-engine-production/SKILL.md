@@ -29,6 +29,7 @@ Use the current Codex or Claude session as the creative and research brain. The 
 - When narration is available, preserve its exact script in the scene `voice` and attach the reviewed scene-length WAV through `audioAssetId`; do not claim transcription or word alignment unless those checks were actually run.
 - Run `motion-engine first-draft` with new MotionSpec, preview, review, and package paths. Inspect `qa.json`, the contact sheet, and the actual MP4 inside the verified bundle. Iterate when the visible result is weak or incomplete.
 - For a multi-scene script, run `motion-engine render-scenes` to produce stable-ID scene clips for focused review. After a scoped edit, request only the affected `--scene-id` values in a new module directory, then run `motion-engine assemble-scenes` against the target MotionSpec with the old and revised module directories. Treat a compatibility, integrity, missing-scene, or ambiguity error as a render requirement; never join scene clips manually around the gate.
+- Generate `make-review-site` after assembly and show or link its `index.html` to the user. Keep creative instructions in the active coding-agent conversation: the page's scene prompt control copies a stable-ID instruction for that conversation and does not independently invoke a model.
 
 Read `docs/desktop-agent-workflow.md` for exact commands. Read `docs/adobe-adapters.md` only when an Adobe deliverable is requested.
 

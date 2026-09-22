@@ -2,7 +2,7 @@
 
 Motion Engine is designed to be operated by a desktop coding agent such as Codex, Claude Code, or Antigravity. You describe the video; the agent handles repository setup, research, planning files, command line tools, rendering, inspection, and revisions.
 
-**Current build: v0.65.0.** Existing clones should follow [the update policy](docs/update-policy.md). A normal fast-forward update does not require a new chat.
+**Current build: v0.66.0.** Existing clones should follow [the update policy](docs/update-policy.md). A normal fast-forward update does not require a new chat.
 
 ## Give this to your coding agent
 

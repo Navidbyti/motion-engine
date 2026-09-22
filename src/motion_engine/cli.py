@@ -34,6 +34,7 @@ from .asset_requests import AssetRequestError, resolve_asset_requests
 from .asset_catalog import AssetCatalogError, build_asset_catalog
 from .scene_modules import render_scene_modules
 from .scene_assembly import SceneAssemblyError, assemble_scene_modules
+from .review_site import ReviewSiteError, make_review_site
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -113,6 +114,13 @@ def main(argv: list[str] | None = None) -> int:
     assembly.add_argument("--scale", type=float, default=0.5)
     assembly.add_argument("--font-dir", action="append", default=[])
     assembly.add_argument("--frames-only", action="store_true")
+    review_site = sub.add_parser("make-review-site", help="Build a portable local scene-review interface")
+    review_site.add_argument("spec")
+    review_site.add_argument("--modules", action="append", required=True)
+    review_site.add_argument("--render-dir", help="Optional verified assembled preview run")
+    review_site.add_argument("--output-dir", required=True)
+    review_site.add_argument("--scale", type=float, default=0.5)
+    review_site.add_argument("--font-dir", action="append", default=[])
     asset_resolver = sub.add_parser("resolve-assets", help="Match pending shot requests to inspected local assets")
     asset_resolver.add_argument("proposal")
     asset_resolver.add_argument("--assets", required=True, help="Catalog of available hashed assets")
@@ -285,6 +293,24 @@ def main(argv: list[str] | None = None) -> int:
                 args.modules,
                 args.output_dir,
                 mp4=not args.frames_only,
+                scale=args.scale,
+                font_dirs=args.font_dir,
+                revision_sha256=revision["revisionSha256"],
+            )
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+            return 0
+        if args.command == "make-review-site":
+            spec_path = Path(args.spec).resolve()
+            spec = load_spec(spec_path)
+            errors = validate(spec)
+            if errors:
+                raise ReviewSiteError("invalid MotionSpec: " + "; ".join(errors))
+            revision = freeze_revision(spec, spec_path.parent)
+            result = make_review_site(
+                spec,
+                args.modules,
+                args.output_dir,
+                render_dir=args.render_dir,
                 scale=args.scale,
                 font_dirs=args.font_dir,
                 revision_sha256=revision["revisionSha256"],

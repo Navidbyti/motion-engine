@@ -1,6 +1,6 @@
 # Motion Engine
 
-**Current build: v0.65.0** · Run `motion-engine version` to check the installed build.
+**Current build: v0.66.0** · Run `motion-engine version` to check the installed build.
 
 ## Use it with Codex, Claude, or Antigravity
 
@@ -85,6 +85,7 @@ motion-engine freeze examples/hello.motion.json --output revision.json
 motion-engine render examples/hello.motion.json --output-dir hello-preview
 motion-engine render-scenes examples/prompt-en.motion.json --output-dir scene-modules
 motion-engine assemble-scenes examples/prompt-en.motion.json --modules scene-modules --output-dir assembled-preview
+motion-engine make-review-site examples/prompt-en.motion.json --modules scene-modules --render-dir assembled-preview --output-dir review-site
 motion-engine contact-sheet examples/hello.motion.json --render-dir hello-preview --output-dir hello-review
 motion-engine render examples/hello.motion.json --output-dir hello-preview --resume
 motion-engine qa examples/hello.motion.json --output hello-qa.json
@@ -98,7 +99,7 @@ motion-engine make-premiere-xml examples/ae-vertical.motion.json --render-dir ve
 python -m pytest
 ```
 
-The CLI validates and inspects MotionSpec, [imports tabular data](docs/data-import.md), checks typed dataset cells and chart ranges, compares chart values with CSV/XLSX source cells and declared decimal formulas, extracts evidence from documents, spreadsheets, images, and media headers, exports embedded PDF images with source hashes and page placements, and produces a frame plan with target capability status. It can render MP4 previews for text, rectangles, local raster images and moving plates, bar charts, line charts, and explicitly placed PCM WAV audio, then create a [verifiable preview bundle](docs/preview-bundles.md). Unsupported features and unlinked voice text fail explicitly. Narrow [Adobe exporters](docs/adobe-adapters.md) are available as manual script workflows. Broad Adobe output adapters remain planned. See [ingestion](docs/ingestion.md), [planning](docs/planning.md), [preview rendering](docs/rendering.md), and [milestones](docs/milestones.md).
+The CLI validates and inspects MotionSpec, [imports tabular data](docs/data-import.md), checks typed dataset cells and chart ranges, compares chart values with CSV/XLSX source cells and declared decimal formulas, extracts evidence from documents, spreadsheets, images, and media headers, exports embedded PDF images with source hashes and page placements, and produces a frame plan with target capability status. It can render MP4 previews for text, rectangles, local raster images and moving plates, bar charts, line charts, and explicitly placed PCM WAV audio, then create a [verifiable preview bundle](docs/preview-bundles.md) and a portable [local review interface](docs/review-interface.md). Unsupported features and unlinked voice text fail explicitly. Narrow [Adobe exporters](docs/adobe-adapters.md) are available as manual script workflows. Broad Adobe output adapters remain planned. See [ingestion](docs/ingestion.md), [planning](docs/planning.md), [preview rendering](docs/rendering.md), and [milestones](docs/milestones.md).
 
 Review extracted ambiguities and project-specific questions with the [source review workflow](docs/reviews.md).
 The [literal text drafting workflow](docs/drafting.md) is the first prompt-to-video slice; semantic drafting from arbitrary documents remains planned.
