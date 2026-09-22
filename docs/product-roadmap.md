@@ -60,6 +60,7 @@ This is the ordered work list for a usable, general motion-production engine. A 
 - [x] Assemble a verified full timeline from compatible cached modules and newly rendered scene modules; reject stale, tampered, missing, or disagreeing candidates before publishing output.
 - [x] Generate a portable local review interface with the assembled preview, independently playable scene modules, visible copy and timing, stable IDs, and copyable scene edit prompts.
 - [x] Add an editor alpha kit with safe environment diagnostics, one-command workspace creation, one-command full first-draft production, verified source packaging, local review, supported Adobe handoffs, and structured external test instructions.
+- [x] Add one-command scene revision production that applies a hash-bound edit, rerenders the affected scene, verifies cached unchanged scenes, assembles the full cut, rebuilds review and Adobe handoff packages, and records reuse in a revision summary.
 - [ ] Add active agent-session integration so submitting a scene prompt from the review interface can route directly to the current desktop coding-agent task.
 - [ ] Add a dependency-scoped cache index so unrelated asset and dataset changes do not conservatively invalidate every scene module.
 

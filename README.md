@@ -1,6 +1,6 @@
 # Motion Engine
 
-**Current build: v0.67.1** · Run `motion-engine version` to check the installed build.
+**Current build: v0.68.0** · Run `motion-engine version` to check the installed build.
 
 ## Start here — send only this link
 
@@ -91,6 +91,7 @@ motion-engine resolve-assets project/plan.json --assets project/assets.json --ou
 motion-engine compile-director examples/assets/director-abstract.txt examples/director-abstract.plan.json --output examples/my-directed.motion.json --project-id my_directed --width 320 --height 180 --fps 24
 motion-engine first-draft project/prompt.txt project/plan.json --project-id my_video --output-spec project/first.motion.json --output-dir project/preview --review-dir project/review --package-dir project/first-bundle
 motion-engine produce runs/my-video/prompt.txt runs/my-video/director-plan.json --project-id my-video --name v1
+motion-engine revise-production runs/my-video/v1.motion.json runs/my-video/v2-request.json --modules runs/my-video/v1-scenes --name v2
 motion-engine revise-and-render project/first.motion.json project/edit.json --output-spec project/second.motion.json --output-dir project/second-preview --review-dir project/second-review --package-dir project/second-bundle
 motion-engine make-review evidence.json --requirements examples/review-questions.json --output review.json
 motion-engine verify-claims examples/claims/northbridge.ledger.json --output claims-report.json

@@ -29,7 +29,7 @@ body:
     attributes:
       label: Motion Engine version
       description: The output of motion-engine version, if available.
-      placeholder: 0.67.1
+      placeholder: 0.68.0
     validations:
       required: true
   - type: textarea

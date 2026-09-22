@@ -22,7 +22,7 @@ The agent watches the output and inspects representative scene frames and the au
 
 ## Polish
 
-Use stable scene IDs from the review page. Turn each user instruction into a hash-bound typed revision, rerender affected scenes, assemble them with compatible cached scenes, and make a new review version. Recheck facts when wording changes meaning.
+Use stable scene IDs from the review page. Turn each user instruction into a hash-bound typed revision and run `motion-engine revise-production` with the prior scene modules and a new version name. It rerenders the affected scene, assembles it with compatible cached scenes, and rebuilds the preview, QA, review page, and editor delivery. Recheck facts when wording changes meaning.
 
 Once prompt revisions are accepted, run prepared Adobe scripts or import the Premiere XML for supported native editing. Save native projects under new names and verify them after reopening.
 

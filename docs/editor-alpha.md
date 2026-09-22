@@ -23,7 +23,7 @@ The agent should run the workflow. The editor should not have to write JSON or m
 1. Watch the complete cut and judge the story, pacing, content density, visual quality, and sound.
 2. Review each scene in the local review page.
 3. Copy two scene prompts into the same agent task: one copy or timing edit and one visual or asset edit.
-4. Confirm the agent creates a new version and preserves unrelated scenes.
+4. Confirm the agent uses `revise-production`, creates a new version, rerenders the named scene, and records the reused unrelated scenes in the revision summary.
 5. Open the prepared After Effects JSX or Premiere XML when available. Save the generated native project, change text and transforms manually, close it, reopen it, and confirm the edits persist.
 6. Send the diagnostic report, failed command output, project request, and the affected scene ID with any bug report. Do not send private source files unless the tester is authorized to share them.
 

@@ -2,7 +2,7 @@
 
 Motion Engine is designed to be operated by a desktop coding agent such as Codex, Claude Code, or Antigravity. You describe the video; the agent handles repository setup, research, planning files, command line tools, rendering, inspection, and revisions.
 
-**Current build: v0.67.1.** Existing clones should follow [the update policy](docs/update-policy.md). A normal fast-forward update does not require a new chat.
+**Current build: v0.68.0.** Existing clones should follow [the update policy](docs/update-policy.md). A normal fast-forward update does not require a new chat.
 
 ## Give this to your coding agent
 
@@ -38,7 +38,7 @@ The coding agent should:
 6. Render an MP4, contact sheets, and a QA report.
 7. Inspect the actual result and revise weak scenes.
 8. Give you the video and explain any remaining limitations.
-9. Apply later prompts to the requested scene and produce a new version.
+9. Apply later prompts with `motion-engine revise-production`; rerender only the requested scene, reuse verified unchanged scenes, and produce a complete new review and editor delivery.
 
 The local Motion Engine performs deterministic compilation, rendering, provenance, and QA. The desktop coding agent supplies creative judgment. No model API key is required by the repository.
 

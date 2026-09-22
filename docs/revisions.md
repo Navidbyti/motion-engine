@@ -12,6 +12,8 @@ The CLI preview command freezes inputs before rendering and writes `revisionSha2
 
 `motion-engine revise-scene base.motion.json edit.json --output next.motion.json` applies a typed edit to one scene. All three files must be in the same directory so relative source and asset links stay portable. The output must be new. The request must include the exact `baseSpecSha256`; a stale request fails instead of overwriting a newer change. The request JSON is itself hashed and recorded as a source in the new MotionSpec. Run `freeze` and `render` on the new spec to produce version-bound outputs.
 
+For the normal editor workflow, use [`motion-engine revise-production`](revision-production.md). It performs the scoped edit, selective scene render, verified cache assembly, QA, review interface, editor delivery, and revision summary as one versioned operation.
+
 ```json
 {
   "baseSpecSha256": "64 lowercase hexadecimal characters from freeze or Python spec_sha256",

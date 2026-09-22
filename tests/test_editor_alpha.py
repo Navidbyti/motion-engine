@@ -8,6 +8,8 @@ from motion_engine.cli import main
 from motion_engine.doctor import doctor_report
 from motion_engine.editor_delivery import EditorDeliveryError, verify_editor_delivery
 from motion_engine.project_workspace import WorkspaceError, init_project
+from motion_engine.revisions import spec_sha256
+from motion_engine.validation import load_spec
 
 
 ROOT = Path(__file__).parents[1]
@@ -58,6 +60,26 @@ def test_produce_builds_complete_verified_editor_handoff(tmp_path):
     state = json.loads((work / "project.json").read_text(encoding="utf-8"))
     assert state["currentVersion"] == "v1"
     assert state["artifacts"]["review"] == "v1-review/index.html"
+
+    base = load_spec(work / "v1.motion.json")
+    scene = base["timeline"][0]
+    text = next(item for item in scene["elements"] if item["kind"] == "text")
+    request = {"baseSpecSha256": spec_sha256(base), "sceneId": scene["id"],
+               "userPrompt": "Change only the opening copy.", "operations": [
+                   {"op": "set_text", "elementId": text["id"], "value": "REVISED OPENING"}]}
+    request_path = work / "v2-request.json"
+    request_path.write_text(json.dumps(request), encoding="utf-8")
+    assert main(["revise-production", str(work / "v1.motion.json"), str(request_path),
+                 "--modules", str(work / "v1-scenes"), "--name", "v2", "--scale", "0.25"]) == 0
+    summary = json.loads((work / "v2-revision-summary.json").read_text(encoding="utf-8"))
+    assert summary["rerenderedScenes"] == [scene["id"]]
+    assert summary["reusedScenes"] == [base["timeline"][1]["id"]]
+    assert (work / "v2-preview/preview.mp4").is_file()
+    assert verify_editor_delivery(work / "v2-editor-delivery")["qaStatus"] == "passed"
+    state = json.loads((work / "project.json").read_text(encoding="utf-8"))
+    assert state["currentVersion"] == "v2"
+    assert state["status"] == "revision_ready"
+
     with pytest.raises(EditorDeliveryError, match="files or hashes"):
         (delivery / "OPEN_ME.md").write_text("changed", encoding="utf-8")
         verify_editor_delivery(delivery)

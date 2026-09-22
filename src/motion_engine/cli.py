@@ -180,6 +180,14 @@ def main(argv: list[str] | None = None) -> int:
     produce.add_argument("--scale", type=float, default=0.5)
     produce.add_argument("--font-dir", action="append", default=[])
     produce.add_argument("--max-frames", type=int, default=10_000)
+    revise_production = sub.add_parser("revise-production", help="Rerender one revised scene and rebuild the complete editor handoff")
+    revise_production.add_argument("spec", help="Current MotionSpec")
+    revise_production.add_argument("request", help="Hash-bound typed scene revision JSON beside the MotionSpec")
+    revise_production.add_argument("--modules", action="append", required=True, help="Compatible prior scene modules; repeat for multiple caches")
+    revise_production.add_argument("--name", required=True, help="New filename prefix, such as v2")
+    revise_production.add_argument("--scale", type=float, default=0.5)
+    revise_production.add_argument("--font-dir", action="append", default=[])
+    revise_production.add_argument("--max-frames", type=int, default=10_000)
     revised_render = sub.add_parser("revise-and-render", help="Apply an agent-authored typed scene edit and render")
     revised_render.add_argument("spec")
     revised_render.add_argument("request", help="Agent-authored JSON request in the MotionSpec directory")
@@ -488,6 +496,75 @@ def main(argv: list[str] | None = None) -> int:
                               "sceneCount": len(modules["modules"]),
                               "preparedAdapterCount": delivery["preparedAdapterCount"]}, ensure_ascii=False, indent=2))
             return 0 if quality["status"] != "failed" else 1
+        if args.command == "revise-production":
+            base_path = Path(args.spec).resolve()
+            request_path = Path(args.request).resolve()
+            if base_path.parent != request_path.parent:
+                raise SceneRevisionError("base MotionSpec and revision request must share a directory")
+            if not args.name or any(character not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.-" for character in args.name):
+                raise SceneRevisionError("production name may contain only letters, numbers, dot, dash, and underscore")
+            root = base_path.parent
+            spec_path = root / f"{args.name}.motion.json"
+            modules_path = root / f"{args.name}-scenes"
+            render_path = root / f"{args.name}-preview"
+            review_path = root / f"{args.name}-review"
+            delivery_path = root / f"{args.name}-editor-delivery"
+            summary_path = root / f"{args.name}-revision-summary.json"
+            outputs = (spec_path, modules_path, render_path, review_path, delivery_path, summary_path)
+            if any(path.exists() for path in outputs):
+                raise SceneRevisionError("revision production outputs already exist; choose a new --name")
+            base = load_spec(base_path)
+            errors = validate(base)
+            if errors:
+                raise SceneRevisionError("base MotionSpec is invalid: " + "; ".join(errors))
+            with request_path.open("r", encoding="utf-8") as stream:
+                request = json.load(stream)
+            if not isinstance(request, dict):
+                raise SceneRevisionError("revision request must be a JSON object")
+            scene_id = request.get("sceneId")
+            revised = revise_scene(base, request, request_path=request_path, output_path=spec_path)
+            _emit(revised, spec_path)
+            revision = freeze_revision(revised, root)
+            changed_modules = render_scene_modules(
+                revised, modules_path, mp4=True, scale=args.scale, font_dirs=args.font_dir,
+                asset_root=root, revision_sha256=revision["revisionSha256"],
+                scene_ids=[scene_id], max_frames=args.max_frames,
+            )
+            all_modules = [*args.modules, str(modules_path)]
+            assemble_scene_modules(revised, all_modules, render_path, mp4=True,
+                                   scale=args.scale, font_dirs=args.font_dir,
+                                   revision_sha256=revision["revisionSha256"])
+            quality = qa_report(revised, root, render_path)
+            _emit(quality, render_path / "qa.json")
+            make_review_site(revised, all_modules, review_path, render_dir=render_path,
+                             scale=args.scale, font_dirs=args.font_dir,
+                             revision_sha256=revision["revisionSha256"])
+            delivery = make_editor_delivery(spec_path, all_modules, render_path, delivery_path,
+                                            scale=args.scale, font_dirs=args.font_dir)
+            reused = [scene["id"] for scene in revised["timeline"] if scene["id"] != scene_id]
+            summary = {"formatVersion": 1, "kind": "production_revision",
+                       "baseSpec": base_path.name, "baseSpecSha256": spec_sha256(base),
+                       "newSpec": spec_path.name, "newSpecSha256": spec_sha256(revised),
+                       "revisionSha256": revision["revisionSha256"], "request": request_path.name,
+                       "sceneId": scene_id, "operationCount": len(request.get("operations", [])),
+                       "rerenderedScenes": [scene_id], "reusedScenes": reused,
+                       "qaStatus": quality["status"], "preview": f"{render_path.name}/preview.mp4",
+                       "review": f"{review_path.name}/index.html", "editorDelivery": delivery_path.name}
+            _emit(summary, summary_path)
+            state_path = root / "project.json"
+            if state_path.is_file():
+                state = json.loads(state_path.read_text(encoding="utf-8"))
+                if isinstance(state, dict) and state.get("projectId") == revised["project"]["id"]:
+                    state["currentVersion"] = args.name
+                    state["status"] = "revision_ready"
+                    state["artifacts"] = {"spec": spec_path.name, "preview": summary["preview"],
+                                          "review": summary["review"], "editorDelivery": delivery_path.name,
+                                          "revisionSummary": summary_path.name}
+                    state_path.write_text(json.dumps(state, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            print(json.dumps({"ok": True, **summary,
+                              "preparedAdapterCount": delivery["preparedAdapterCount"],
+                              "renderedModuleCount": len(changed_modules["modules"])}, ensure_ascii=False, indent=2))
+            return 0
         if args.command == "revise-and-render":
             base_path = Path(args.spec).resolve()
             request_path = Path(args.request).resolve()

@@ -28,14 +28,14 @@ Use the current Codex or Claude session as the creative and research brain. The 
 - Inspect every supplied or generated asset, record its license and approval, build the asset catalog, and resolve requests before compiling.
 - When narration is available, preserve its exact script in the scene `voice` and attach the reviewed scene-length WAV through `audioAssetId`; do not claim transcription or word alignment unless those checks were actually run.
 - Prefer `motion-engine produce` for the first complete version. It creates the MotionSpec, stable scene modules, assembled MP4, QA report, review interface, verified source package, and supported Adobe handoffs. Inspect the MP4 and QA, then iterate when the visible result is weak or incomplete. Use lower-level commands only when resuming or diagnosing a stage.
-- For a multi-scene script, run `motion-engine render-scenes` to produce stable-ID scene clips for focused review. After a scoped edit, request only the affected `--scene-id` values in a new module directory, then run `motion-engine assemble-scenes` against the target MotionSpec with the old and revised module directories. Treat a compatibility, integrity, missing-scene, or ambiguity error as a render requirement; never join scene clips manually around the gate.
+- For a multi-scene script, keep the stable-ID modules produced by `motion-engine produce`. After a scoped edit, prefer `motion-engine revise-production` with the prior compatible module directories. It rerenders the affected scene, reuses verified unchanged scenes, assembles the complete preview, and rebuilds review and editor delivery. Use lower-level `render-scenes` and `assemble-scenes` commands for diagnosis or unusual cache layouts. Treat compatibility, integrity, missing-scene, or ambiguity errors as render requirements; never join scene clips manually around the gate.
 - Generate `make-review-site` after assembly and show or link its `index.html` to the user. Keep creative instructions in the active coding-agent conversation: the page's scene prompt control copies a stable-ID instruction for that conversation and does not independently invoke a model.
 
 Read `docs/desktop-agent-workflow.md` for exact commands. Read `docs/adobe-adapters.md` only when an Adobe deliverable is requested.
 
 ## Revise by prompt
 
-Resolve the requested scene and element IDs in the current MotionSpec. Write a typed revision request bound to the current canonical spec hash, then run `motion-engine revise-and-render` to new spec, preview, review, and package paths. Inspect the changed scene and confirm unrelated scenes remain intact. A factual wording change requires renewed research and claim mapping.
+Resolve the requested scene and element IDs in the current MotionSpec. Write a typed revision request bound to the current canonical spec hash, then run `motion-engine revise-production` with a new version name and the compatible prior scene modules. Inspect the changed scene and revision summary, confirm unrelated scenes were reused, and review the complete assembled cut. A factual wording change requires renewed research and claim mapping.
 
 If the requested edit has no supported typed operation, extend the engine or compile a new plan version. Never report that an unsupported edit was applied.
 
