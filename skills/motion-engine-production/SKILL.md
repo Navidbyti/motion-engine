@@ -28,6 +28,7 @@ Use the current Codex or Claude session as the creative and research brain. The 
 - Inspect every supplied or generated asset, record its license and approval, build the asset catalog, and resolve requests before compiling.
 - When narration is available, preserve its exact script in the scene `voice` and attach the reviewed scene-length WAV through `audioAssetId`; do not claim transcription or word alignment unless those checks were actually run.
 - Run `motion-engine first-draft` with new MotionSpec, preview, review, and package paths. Inspect `qa.json`, the contact sheet, and the actual MP4 inside the verified bundle. Iterate when the visible result is weak or incomplete.
+- For a multi-scene script, run `motion-engine render-scenes` to produce stable-ID scene clips for focused review. After a scoped edit, request only the affected `--scene-id` values in a new module directory. Do not claim cached-module final assembly until the repository exposes and verifies that operation.
 
 Read `docs/desktop-agent-workflow.md` for exact commands. Read `docs/adobe-adapters.md` only when an Adobe deliverable is requested.
 

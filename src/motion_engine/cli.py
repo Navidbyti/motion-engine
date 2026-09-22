@@ -32,6 +32,7 @@ from .contact_sheet import ContactSheetError, make_contact_sheet
 from .claims import verify_claims
 from .asset_requests import AssetRequestError, resolve_asset_requests
 from .asset_catalog import AssetCatalogError, build_asset_catalog
+from .scene_modules import render_scene_modules
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -96,6 +97,14 @@ def main(argv: list[str] | None = None) -> int:
     director.add_argument("--fps", type=int, default=30)
     director_schema = sub.add_parser("director-schema", help="Print the portable whole-video director-plan JSON Schema")
     director_schema.add_argument("--output", help="Write the schema to this file")
+    scene_modules = sub.add_parser("render-scenes", help="Render independently reviewable modules for stable scene IDs")
+    scene_modules.add_argument("spec")
+    scene_modules.add_argument("--output-dir", required=True)
+    scene_modules.add_argument("--scene-id", action="append", default=[], help="Render only this scene ID; repeat to select more")
+    scene_modules.add_argument("--scale", type=float, default=0.5)
+    scene_modules.add_argument("--font-dir", action="append", default=[])
+    scene_modules.add_argument("--frames-only", action="store_true")
+    scene_modules.add_argument("--max-frames", type=int, default=10_000)
     asset_resolver = sub.add_parser("resolve-assets", help="Match pending shot requests to inspected local assets")
     asset_resolver.add_argument("proposal")
     asset_resolver.add_argument("--assets", required=True, help="Catalog of available hashed assets")
@@ -235,6 +244,26 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         if args.command == "director-schema":
             _emit(DIRECTOR_PLAN_SCHEMA, args.output)
+            return 0
+        if args.command == "render-scenes":
+            spec_path = Path(args.spec).resolve()
+            spec = load_spec(spec_path)
+            errors = validate(spec)
+            if errors:
+                raise RenderError("invalid MotionSpec: " + "; ".join(errors))
+            revision = freeze_revision(spec, spec_path.parent)
+            result = render_scene_modules(
+                spec,
+                args.output_dir,
+                mp4=not args.frames_only,
+                scale=args.scale,
+                font_dirs=args.font_dir,
+                asset_root=spec_path.parent,
+                revision_sha256=revision["revisionSha256"],
+                scene_ids=args.scene_id or None,
+                max_frames=args.max_frames,
+            )
+            print(json.dumps(result, ensure_ascii=False, indent=2))
             return 0
         if args.command == "resolve-assets":
             result = resolve_asset_requests(args.proposal, args.assets, args.output, fps=args.fps)

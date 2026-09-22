@@ -22,10 +22,13 @@ The product goal is a **complete first video draft** from a natural-language req
 | `request_asset` | Shot description, style, duration, rights constraints | Hashed asset or explicit pending request | Generated material is inspected before use |
 | `compile_spec` | Plan, approved assets | MotionSpec and capability report | Schema, references, and frame continuity pass |
 | `render_draft` | Frozen spec | Video and contact sheet | No partial output on failure |
+| `render_scenes` | Frozen spec, optional stable scene IDs | Independent scene clips and a hash-bound module manifest | Frames match the full timeline at the same global positions |
 | `revise_scene` | Base spec hash, stable scene/element ID, typed change | New immutable spec revision | Unaffected scenes unchanged; claim verification remains an open gate |
 | `export_native` | Approved revision, target app | Editable project and verification report | Save, close, reopen, inspect |
 
 This is an orchestration contract, not an assertion that these tools are all implemented. Each operation must advertise its actual capabilities and fail clearly when a requested feature is missing.
+
+`motion-engine render-scenes SPEC --output-dir MODULES` implements the first scene-module contract. It evaluates frames against the complete timeline so cuts and supported boundary fades match the full preview, but writes local frame numbering and a separate review clip for each stable scene ID. Pass `--scene-id ID` to render only selected scenes after a scoped edit. `scene-modules.json` binds every module to the exact MotionSpec and revision hashes. Timeline assembly from a mix of cached and newly rendered modules remains a separate gate.
 
 ## Acceptance case: rotating object with a slow zoom
 
