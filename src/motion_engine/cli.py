@@ -33,6 +33,7 @@ from .claims import verify_claims
 from .asset_requests import AssetRequestError, resolve_asset_requests
 from .asset_catalog import AssetCatalogError, build_asset_catalog
 from .scene_modules import render_scene_modules
+from .scene_assembly import SceneAssemblyError, assemble_scene_modules
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -105,6 +106,13 @@ def main(argv: list[str] | None = None) -> int:
     scene_modules.add_argument("--font-dir", action="append", default=[])
     scene_modules.add_argument("--frames-only", action="store_true")
     scene_modules.add_argument("--max-frames", type=int, default=10_000)
+    assembly = sub.add_parser("assemble-scenes", help="Verify scene modules and assemble a complete preview run")
+    assembly.add_argument("spec")
+    assembly.add_argument("--modules", action="append", required=True, help="Scene module directory; repeat for cached and revised sets")
+    assembly.add_argument("--output-dir", required=True)
+    assembly.add_argument("--scale", type=float, default=0.5)
+    assembly.add_argument("--font-dir", action="append", default=[])
+    assembly.add_argument("--frames-only", action="store_true")
     asset_resolver = sub.add_parser("resolve-assets", help="Match pending shot requests to inspected local assets")
     asset_resolver.add_argument("proposal")
     asset_resolver.add_argument("--assets", required=True, help="Catalog of available hashed assets")
@@ -262,6 +270,24 @@ def main(argv: list[str] | None = None) -> int:
                 revision_sha256=revision["revisionSha256"],
                 scene_ids=args.scene_id or None,
                 max_frames=args.max_frames,
+            )
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+            return 0
+        if args.command == "assemble-scenes":
+            spec_path = Path(args.spec).resolve()
+            spec = load_spec(spec_path)
+            errors = validate(spec)
+            if errors:
+                raise SceneAssemblyError("invalid MotionSpec: " + "; ".join(errors))
+            revision = freeze_revision(spec, spec_path.parent)
+            result = assemble_scene_modules(
+                spec,
+                args.modules,
+                args.output_dir,
+                mp4=not args.frames_only,
+                scale=args.scale,
+                font_dirs=args.font_dir,
+                revision_sha256=revision["revisionSha256"],
             )
             print(json.dumps(result, ensure_ascii=False, indent=2))
             return 0

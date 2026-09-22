@@ -28,7 +28,9 @@ The product goal is a **complete first video draft** from a natural-language req
 
 This is an orchestration contract, not an assertion that these tools are all implemented. Each operation must advertise its actual capabilities and fail clearly when a requested feature is missing.
 
-`motion-engine render-scenes SPEC --output-dir MODULES` implements the first scene-module contract. It evaluates frames against the complete timeline so cuts and supported boundary fades match the full preview, but writes local frame numbering and a separate review clip for each stable scene ID. Pass `--scene-id ID` to render only selected scenes after a scoped edit. `scene-modules.json` binds every module to the exact MotionSpec and revision hashes. Timeline assembly from a mix of cached and newly rendered modules remains a separate gate.
+`motion-engine render-scenes SPEC --output-dir MODULES` evaluates frames against the complete timeline so cuts and supported boundary fades match the full preview, but writes local frame numbering and a separate review clip for each stable scene ID. Pass `--scene-id ID` to render only selected scenes after a scoped edit. Each module has a deterministic scene-input hash covering its scene, relevant boundary transition, declared assets and datasets, overlapping disclosures, canvas, locale, renderer version, and render settings.
+
+`motion-engine assemble-scenes SPEC --modules OLD_MODULES --modules REVISED_MODULES --output-dir PREVIEW` chooses only modules compatible with the target MotionSpec, verifies their frame and audio hashes, rejects conflicting candidates, joins exact PNG frames and PCM samples, and emits a normal verified preview run. This lets the agent reuse unchanged scenes and replace only revised scenes without trusting filenames or timestamps.
 
 ## Acceptance case: rotating object with a slow zoom
 

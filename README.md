@@ -1,6 +1,6 @@
 # Motion Engine
 
-**Current build: v0.64.0** · Run `motion-engine version` to check the installed build.
+**Current build: v0.65.0** · Run `motion-engine version` to check the installed build.
 
 ## Use it with Codex, Claude, or Antigravity
 
@@ -84,6 +84,7 @@ motion-engine plan examples/hello.motion.json --output plan.json
 motion-engine freeze examples/hello.motion.json --output revision.json
 motion-engine render examples/hello.motion.json --output-dir hello-preview
 motion-engine render-scenes examples/prompt-en.motion.json --output-dir scene-modules
+motion-engine assemble-scenes examples/prompt-en.motion.json --modules scene-modules --output-dir assembled-preview
 motion-engine contact-sheet examples/hello.motion.json --render-dir hello-preview --output-dir hello-review
 motion-engine render examples/hello.motion.json --output-dir hello-preview --resume
 motion-engine qa examples/hello.motion.json --output hello-qa.json

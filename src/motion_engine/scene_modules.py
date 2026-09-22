@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from array import array
+import hashlib
 import json
 import subprocess
 import sys
@@ -12,7 +13,7 @@ from typing import Any
 
 from . import __version__
 from .rendering import FrameRenderer, RenderError, _ffmpeg_executable, _mix_audio, _sample_for_frame
-from .revisions import file_sha256, spec_sha256
+from .revisions import canonical_bytes, file_sha256, spec_sha256
 from .runs import frames_tree_sha256
 
 
@@ -35,6 +36,43 @@ def _slice_mix(source: Path, output: Path, start: int, end: int, rate: dict[str,
         stream.setsampwidth(2)
         stream.setframerate(48_000)
         stream.writeframes(samples.tobytes())
+
+
+def scene_input_sha256(
+    spec: dict[str, Any], scene_id: str, *, scale: float, font_dirs: list[str | Path] | None = None
+) -> str:
+    """Hash every declared input that can affect one scene module's pixels or audio."""
+    scene_index = next((index for index, scene in enumerate(spec["timeline"]) if scene["id"] == scene_id), None)
+    if scene_index is None:
+        raise RenderError(f"unknown scene ID: {scene_id}")
+    scene = spec["timeline"][scene_index]
+    following = spec["timeline"][scene_index + 1] if scene_index + 1 < len(spec["timeline"]) else None
+    disclosures = [
+        item for item in spec["policies"]["disclosures"]
+        if item["startFrame"] < scene["endFrameExclusive"] and item["endFrameExclusive"] > scene["startFrame"]
+    ]
+    payload = {
+        "contract": "motion-engine-scene-module-v1",
+        "producerVersion": __version__,
+        "project": {
+            "locale": spec["project"]["locale"],
+            "direction": spec["project"]["direction"],
+        },
+        "canvas": spec["canvas"],
+        "scene": scene,
+        "followingTransition": None if following is None else {
+            "transitionIn": following.get("transitionIn", "cut"),
+            "transitionFrames": following.get("transitionFrames"),
+        },
+        "datasets": spec["datasets"],
+        "assets": spec["assets"],
+        "disclosures": disclosures,
+        "render": {
+            "scale": scale,
+            "fontDirs": [str(Path(path).resolve()) for path in (font_dirs or [])],
+        },
+    }
+    return hashlib.sha256(canonical_bytes(payload)).hexdigest()
 
 
 def render_scene_modules(
@@ -122,6 +160,7 @@ def render_scene_modules(
                 outputs.append({"kind": "video/mp4", "path": f"{directory_name}/preview.mp4", "sha256": file_sha256(video)})
             module = {
                 "sceneId": scene_id,
+                "sceneInputSha256": scene_input_sha256(spec, scene_id, scale=scale, font_dirs=font_dirs),
                 "order": timeline_order,
                 "directory": directory_name,
                 "globalStartFrame": start,
@@ -136,7 +175,7 @@ def render_scene_modules(
         if full_mix is not None:
             full_mix.unlink()
         manifest = {
-            "formatVersion": 1,
+            "formatVersion": 2,
             "producerVersion": __version__,
             "projectId": spec["project"]["id"],
             "specSha256": spec_sha256(spec),
