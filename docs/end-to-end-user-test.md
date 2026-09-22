@@ -15,7 +15,7 @@ Start a new coding-agent task in an empty or projectless workspace. This new tas
 Expected result:
 
 - The agent clones the repository itself and discovers `AGENTS.md` and `START_HERE.md`.
-- The agent reports build `0.66.0` or newer.
+- The agent reports build `0.67.0` or newer.
 - It creates the ignored `runs/bitcoin-editability-test/` directory itself.
 - It does not ask for knowledge from this development conversation.
 

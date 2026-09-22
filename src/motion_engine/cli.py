@@ -35,12 +35,24 @@ from .asset_catalog import AssetCatalogError, build_asset_catalog
 from .scene_modules import render_scene_modules
 from .scene_assembly import SceneAssemblyError, assemble_scene_modules
 from .review_site import ReviewSiteError, make_review_site
+from .doctor import doctor_report
+from .project_workspace import WorkspaceError, init_project
+from .editor_delivery import EditorDeliveryError, make_editor_delivery, verify_editor_delivery
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="motion-engine")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("version", help="Print the installed Motion Engine build version")
+    doctor = sub.add_parser("doctor", help="Check local preview and optional Adobe readiness")
+    doctor.add_argument("--workspace", help="Directory that must be writable")
+    doctor.add_argument("--output", help="Write the shareable diagnostic report as JSON")
+    project = sub.add_parser("init-project", help="Create a private, agent-ready production workspace")
+    project.add_argument("output_dir")
+    request_group = project.add_mutually_exclusive_group(required=True)
+    request_group.add_argument("--request", help="The user's complete production request")
+    request_group.add_argument("--request-file", help="UTF-8 file containing the production request")
+    project.add_argument("--project-id")
     for name in ("validate", "inspect", "plan", "render", "freeze", "qa"):
         command = sub.add_parser(name)
         command.add_argument("spec")
@@ -121,6 +133,15 @@ def main(argv: list[str] | None = None) -> int:
     review_site.add_argument("--output-dir", required=True)
     review_site.add_argument("--scale", type=float, default=0.5)
     review_site.add_argument("--font-dir", action="append", default=[])
+    editor_delivery = sub.add_parser("make-editor-delivery", help="Create a verified review and Adobe handoff folder")
+    editor_delivery.add_argument("spec")
+    editor_delivery.add_argument("--modules", action="append", required=True)
+    editor_delivery.add_argument("--render-dir", required=True)
+    editor_delivery.add_argument("--output-dir", required=True)
+    editor_delivery.add_argument("--scale", type=float, default=0.5)
+    editor_delivery.add_argument("--font-dir", action="append", default=[])
+    verify_delivery = sub.add_parser("verify-editor-delivery", help="Verify a complete editor handoff folder")
+    verify_delivery.add_argument("directory")
     asset_resolver = sub.add_parser("resolve-assets", help="Match pending shot requests to inspected local assets")
     asset_resolver.add_argument("proposal")
     asset_resolver.add_argument("--assets", required=True, help="Catalog of available hashed assets")
@@ -145,6 +166,20 @@ def main(argv: list[str] | None = None) -> int:
     first.add_argument("--height", type=int, default=1920)
     first.add_argument("--fps", type=int, default=30)
     first.add_argument("--scale", type=float, default=0.5)
+    produce = sub.add_parser("produce", help="Build a complete first-draft review and editor handoff in one command")
+    produce.add_argument("prompt", help="UTF-8 prompt beside the director plan")
+    produce.add_argument("proposal", help="Agent-authored director plan JSON beside the prompt")
+    produce.add_argument("--project-id", required=True)
+    produce.add_argument("--name", default="v1", help="New filename prefix for this production version")
+    produce.add_argument("--assets")
+    produce.add_argument("--claims")
+    produce.add_argument("--data-fragment", action="append", default=[])
+    produce.add_argument("--width", type=int, default=1080)
+    produce.add_argument("--height", type=int, default=1920)
+    produce.add_argument("--fps", type=int, default=30)
+    produce.add_argument("--scale", type=float, default=0.5)
+    produce.add_argument("--font-dir", action="append", default=[])
+    produce.add_argument("--max-frames", type=int, default=10_000)
     revised_render = sub.add_parser("revise-and-render", help="Apply an agent-authored typed scene edit and render")
     revised_render.add_argument("spec")
     revised_render.add_argument("request", help="Agent-authored JSON request in the MotionSpec directory")
@@ -217,6 +252,16 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if args.command == "version":
             print(__version__)
+            return 0
+        if args.command == "doctor":
+            result = doctor_report(args.workspace)
+            _emit(result, args.output)
+            return 0 if result["ok"] else 1
+        if args.command == "init-project":
+            request = args.request
+            if args.request_file:
+                request = Path(args.request_file).read_text(encoding="utf-8-sig")
+            print(json.dumps(init_project(args.output_dir, request, project_id=args.project_id), ensure_ascii=False, indent=2))
             return 0
         if args.command == "ingest":
             result = ingest(args.source, args.source_id, args.limit)
@@ -317,6 +362,14 @@ def main(argv: list[str] | None = None) -> int:
             )
             print(json.dumps(result, ensure_ascii=False, indent=2))
             return 0
+        if args.command == "make-editor-delivery":
+            result = make_editor_delivery(args.spec, args.modules, args.render_dir, args.output_dir,
+                                          scale=args.scale, font_dirs=args.font_dir)
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+            return 0
+        if args.command == "verify-editor-delivery":
+            print(json.dumps(verify_editor_delivery(args.directory), ensure_ascii=False, indent=2))
+            return 0
         if args.command == "resolve-assets":
             result = resolve_asset_requests(args.proposal, args.assets, args.output, fps=args.fps)
             _emit(result, args.output)
@@ -371,6 +424,70 @@ def main(argv: list[str] | None = None) -> int:
                               "package": str(package_path) if bundle_manifest else None},
                              ensure_ascii=False, indent=2))
             return 0
+        if args.command == "produce":
+            prompt_path = Path(args.prompt).resolve()
+            plan_path = Path(args.proposal).resolve()
+            if prompt_path.parent != plan_path.parent:
+                raise DirectorError("prompt and director plan must share a directory")
+            if not args.name or any(character not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.-" for character in args.name):
+                raise DirectorError("production name may contain only letters, numbers, dot, dash, and underscore")
+            root = prompt_path.parent
+            spec_path = root / f"{args.name}.motion.json"
+            modules_path = root / f"{args.name}-scenes"
+            render_path = root / f"{args.name}-preview"
+            review_path = root / f"{args.name}-review"
+            delivery_path = root / f"{args.name}-editor-delivery"
+            outputs = (spec_path, modules_path, render_path, review_path, delivery_path)
+            if any(path.exists() for path in outputs):
+                raise DirectorError("production outputs already exist; choose a new --name")
+            with plan_path.open("r", encoding="utf-8") as stream:
+                proposal = json.load(stream)
+            asset_list = None
+            if args.assets:
+                with Path(args.assets).open("r", encoding="utf-8") as stream:
+                    asset_list = json.load(stream)
+            data_fragments = []
+            for path in args.data_fragment:
+                with Path(path).open("r", encoding="utf-8") as stream:
+                    data_fragments.append(json.load(stream))
+            spec = compile_director_plan(prompt_path, spec_path, proposal, project_id=args.project_id,
+                                         width=args.width, height=args.height, fps=args.fps,
+                                         assets=asset_list, proposal_path=plan_path,
+                                         claim_ledger_path=args.claims, data_fragments=data_fragments)
+            _emit(spec, spec_path)
+            revision = freeze_revision(spec, root)
+            modules = render_scene_modules(spec, modules_path, mp4=True, scale=args.scale,
+                                           font_dirs=args.font_dir, asset_root=root,
+                                           revision_sha256=revision["revisionSha256"], max_frames=args.max_frames)
+            assembled = assemble_scene_modules(spec, [modules_path], render_path, mp4=True,
+                                               scale=args.scale, font_dirs=args.font_dir,
+                                               revision_sha256=revision["revisionSha256"])
+            quality = qa_report(spec, root, render_path)
+            _emit(quality, render_path / "qa.json")
+            review = make_review_site(spec, [modules_path], review_path, render_dir=render_path,
+                                      scale=args.scale, font_dirs=args.font_dir,
+                                      revision_sha256=revision["revisionSha256"])
+            delivery = make_editor_delivery(spec_path, [modules_path], render_path, delivery_path,
+                                            scale=args.scale, font_dirs=args.font_dir)
+            state_path = root / "project.json"
+            if state_path.is_file():
+                state = json.loads(state_path.read_text(encoding="utf-8"))
+                if isinstance(state, dict) and state.get("projectId") == args.project_id:
+                    state["currentVersion"] = args.name
+                    state["status"] = "first_draft_ready"
+                    state["artifacts"] = {"spec": spec_path.name, "preview": f"{render_path.name}/preview.mp4",
+                                          "review": f"{review_path.name}/index.html",
+                                          "editorDelivery": delivery_path.name}
+                    state_path.write_text(json.dumps(state, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            print(json.dumps({"ok": quality["status"] != "failed", "name": args.name,
+                              "spec": str(spec_path), "sceneModules": str(modules_path),
+                              "preview": str(render_path / "preview.mp4"),
+                              "qa": str(render_path / "qa.json"), "qaStatus": quality["status"],
+                              "review": str(review_path / "index.html"),
+                              "editorDelivery": str(delivery_path),
+                              "sceneCount": len(modules["modules"]),
+                              "preparedAdapterCount": delivery["preparedAdapterCount"]}, ensure_ascii=False, indent=2))
+            return 0 if quality["status"] != "failed" else 1
         if args.command == "revise-and-render":
             base_path = Path(args.spec).resolve()
             request_path = Path(args.request).resolve()

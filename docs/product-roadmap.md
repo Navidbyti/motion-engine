@@ -59,6 +59,7 @@ This is the ordered work list for a usable, general motion-production engine. A 
 - [x] Render stable scene IDs as independent, hash-bound review modules with exact global-frame semantics and selective scene requests.
 - [x] Assemble a verified full timeline from compatible cached modules and newly rendered scene modules; reject stale, tampered, missing, or disagreeing candidates before publishing output.
 - [x] Generate a portable local review interface with the assembled preview, independently playable scene modules, visible copy and timing, stable IDs, and copyable scene edit prompts.
+- [x] Add an editor alpha kit with safe environment diagnostics, one-command workspace creation, one-command full first-draft production, verified source packaging, local review, supported Adobe handoffs, and structured external test instructions.
 - [ ] Add active agent-session integration so submitting a scene prompt from the review interface can route directly to the current desktop coding-agent task.
 - [ ] Add a dependency-scoped cache index so unrelated asset and dataset changes do not conservatively invalidate every scene module.
 
@@ -131,7 +132,7 @@ This is the ordered work list for a usable, general motion-production engine. A 
 
 - [x] Add a repository-owned desktop-agent production skill that routes Codex or Claude through research, complete planning, asset approval, first-draft rendering, scoped revisions, QA, and supported native exports without an LLM API key.
 - [x] Add one-command first-draft and revision review bundles containing verified inputs, preview media, QA, and revision-bound contact sheets.
-- [ ] Offer a documented local CLI workflow from inputs through final package, with resumable runs.
+- [x] Offer a documented local CLI workflow from inputs through a verified first-draft editor package. Fully automatic stage resume remains open.
 - [ ] Add the REST/job service and worker queue only after local stages have stable contracts.
 - [ ] Add credential isolation, project access control, audit history, quotas, and storage retention for multi-user use.
 - [ ] Publish a compatibility matrix, example projects, troubleshooting guide, and contributor setup.

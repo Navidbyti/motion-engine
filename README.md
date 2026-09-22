@@ -1,6 +1,6 @@
 # Motion Engine
 
-**Current build: v0.66.0** · Run `motion-engine version` to check the installed build.
+**Current build: v0.67.0** · Run `motion-engine version` to check the installed build.
 
 ## Use it with Codex, Claude, or Antigravity
 
@@ -14,7 +14,7 @@ An agent using the project for the first time should clone it into a fresh direc
 
 See **[what remains editable](docs/editability.md)** for the difference between MotionSpec, After Effects, Premiere, and flat preview outputs.
 
-The target producer workflow is a [complete first draft from a prompt, followed by scoped scene revisions](docs/creative-workflow.md). The current command line implements a narrower subset; see [product roadmap](docs/product-roadmap.md) for feature status.
+The target producer workflow is a [complete first draft from a prompt, followed by scoped scene revisions](docs/creative-workflow.md). The desktop agent performs creative planning and the `produce` command builds the complete checked first-draft package. See [product roadmap](docs/product-roadmap.md) for individual primitive and adapter coverage.
 
 An open-source, implementation-ready design for turning scripts, documents, data, audio, and assets into editable motion projects and rendered videos. The architecture is **input-agnostic**: a complex private reel is one acceptance case, not the product model.
 
@@ -67,6 +67,8 @@ cd motion-engine
 python -m pip install -e ".[dev]" -c requirements-dev.lock
 motion-engine validate examples/hello.motion.json
 motion-engine version
+motion-engine doctor
+motion-engine init-project runs/my-video --request "Create a complete 30-second motion graphic from my attached script."
 motion-engine inspect examples/hello.motion.json
 motion-engine ingest examples/assets/hello-script.md --output evidence.json
 motion-engine draft-text examples/assets/prompt-en.txt --output examples/my-draft.motion.json --project-id my_draft --locale en-US
@@ -76,6 +78,7 @@ motion-engine director-schema --output director-schema.json
 motion-engine resolve-assets project/plan.json --assets project/assets.json --output project/ready-plan.json --fps 30
 motion-engine compile-director examples/assets/director-abstract.txt examples/director-abstract.plan.json --output examples/my-directed.motion.json --project-id my_directed --width 320 --height 180 --fps 24
 motion-engine first-draft project/prompt.txt project/plan.json --project-id my_video --output-spec project/first.motion.json --output-dir project/preview --review-dir project/review --package-dir project/first-bundle
+motion-engine produce runs/my-video/prompt.txt runs/my-video/director-plan.json --project-id my-video --name v1
 motion-engine revise-and-render project/first.motion.json project/edit.json --output-spec project/second.motion.json --output-dir project/second-preview --review-dir project/second-review --package-dir project/second-bundle
 motion-engine make-review evidence.json --requirements examples/review-questions.json --output review.json
 motion-engine verify-claims examples/claims/northbridge.ledger.json --output claims-report.json
@@ -86,6 +89,8 @@ motion-engine render examples/hello.motion.json --output-dir hello-preview
 motion-engine render-scenes examples/prompt-en.motion.json --output-dir scene-modules
 motion-engine assemble-scenes examples/prompt-en.motion.json --modules scene-modules --output-dir assembled-preview
 motion-engine make-review-site examples/prompt-en.motion.json --modules scene-modules --render-dir assembled-preview --output-dir review-site
+motion-engine make-editor-delivery examples/prompt-en.motion.json --modules scene-modules --render-dir assembled-preview --output-dir editor-delivery
+motion-engine verify-editor-delivery editor-delivery
 motion-engine contact-sheet examples/hello.motion.json --render-dir hello-preview --output-dir hello-review
 motion-engine render examples/hello.motion.json --output-dir hello-preview --resume
 motion-engine qa examples/hello.motion.json --output hello-qa.json
@@ -99,7 +104,7 @@ motion-engine make-premiere-xml examples/ae-vertical.motion.json --render-dir ve
 python -m pytest
 ```
 
-The CLI validates and inspects MotionSpec, [imports tabular data](docs/data-import.md), checks typed dataset cells and chart ranges, compares chart values with CSV/XLSX source cells and declared decimal formulas, extracts evidence from documents, spreadsheets, images, and media headers, exports embedded PDF images with source hashes and page placements, and produces a frame plan with target capability status. It can render MP4 previews for text, rectangles, local raster images and moving plates, bar charts, line charts, and explicitly placed PCM WAV audio, then create a [verifiable preview bundle](docs/preview-bundles.md) and a portable [local review interface](docs/review-interface.md). Unsupported features and unlinked voice text fail explicitly. Narrow [Adobe exporters](docs/adobe-adapters.md) are available as manual script workflows. Broad Adobe output adapters remain planned. See [ingestion](docs/ingestion.md), [planning](docs/planning.md), [preview rendering](docs/rendering.md), and [milestones](docs/milestones.md).
+The CLI validates and inspects MotionSpec, [imports tabular data](docs/data-import.md), checks typed dataset cells and chart ranges, compares chart values with CSV/XLSX source cells and declared decimal formulas, extracts evidence from documents, spreadsheets, images, and media headers, exports embedded PDF images with source hashes and page placements, and produces a frame plan with target capability status. It can render MP4 previews for text, rectangles, local raster images and moving plates, bar charts, line charts, and explicitly placed PCM WAV audio, then create a [verifiable preview bundle](docs/preview-bundles.md), a portable [local review interface](docs/review-interface.md), and a verified [editor alpha handoff](docs/editor-alpha.md). Unsupported features and unlinked voice text fail explicitly. Narrow [Adobe exporters](docs/adobe-adapters.md) are available as manual script workflows. Broad Adobe output adapters remain planned. See [full-script production](docs/full-script-production.md), [ingestion](docs/ingestion.md), [planning](docs/planning.md), [preview rendering](docs/rendering.md), and [milestones](docs/milestones.md).
 
 Review extracted ambiguities and project-specific questions with the [source review workflow](docs/reviews.md).
 The [literal text drafting workflow](docs/drafting.md) is the first prompt-to-video slice; semantic drafting from arbitrary documents remains planned.
@@ -108,7 +113,7 @@ The [literal text drafting workflow](docs/drafting.md) is the first prompt-to-vi
 
 Open the repository in Codex or Claude Code and use this prompt to create a video:
 
-> Read AGENTS.md and docs/desktop-agent-workflow.md. Act as the director for my video request: inspect my sources, research factual claims, author the full plan and required assets, run the local first-draft command, inspect the rendered MP4, and improve weak scenes. Report actual limitations. For later prompts, revise only the requested scene and render a new version.
+> Read AGENTS.md and START_HERE.md. Run the environment check, create my private project workspace, inspect my sources, research factual claims, author the complete plan and required assets, run the one-command production workflow, inspect the rendered MP4, and improve weak scenes. Give me the review page and editor delivery. For later prompts, revise only the requested scene and render a new version.
 
 The repository also includes the reusable [`motion-engine-production`](skills/motion-engine-production/SKILL.md) skill. A compatible coding agent can read it directly from the clone. To make it globally discoverable in Codex, copy the `skills/motion-engine-production` folder into your Codex skills directory, then restart Codex. The skill supplies the production decisions and routes to the maintained repository documentation; it does not add an API dependency or grant permission to publish, purchase assets, or use external services.
 
