@@ -2,6 +2,8 @@
 
 **Current build: v0.68.0** · Run `motion-engine version` to check the installed build.
 
+**Benchmarks:** [suite and protocol](benchmarks/README.md) · [all results](benchmarks/results/RESULTS.md) · latest run, B1 GPS explainer: [draft video](benchmarks/results/20260928T0918Z_B1_v0.68.0/draft-proxy-540x960.mp4) · [revised video](benchmarks/results/20260928T0918Z_B1_v0.68.0/revised-proxy-540x960.mp4) · [draft contact sheet](benchmarks/results/20260928T0918Z_B1_v0.68.0/draft-contact-1fps.jpg)
+
 ## Start here — send only this link
 
 Send this repository link to a new Codex, Claude Code, or Antigravity task:
