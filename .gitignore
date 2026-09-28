@@ -17,3 +17,5 @@ fixtures/private/
 *.ai
 *.mov
 *.mp4
+# Benchmark footage and result proxies are intentionally tracked.
+!benchmarks/**/*.mp4

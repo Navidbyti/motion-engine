@@ -28,6 +28,8 @@ See **[what remains editable](docs/editability.md)** for the difference between 
 
 The target producer workflow is a [complete first draft from a prompt, followed by scoped scene revisions](docs/creative-workflow.md). The desktop agent performs creative planning and the `produce` command builds the complete checked first-draft package. See [product roadmap](docs/product-roadmap.md) for individual primitive and adapter coverage.
 
+**Benchmarks:** [`benchmarks/`](benchmarks/README.md) holds three frozen production tasks: a 30 s explainer, a data-heavy chart piece, and a footage edit with motion graphics. They are run in fresh agent chats to time and score each build. Results are in [`benchmarks/results/RESULTS.md`](benchmarks/results/RESULTS.md).
+
 An open-source, implementation-ready design for turning scripts, documents, data, audio, and assets into editable motion projects and rendered videos. The architecture is **input-agnostic**: a complex private reel is one acceptance case, not the product model.
 
 ## Status

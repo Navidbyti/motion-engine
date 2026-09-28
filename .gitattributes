@@ -6,3 +6,9 @@ examples/director-*.plan.json text eol=lf
 examples/director-*.assets.json text eol=lf
 examples/claims/*.txt text eol=lf
 examples/claims/*.json text eol=lf
+# Benchmark inputs are hash-pinned: store and check out byte-for-byte (no EOL conversion).
+benchmarks/B*/** -text
+benchmarks/shared/** -text
+benchmarks/manifest.json -text
+benchmarks/results/**/*.mp4 binary
+benchmarks/results/**/*.jpg binary
