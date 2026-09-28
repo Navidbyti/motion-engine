@@ -6,4 +6,4 @@ Times are wall-clock. **Setup** runs from the new chat's first message to `start
 
 | Run (UTC) | Bench | Build | Commit | Agent / model | Setup | Draft | Revision | Total | Auto | Agent | Owner avg | Publish? | Evidence |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| – | – | – | – | – | – | – | – | – | – | – | – | – | no runs yet |
+| 2026-09-28 09:18 | B1 | 0.68.0 | a94edb0 | Claude Code (desktop app) / claude-opus-5-5 | 2m16s | 21m37s | 5m02s | 29m46s | 10/10 | 6/6 | – | – | [draft](20260928T0918Z_B1_v0.68.0/draft-contact-1fps.jpg) [revised](20260928T0918Z_B1_v0.68.0/revised-contact-1fps.jpg) |
