@@ -185,5 +185,17 @@
     "draft": 1297.0,
     "revision": 302.0,
     "total": 1786.0
+  },
+  "owner_review": {
+    "scores": {
+      "design": 4,
+      "motion": 4,
+      "pacing": 4,
+      "clarity": 4,
+      "sound": 3
+    },
+    "would_publish": true,
+    "comment": "Really good motion graphics. First benchmark baseline, published so users can watch the engine grow.",
+    "reviewed_at": "2026-09-28T11:00:12Z"
   }
 }

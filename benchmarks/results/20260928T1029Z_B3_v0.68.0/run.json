@@ -211,5 +211,17 @@
     "draft": 1049.0,
     "revision": 333.0,
     "total": 1630.0
+  },
+  "owner_review": {
+    "scores": {
+      "design": 1,
+      "motion": 1,
+      "pacing": 1,
+      "clarity": 1,
+      "sound": 1
+    },
+    "would_publish": false,
+    "comment": "The worst of the three: bad overall, with really bad sound design.",
+    "reviewed_at": "2026-09-28T11:00:12Z"
   }
 }

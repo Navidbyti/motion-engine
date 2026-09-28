@@ -6,6 +6,6 @@ Times are wall-clock. **Setup** runs from the new chat's first message to `start
 
 | Run (UTC) | Bench | Build | Commit | Agent / model | Setup | Draft | Revision | Total | Auto | Agent | Owner avg | Publish? | Evidence |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 2026-09-28 09:18 | B1 | 0.68.0 | a94edb0 | Claude Code (desktop app) / claude-opus-5-5 | 2m16s | 21m37s | 5m02s | 29m46s | 10/10 | 6/6 | – | – | [draft](20260928T0918Z_B1_v0.68.0/draft-contact-1fps.jpg) [revised](20260928T0918Z_B1_v0.68.0/revised-contact-1fps.jpg) |
-| 2026-09-28 10:08 | B2 | 0.68.0 | 5b45ac2 | Claude Code (desktop app, subagent) / claude-opus-5-5 | 2m34s | 13m26s | 2m24s | 19m43s | 10/10 | 9/12 | – | – | [draft](20260928T1008Z_B2_v0.68.0/draft-contact-1fps.jpg) [revised](20260928T1008Z_B2_v0.68.0/revised-contact-1fps.jpg) |
-| 2026-09-28 10:29 | B3 | 0.68.0 | 88220db | Claude Code (desktop app, subagent) / claude-opus-5-5 | 2m35s | 17m29s | 5m33s | 27m10s | 10/10 | 10/11 | – | – | [draft](20260928T1029Z_B3_v0.68.0/draft-contact-1fps.jpg) [revised](20260928T1029Z_B3_v0.68.0/revised-contact-1fps.jpg) |
+| 2026-09-28 09:18 | B1 | 0.68.0 | a94edb0 | Claude Code (desktop app) / claude-opus-5-5 | 2m16s | 21m37s | 5m02s | 29m46s | 10/10 | 6/6 | 3.8 | yes | [draft](20260928T0918Z_B1_v0.68.0/draft-contact-1fps.jpg) [revised](20260928T0918Z_B1_v0.68.0/revised-contact-1fps.jpg) |
+| 2026-09-28 10:08 | B2 | 0.68.0 | 5b45ac2 | Claude Code (desktop app, subagent) / claude-opus-5-5 | 2m34s | 13m26s | 2m24s | 19m43s | 10/10 | 9/12 | 2.0 | no | [draft](20260928T1008Z_B2_v0.68.0/draft-contact-1fps.jpg) [revised](20260928T1008Z_B2_v0.68.0/revised-contact-1fps.jpg) |
+| 2026-09-28 10:29 | B3 | 0.68.0 | 88220db | Claude Code (desktop app, subagent) / claude-opus-5-5 | 2m35s | 17m29s | 5m33s | 27m10s | 10/10 | 10/11 | 1.0 | no | [draft](20260928T1029Z_B3_v0.68.0/draft-contact-1fps.jpg) [revised](20260928T1029Z_B3_v0.68.0/revised-contact-1fps.jpg) |

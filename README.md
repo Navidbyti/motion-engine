@@ -9,6 +9,19 @@
 
 **Benchmarks:** [suite and protocol](benchmarks/README.md) · [all results](benchmarks/results/RESULTS.md) · v0.68.0 baseline videos (540×960): B1 GPS explainer: [draft](benchmarks/results/20260928T0918Z_B1_v0.68.0/draft-proxy-540x960.mp4), [revised](benchmarks/results/20260928T0918Z_B1_v0.68.0/revised-proxy-540x960.mp4) · B2 climate data: [draft](benchmarks/results/20260928T1008Z_B2_v0.68.0/draft-proxy-540x960.mp4), [revised](benchmarks/results/20260928T1008Z_B2_v0.68.0/revised-proxy-540x960.mp4) · B3 Artemis I recap: [draft](benchmarks/results/20260928T1029Z_B3_v0.68.0/draft-proxy-540x960.mp4), [revised](benchmarks/results/20260928T1029Z_B3_v0.68.0/revised-proxy-540x960.mp4)
 
+### How the baseline videos were made
+
+These are the **first published benchmark results**: the v0.68.0 baseline. Later builds and Motion Studio are scored against the same frozen cases, so you can follow the quality improving from run to run.
+
+Each benchmark video was produced from **a single prompt** by **Claude Opus 5.5 (`claude-opus-5-5`, High effort) in Claude Code**, with no human input between the prompt and the pushed commit. The prompt is the fixed benchmark message in [`benchmarks/README.md`](benchmarks/README.md#running-a-benchmark-owner). From that one message the agent cloned the repository, installed and tested it, researched the sources, wrote the scene plan, built its own animated diagrams and plates, rendered and inspected the draft, applied the fixed revision prompt, checked its own work and committed the result.
+
+- **B1 · GPS explainer:** run in its own desktop chat from the benchmark message alone. Owner verdict: **really good**. Scores 4/4/4/4/3 (design, motion, pacing, clarity, sound), average 3.8; would post it.
+- **B2 · climate data** and **B3 · Artemis I recap:** the same benchmark message, run by Claude Code sub-agents started from that chat. Besides the benchmark text, their prompt only named the clone folder, the agent label and a scratch folder. Owner verdict: **mediocre at best**.
+  - B2 average 2.0: it proved the build can handle large datasets, but the pacing and storytelling were poor.
+  - B3 average 1.0: the weakest run, with bad sound design.
+
+Timings, checks and the full agent reports are in each run's `run.json`.
+
 ## Start here — send only this link
 
 Send this repository link to a new Codex, Claude Code, or Antigravity task:

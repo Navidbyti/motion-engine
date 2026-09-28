@@ -216,5 +216,17 @@
     "draft": 806.0,
     "revision": 144.0,
     "total": 1183.0
+  },
+  "owner_review": {
+    "scores": {
+      "design": 2,
+      "motion": 2,
+      "pacing": 1,
+      "clarity": 3,
+      "sound": 2
+    },
+    "would_publish": false,
+    "comment": "Mediocre at best. It proved the build can handle big data, but the pacing, storytelling and everything else were poor.",
+    "reviewed_at": "2026-09-28T11:00:12Z"
   }
 }
