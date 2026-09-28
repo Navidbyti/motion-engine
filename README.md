@@ -1,6 +1,11 @@
 # Motion Engine
 
-**Current build: v0.68.0** · Run `motion-engine version` to check the installed build.
+> [!WARNING]
+> **Discontinued.** Motion Engine is no longer developed. It is the base for **[Motion Studio](https://github.com/Navidbyti/motion-studio)**, a fully new repository built on HyperFrames (HTML + GSAP) with a creative-director pipeline, beat-accurate editing and a QA gate. Motion Studio carries over the claim ledger and the benchmark suite. **Use Motion Studio for new work:** send its link to your coding agent instead of this one.
+>
+> This repository stays as the v0.68.0 **baseline** for benchmark suite v1. Its runs remain in [`benchmarks/results/`](benchmarks/results/RESULTS.md) and are comparable with Motion Studio's.
+
+**Final build: v0.68.0** · Run `motion-engine version` to check the installed build.
 
 **Benchmarks:** [suite and protocol](benchmarks/README.md) · [all results](benchmarks/results/RESULTS.md) · latest run, B1 GPS explainer: [draft video](benchmarks/results/20260928T0918Z_B1_v0.68.0/draft-proxy-540x960.mp4) · [revised video](benchmarks/results/20260928T0918Z_B1_v0.68.0/revised-proxy-540x960.mp4) · [draft contact sheet](benchmarks/results/20260928T0918Z_B1_v0.68.0/draft-contact-1fps.jpg)
 

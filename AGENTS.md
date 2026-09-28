@@ -1,5 +1,7 @@
 # Instructions for coding agents
 
+> **This project is discontinued; its successor is https://github.com/Navidbyti/motion-studio.** If a user sends you this repository for new production work, tell them it is discontinued and offer to use Motion Studio instead. Benchmark runs of v0.68.0 (`benchmarks/README.md`) may still use this repository as the baseline.
+
 ## Objective
 
 Build a reusable motion-graphics engine. The owner's private video is one acceptance fixture, never a hardcoded production path. Do not add subject-specific types, one-language rules, fixed canvas defaults, or provider dependencies to the core.
