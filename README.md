@@ -7,7 +7,7 @@
 
 **Final build: v0.68.0** · Run `motion-engine version` to check the installed build.
 
-**Benchmarks:** [suite and protocol](benchmarks/README.md) · [all results](benchmarks/results/RESULTS.md) · latest run, B1 GPS explainer: [draft video](benchmarks/results/20260928T0918Z_B1_v0.68.0/draft-proxy-540x960.mp4) · [revised video](benchmarks/results/20260928T0918Z_B1_v0.68.0/revised-proxy-540x960.mp4) · [draft contact sheet](benchmarks/results/20260928T0918Z_B1_v0.68.0/draft-contact-1fps.jpg)
+**Benchmarks:** [suite and protocol](benchmarks/README.md) · [all results](benchmarks/results/RESULTS.md) · v0.68.0 baseline videos (540×960): B1 GPS explainer: [draft](benchmarks/results/20260928T0918Z_B1_v0.68.0/draft-proxy-540x960.mp4), [revised](benchmarks/results/20260928T0918Z_B1_v0.68.0/revised-proxy-540x960.mp4) · B2 climate data: [draft](benchmarks/results/20260928T1008Z_B2_v0.68.0/draft-proxy-540x960.mp4), [revised](benchmarks/results/20260928T1008Z_B2_v0.68.0/revised-proxy-540x960.mp4) · B3 Artemis I recap: [draft](benchmarks/results/20260928T1029Z_B3_v0.68.0/draft-proxy-540x960.mp4), [revised](benchmarks/results/20260928T1029Z_B3_v0.68.0/revised-proxy-540x960.mp4)
 
 ## Start here — send only this link
 
